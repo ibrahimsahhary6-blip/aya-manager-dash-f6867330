@@ -527,13 +527,13 @@ function DashboardPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد حذف الطالب</AlertDialogTitle>
+            <AlertDialogTitle>نقل الطالب إلى سلة المحذوفات</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف الطالب{" "}
+              سيتم نقل الطالب{" "}
               <span className="font-semibold text-foreground">
                 {deleting?.full_name}
               </span>
-              ؟ سيتم حذف كل سجلات المتابعة الخاصة به ولا يمكن التراجع.
+              {" "}إلى سلة المحذوفات. يمكن استرجاعه لاحقاً من السلة.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -542,7 +542,7 @@ function DashboardPage() {
               onClick={() => deleting && deleteMutation.mutate(deleting.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              حذف
+              نقل للسلة
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
