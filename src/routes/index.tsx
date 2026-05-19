@@ -194,7 +194,12 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <ExportReportDialog />
-            <ImportStudentsDialog />
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link to="/trash">
+                <Trash className="h-4 w-4" />
+                <span className="hidden sm:inline">سلة المحذوفات</span>
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/attendance">
                 <ClipboardCheck className="h-4 w-4" />
