@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   ChevronDown,
   X,
+  Trash,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
-import { ImportStudentsDialog } from "@/components/ImportStudentsDialog";
+import { normalizeArabic } from "@/lib/normalize";
 
 type Student = Tables<"students">;
 
@@ -83,6 +84,7 @@ function DashboardPage() {
       const { data, error } = await supabase
         .from("students")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Student[];
@@ -90,13 +92,13 @@ function DashboardPage() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeArabic(search);
     return students.filter((s) => {
       if (battalionFilter !== "all" && s.battalion_id !== battalionFilter) return false;
       if (companyFilter !== "all" && s.company_id !== companyFilter) return false;
       if (!q) return true;
       return (
-        s.full_name.toLowerCase().includes(q) ||
+        normalizeArabic(s.full_name).includes(q) ||
         s.student_code.toLowerCase().includes(q)
       );
     });
@@ -130,11 +132,14 @@ function DashboardPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("students").delete().eq("id", id);
+      const { error } = await supabase
+        .from("students")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("تم حذف الطالب");
+      toast.success("تم نقل الطالب إلى سلة المحذوفات");
       qc.invalidateQueries({ queryKey: ["students"] });
       setDeleting(null);
     },
@@ -193,7 +198,12 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <ExportReportDialog />
-            <ImportStudentsDialog />
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link to="/trash">
+                <Trash className="h-4 w-4" />
+                <span className="hidden sm:inline">سلة المحذوفات</span>
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/attendance">
                 <ClipboardCheck className="h-4 w-4" />
@@ -517,13 +527,13 @@ function DashboardPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد حذف الطالب</AlertDialogTitle>
+            <AlertDialogTitle>نقل الطالب إلى سلة المحذوفات</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف الطالب{" "}
+              سيتم نقل الطالب{" "}
               <span className="font-semibold text-foreground">
                 {deleting?.full_name}
               </span>
-              ؟ سيتم حذف كل سجلات المتابعة الخاصة به ولا يمكن التراجع.
+              {" "}إلى سلة المحذوفات. يمكن استرجاعه لاحقاً من السلة.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -532,7 +542,7 @@ function DashboardPage() {
               onClick={() => deleting && deleteMutation.mutate(deleting.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              حذف
+              نقل للسلة
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
