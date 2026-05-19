@@ -425,6 +425,10 @@ function RecitationForm({
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [surahOpen, setSurahOpen] = useState(false);
+  const surahListRef = useRef<HTMLDivElement | null>(null);
+  const scrollSurahList = (delta: number) => {
+    surahListRef.current?.scrollBy({ top: delta, behavior: "smooth" });
+  };
 
   const selectedSurah = getSurahByName(surah);
   const maxAyahs = selectedSurah?.ayahs ?? 0;
