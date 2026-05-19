@@ -84,6 +84,7 @@ function DashboardPage() {
       const { data, error } = await supabase
         .from("students")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Student[];
@@ -91,13 +92,13 @@ function DashboardPage() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeArabic(search);
     return students.filter((s) => {
       if (battalionFilter !== "all" && s.battalion_id !== battalionFilter) return false;
       if (companyFilter !== "all" && s.company_id !== companyFilter) return false;
       if (!q) return true;
       return (
-        s.full_name.toLowerCase().includes(q) ||
+        normalizeArabic(s.full_name).includes(q) ||
         s.student_code.toLowerCase().includes(q)
       );
     });
