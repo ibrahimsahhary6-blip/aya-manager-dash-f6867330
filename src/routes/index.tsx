@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   ChevronDown,
   X,
+  Trash,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
