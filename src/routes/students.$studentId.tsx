@@ -425,10 +425,12 @@ function RecitationForm({
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [surahOpen, setSurahOpen] = useState(false);
-  const surahListRef = useRef<HTMLDivElement | null>(null);
-  const scrollSurahList = (delta: number) => {
-    surahListRef.current?.scrollBy({ top: delta, behavior: "smooth" });
-  };
+  const [surahSearch, setSurahSearch] = useState("");
+  const filteredSurahs = SURAHS.filter((s) => {
+    const q = surahSearch.trim();
+    if (!q) return true;
+    return s.name.includes(q) || String(s.number).includes(q);
+  });
 
   const selectedSurah = getSurahByName(surah);
   const maxAyahs = selectedSurah?.ayahs ?? 0;
@@ -493,66 +495,58 @@ function RecitationForm({
               className="p-0 w-[--radix-popover-trigger-width]"
               dir="rtl"
               align="start"
+              onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <Command>
-                <CommandInput placeholder="ابحث عن سورة..." />
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => scrollSurahList(-200)}
-                    className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center h-7 bg-gradient-to-b from-popover to-transparent hover:from-accent text-muted-foreground"
-                    aria-label="تمرير لأعلى"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <CommandList
-                    ref={surahListRef}
-                    className="overflow-y-auto overscroll-contain"
-                    style={{
-                      maxHeight: "min(60vh, 420px)",
-                      WebkitOverflowScrolling: "touch",
-                      touchAction: "pan-y",
-                      paddingTop: "1.75rem",
-                      paddingBottom: "1.75rem",
-                    }}
-                  >
-                    <CommandEmpty>لا توجد نتائج</CommandEmpty>
-                    <CommandGroup>
-                      {SURAHS.map((s) => (
-                        <CommandItem
-                          key={s.number}
-                          value={`${s.number} ${s.name}`}
-                          onSelect={() => {
-                            setSurah(s.name);
-                            setFromAyah("");
-                            setToAyah("");
-                            setSurahOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={`ml-2 h-4 w-4 ${surah === s.name ? "opacity-100" : "opacity-0"}`}
-                          />
-                          <span className="font-mono text-xs text-muted-foreground ml-2">
-                            {s.number}.
-                          </span>
-                          <span>{s.name}</span>
-                          <span className="mr-auto text-xs text-muted-foreground">
-                            {s.ayahs} آية
-                          </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                  <button
-                    type="button"
-                    onClick={() => scrollSurahList(200)}
-                    className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center h-7 bg-gradient-to-t from-popover to-transparent hover:from-accent text-muted-foreground"
-                    aria-label="تمرير لأسفل"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
+              <div className="flex flex-col">
+                <div className="p-2 border-b">
+                  <Input
+                    placeholder="ابحث عن سورة..."
+                    value={surahSearch}
+                    onChange={(e) => setSurahSearch(e.target.value)}
+                    className="h-9"
+                  />
                 </div>
-              </Command>
+                <div
+                  className="overflow-y-auto overscroll-contain p-1"
+                  style={{
+                    maxHeight: "min(60vh, 420px)",
+                    WebkitOverflowScrolling: "touch",
+                    touchAction: "pan-y",
+                  }}
+                >
+                  {filteredSurahs.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      لا توجد نتائج
+                    </div>
+                  ) : (
+                    filteredSurahs.map((s) => (
+                      <button
+                        key={s.number}
+                        type="button"
+                        onClick={() => {
+                          setSurah(s.name);
+                          setFromAyah("");
+                          setToAyah("");
+                          setSurahOpen(false);
+                          setSurahSearch("");
+                        }}
+                        className="w-full flex items-center gap-2 rounded-sm px-2 py-2 text-sm text-right hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Check
+                          className={`h-4 w-4 ${surah === s.name ? "opacity-100" : "opacity-0"}`}
+                        />
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {s.number}.
+                        </span>
+                        <span>{s.name}</span>
+                        <span className="mr-auto text-xs text-muted-foreground">
+                          {s.ayahs} آية
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
             </PopoverContent>
           </Popover>
         </div>
