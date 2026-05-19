@@ -496,10 +496,6 @@ function RecitationForm({
             >
               <Command>
                 <CommandInput placeholder="ابحث عن سورة..." />
-                <CommandList
-                  className="overflow-y-auto"
-              <Command>
-                <CommandInput placeholder="ابحث عن سورة..." />
                 <div className="relative">
                   <button
                     type="button"
