@@ -49,6 +49,7 @@ import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
+import { ImportStudentsDialog } from "@/components/ImportStudentsDialog";
 
 type Student = Tables<"students">;
 
@@ -192,6 +193,7 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <ExportReportDialog />
+            <ImportStudentsDialog />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/attendance">
                 <ClipboardCheck className="h-4 w-4" />
