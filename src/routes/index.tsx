@@ -132,11 +132,14 @@ function DashboardPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("students").delete().eq("id", id);
+      const { error } = await supabase
+        .from("students")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("تم حذف الطالب");
+      toast.success("تم نقل الطالب إلى سلة المحذوفات");
       qc.invalidateQueries({ queryKey: ["students"] });
       setDeleting(null);
     },
