@@ -498,35 +498,64 @@ function RecitationForm({
                 <CommandInput placeholder="ابحث عن سورة..." />
                 <CommandList
                   className="overflow-y-auto"
-                  style={{ maxHeight: "min(75vh, 600px)" }}
-                >
-                  <CommandEmpty>لا توجد نتائج</CommandEmpty>
-                  <CommandGroup>
-                    {SURAHS.map((s) => (
-                      <CommandItem
-                        key={s.number}
-                        value={`${s.number} ${s.name}`}
-                        onSelect={() => {
-                          setSurah(s.name);
-                          setFromAyah("");
-                          setToAyah("");
-                          setSurahOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={`ml-2 h-4 w-4 ${surah === s.name ? "opacity-100" : "opacity-0"}`}
-                        />
-                        <span className="font-mono text-xs text-muted-foreground ml-2">
-                          {s.number}.
-                        </span>
-                        <span>{s.name}</span>
-                        <span className="mr-auto text-xs text-muted-foreground">
-                          {s.ayahs} آية
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
+              <Command>
+                <CommandInput placeholder="ابحث عن سورة..." />
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => scrollSurahList(-200)}
+                    className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center h-7 bg-gradient-to-b from-popover to-transparent hover:from-accent text-muted-foreground"
+                    aria-label="تمرير لأعلى"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <CommandList
+                    ref={surahListRef}
+                    className="overflow-y-auto overscroll-contain"
+                    style={{
+                      maxHeight: "min(60vh, 420px)",
+                      WebkitOverflowScrolling: "touch",
+                      touchAction: "pan-y",
+                      paddingTop: "1.75rem",
+                      paddingBottom: "1.75rem",
+                    }}
+                  >
+                    <CommandEmpty>لا توجد نتائج</CommandEmpty>
+                    <CommandGroup>
+                      {SURAHS.map((s) => (
+                        <CommandItem
+                          key={s.number}
+                          value={`${s.number} ${s.name}`}
+                          onSelect={() => {
+                            setSurah(s.name);
+                            setFromAyah("");
+                            setToAyah("");
+                            setSurahOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={`ml-2 h-4 w-4 ${surah === s.name ? "opacity-100" : "opacity-0"}`}
+                          />
+                          <span className="font-mono text-xs text-muted-foreground ml-2">
+                            {s.number}.
+                          </span>
+                          <span>{s.name}</span>
+                          <span className="mr-auto text-xs text-muted-foreground">
+                            {s.ayahs} آية
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                  <button
+                    type="button"
+                    onClick={() => scrollSurahList(200)}
+                    className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center h-7 bg-gradient-to-t from-popover to-transparent hover:from-accent text-muted-foreground"
+                    aria-label="تمرير لأسفل"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
               </Command>
             </PopoverContent>
           </Popover>
