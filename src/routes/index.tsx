@@ -199,6 +199,7 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <ExportReportDialog />
+            <BackupDataButton />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/trash">
                 <Trash className="h-4 w-4" />
