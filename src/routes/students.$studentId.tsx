@@ -441,7 +441,24 @@ type RecitationFormValues = {
   from_ayah: number;
   to_ayah: number;
   notes: string;
+  rating: string | null;
 };
+
+function RatingBadge({ rating }: { rating: string | null }) {
+  if (!rating) return null;
+  if (rating === "repeat") {
+    return (
+      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+        إعادة
+      </span>
+    );
+  }
+  return (
+    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+      {rating}/10
+    </span>
+  );
+}
 
 function RecitationForm({
   initial,
