@@ -160,6 +160,7 @@ function SettingsPage() {
 
   const deleteCo = useMutation({
     mutationFn: async (id: string) => {
+      await createBackup("pre_delete", `قبل حذف سرية ${id}`).catch(() => null);
       const { error } = await supabase.from("companies").delete().eq("id", id);
       if (error) throw error;
     },
