@@ -243,6 +243,8 @@ function StudentProfilePage() {
               <div className="text-xs text-muted-foreground mb-2">معلومات إضافية</div>
               <p className="text-sm whitespace-pre-wrap">{student.notes}</p>
             </div>
+          )}
+
 
           <div className="mt-5 pt-5 border-t grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border bg-background p-3">
