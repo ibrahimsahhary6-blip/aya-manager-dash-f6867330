@@ -35,6 +35,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies, type Battalion, type Company } from "@/lib/orgs";
+import { useIsAdmin } from "@/lib/roles";
+import { BackupsSection } from "@/components/BackupsSection";
+import { createBackup } from "@/lib/backup";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
