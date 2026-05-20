@@ -105,6 +105,25 @@ function StudentProfilePage() {
     },
   });
 
+  // Cumulative recitation rating (only 8/9/10 count; repeat & blank excluded)
+  const { data: ratingStats } = useQuery({
+    queryKey: ["attendance-ratings", studentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select("rating")
+        .eq("student_id", studentId);
+      if (error) throw error;
+      const rows = (data ?? []) as { rating: string | null }[];
+      const scored = rows
+        .map((r) => (r.rating && /^(8|9|10)$/.test(r.rating) ? Number(r.rating) : null))
+        .filter((n): n is number => n !== null);
+      const repeats = rows.filter((r) => r.rating === "repeat").length;
+      const avg = scored.length ? scored.reduce((a, b) => a + b, 0) / scored.length : null;
+      return { avg, count: scored.length, repeats };
+    },
+  });
+
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Recitation | null>(null);
   const [deleting, setDeleting] = useState<Recitation | null>(null);
