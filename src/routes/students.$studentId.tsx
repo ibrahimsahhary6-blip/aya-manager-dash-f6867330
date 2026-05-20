@@ -328,7 +328,12 @@ function StudentProfilePage() {
                           {new Date(r.recited_on).toLocaleDateString("ar-EG")}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-medium">{r.surah}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>{r.surah}</span>
+                          <RatingBadge rating={(r as Recitation & { rating?: string | null }).rating ?? null} />
+                        </div>
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {r.from_ayah} – {r.to_ayah}
                       </td>
