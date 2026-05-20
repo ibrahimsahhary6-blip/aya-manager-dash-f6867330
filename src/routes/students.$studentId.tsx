@@ -13,7 +13,6 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   ScrollText,
-  Check,
 } from "lucide-react";
 import {
   Select,
@@ -22,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SURAHS, getSurahByName } from "@/lib/quran";
 
 import { Button } from "@/components/ui/button";
