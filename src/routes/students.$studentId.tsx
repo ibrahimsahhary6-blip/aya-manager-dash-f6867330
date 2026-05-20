@@ -460,7 +460,10 @@ function RecitationForm({
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(initial?.recited_on ?? today);
-  const [surah, setSurah] = useState(initial?.surah ?? "");
+  // Parse initial surah which may be a range "X - Y"
+  const initSurahParts = (initial?.surah ?? "").split(" - ");
+  const [fromSurah, setFromSurah] = useState(initSurahParts[0] ?? "");
+  const [toSurah, setToSurah] = useState(initSurahParts[1] ?? initSurahParts[0] ?? "");
   const [fromAyah, setFromAyah] = useState<string>(
     initial?.from_ayah?.toString() ?? "",
   );
