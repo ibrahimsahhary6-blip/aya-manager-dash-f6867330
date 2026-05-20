@@ -35,6 +35,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies, type Battalion, type Company } from "@/lib/orgs";
+import { useIsAdmin } from "@/lib/roles";
+import { BackupsSection } from "@/components/BackupsSection";
+import { createBackup } from "@/lib/backup";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -42,6 +45,7 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const qc = useQueryClient();
+  const isAdmin = useIsAdmin();
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
 
@@ -90,6 +94,7 @@ function SettingsPage() {
 
   const deleteBat = useMutation({
     mutationFn: async (id: string) => {
+      await createBackup("pre_delete", `قبل حذف كتيبة ${id}`).catch(() => null);
       const { error } = await supabase.from("battalions").delete().eq("id", id);
       if (error) throw error;
     },
@@ -155,6 +160,7 @@ function SettingsPage() {
 
   const deleteCo = useMutation({
     mutationFn: async (id: string) => {
+      await createBackup("pre_delete", `قبل حذف سرية ${id}`).catch(() => null);
       const { error } = await supabase.from("companies").delete().eq("id", id);
       if (error) throw error;
     },
@@ -422,6 +428,10 @@ function SettingsPage() {
             })}
           </ul>
         </section>
+
+        <div className="lg:col-span-2">
+          <BackupsSection isAdmin={isAdmin} />
+        </div>
       </main>
 
       <AlertDialog
