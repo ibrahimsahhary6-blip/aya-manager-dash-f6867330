@@ -626,7 +626,8 @@ function RecitationForm({
             value={fromAyah}
             onValueChange={(v) => {
               setFromAyah(v);
-              if (toAyah && Number(toAyah) < Number(v)) setToAyah("");
+              // Auto-fill "to" with same value when empty or smaller — user can still change it
+              if (!toAyah || Number(toAyah) < Number(v)) setToAyah(v);
             }}
             disabled={!selectedSurah}
           >
