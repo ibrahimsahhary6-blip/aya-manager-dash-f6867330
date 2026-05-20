@@ -73,7 +73,12 @@ export const Route = createFileRoute("/students/$studentId")({
 
 function StudentProfilePage() {
   const { studentId } = Route.useParams();
+  const router = useRouter();
   const qc = useQueryClient();
+  const goBack = () => {
+    if (window.history.length > 1) router.history.back();
+    else router.navigate({ to: "/" });
+  };
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
