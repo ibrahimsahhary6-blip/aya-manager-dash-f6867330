@@ -56,7 +56,7 @@ function downloadXlsx(sheetName: string, rows: (string | number | null)[][], fil
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws["!cols"] = [
     { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 12 },
-    { wch: 14 }, { wch: 14 }, { wch: 60 },
+    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 60 },
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31) || "Report");
@@ -135,11 +135,28 @@ export function ExportReportDialog() {
       if (attRes.error) throw attRes.error;
       if (recRes.error) throw recRes.error;
 
-      const attByStudent = new Map<string, { present: number; absent: number }>();
+      const attByStudent = new Map<
+        string,
+        { present: number; absent: number; ratedSum: number; ratedCount: number; repeats: number }
+      >();
       (attRes.data ?? []).forEach((a) => {
-        const cur = attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
+        const cur =
+          attByStudent.get(a.student_id) ?? {
+            present: 0,
+            absent: 0,
+            ratedSum: 0,
+            ratedCount: 0,
+            repeats: 0,
+          };
         if (a.present) cur.present++;
         else cur.absent++;
+        const r = (a as { rating?: string | null }).rating;
+        if (r === "8" || r === "9" || r === "10") {
+          cur.ratedSum += Number(r);
+          cur.ratedCount++;
+        } else if (r === "repeat") {
+          cur.repeats++;
+        }
         attByStudent.set(a.student_id, cur);
       });
 
@@ -162,14 +179,25 @@ export function ExportReportDialog() {
         "أيام الحضور",
         "أيام الغياب",
         "نسبة الحضور %",
+        "معدل التسميع التراكمي",
+        "عدد التسميعات المُقيَّمة",
+        "مرات الإعادة",
         "عدد التسميعات",
         "تفاصيل التسميعات",
       ]);
 
       (students ?? []).forEach((s) => {
-        const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
+        const a =
+          attByStudent.get(s.id) ?? {
+            present: 0,
+            absent: 0,
+            ratedSum: 0,
+            ratedCount: 0,
+            repeats: 0,
+          };
         const total = a.present + a.absent;
         const pct = total ? Math.round((a.present / total) * 100) : 0;
+        const avg = a.ratedCount ? +(a.ratedSum / a.ratedCount).toFixed(2) : "";
         const recs = recByStudent.get(s.id) ?? [];
         const recDetails = recs
           .map(
@@ -183,6 +211,9 @@ export function ExportReportDialog() {
           a.present,
           a.absent,
           pct,
+          avg,
+          a.ratedCount,
+          a.repeats,
           recs.length,
           recDetails,
         ]);

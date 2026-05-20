@@ -105,6 +105,25 @@ function StudentProfilePage() {
     },
   });
 
+  // Cumulative recitation rating (only 8/9/10 count; repeat & blank excluded)
+  const { data: ratingStats } = useQuery({
+    queryKey: ["attendance-ratings", studentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select("rating")
+        .eq("student_id", studentId);
+      if (error) throw error;
+      const rows = (data ?? []) as { rating: string | null }[];
+      const scored = rows
+        .map((r) => (r.rating && /^(8|9|10)$/.test(r.rating) ? Number(r.rating) : null))
+        .filter((n): n is number => n !== null);
+      const repeats = rows.filter((r) => r.rating === "repeat").length;
+      const avg = scored.length ? scored.reduce((a, b) => a + b, 0) / scored.length : null;
+      return { avg, count: scored.length, repeats };
+    },
+  });
+
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Recitation | null>(null);
   const [deleting, setDeleting] = useState<Recitation | null>(null);
@@ -225,7 +244,29 @@ function StudentProfilePage() {
               <p className="text-sm whitespace-pre-wrap">{student.notes}</p>
             </div>
           )}
+
+
+          <div className="mt-5 pt-5 border-t grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border bg-background p-3">
+              <div className="text-xs text-muted-foreground">معدل التسميع التراكمي</div>
+              <div className="mt-1 text-2xl font-bold text-primary">
+                {ratingStats?.avg != null ? ratingStats.avg.toFixed(2) : "—"}
+                <span className="text-xs text-muted-foreground font-normal mr-1">/ 10</span>
+              </div>
+            </div>
+            <div className="rounded-xl border bg-background p-3">
+              <div className="text-xs text-muted-foreground">عدد التسميعات المُقيَّمة</div>
+              <div className="mt-1 text-2xl font-bold">{ratingStats?.count ?? 0}</div>
+            </div>
+            <div className="rounded-xl border bg-background p-3">
+              <div className="text-xs text-muted-foreground">مرات الإعادة</div>
+              <div className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">
+                {ratingStats?.repeats ?? 0}
+              </div>
+            </div>
+          </div>
         </section>
+
 
         {/* Recitations log */}
         <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
