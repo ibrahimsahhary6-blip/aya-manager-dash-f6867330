@@ -504,100 +504,104 @@ function RecitationForm({
       }}
       className="space-y-4"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="date">التاريخ</Label>
-          <Input
-            id="date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
+      <div className="space-y-2">
+        <Label htmlFor="date">التاريخ</Label>
+        <Input
+          id="date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>
+          اختر السورة وقيّم التسميع
+          {surah && (
+            <span className="text-muted-foreground font-normal"> — المختارة: {surah}</span>
+          )}
+        </Label>
+        <div className="rounded-md border bg-background">
+          <ScrollArea
+            className="h-[320px] w-full"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <ul className="divide-y">
+              {SURAHS.map((s) => {
+                const active = surah === s.name;
+                return (
+                  <li
+                    key={s.number}
+                    className={`flex items-center gap-2 px-3 py-2 ${active ? "bg-primary/10" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!active) {
+                          setSurah(s.name);
+                          setFromAyah("");
+                          setToAyah("");
+                        }
+                      }}
+                      className="flex items-center gap-2 flex-1 min-w-0 text-right"
+                    >
+                      <Check
+                        className={`h-4 w-4 shrink-0 ${active ? "opacity-100 text-primary" : "opacity-0"}`}
+                      />
+                      <span className="font-mono text-xs text-muted-foreground w-8 shrink-0">
+                        {s.number}.
+                      </span>
+                      <span className="truncate font-medium">{s.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {s.ayahs} آية
+                      </span>
+                    </button>
+                    <div className="flex gap-1 shrink-0">
+                      {(["10", "9", "8", "repeat"] as const).map((v) => {
+                        const isActiveRating = active && rating === v;
+                        const isRepeat = v === "repeat";
+                        return (
+                          <Button
+                            key={v}
+                            type="button"
+                            size="sm"
+                            variant={
+                              isActiveRating
+                                ? isRepeat
+                                  ? "destructive"
+                                  : "default"
+                                : "outline"
+                            }
+                            onClick={() => {
+                              if (!active) {
+                                setSurah(s.name);
+                                setFromAyah("");
+                                setToAyah("");
+                              }
+                              if (isRepeat && !isActiveRating) {
+                                toast.warning(
+                                  "تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.",
+                                );
+                              }
+                              setRating(isActiveRating ? "" : v);
+                            }}
+                            className="h-7 min-w-[34px] px-1.5 text-[11px]"
+                          >
+                            {isRepeat ? "إعادة" : v}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </ScrollArea>
         </div>
-        <div className="space-y-2">
-          <Label>اسم السورة</Label>
-          <Popover open={surahOpen} onOpenChange={setSurahOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                role="combobox"
-                className="w-full justify-between font-normal"
-              >
-                <span className={surah ? "" : "text-muted-foreground"}>
-                  {surah || "اختر سورة..."}
-                </span>
-                <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="p-0 w-[--radix-popover-trigger-width]"
-              dir="rtl"
-              align="start"
-            >
-              <Command>
-                <CommandInput placeholder="ابحث عن سورة..." />
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => scrollSurahList(-200)}
-                    className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center h-7 bg-gradient-to-b from-popover to-transparent hover:from-accent text-muted-foreground"
-                    aria-label="تمرير لأعلى"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <CommandList
-                    ref={surahListRef}
-                    className="overflow-y-auto overscroll-contain"
-                    style={{
-                      maxHeight: "min(60vh, 420px)",
-                      WebkitOverflowScrolling: "touch",
-                      touchAction: "pan-y",
-                      paddingTop: "1.75rem",
-                      paddingBottom: "1.75rem",
-                    }}
-                  >
-                    <CommandEmpty>لا توجد نتائج</CommandEmpty>
-                    <CommandGroup>
-                      {SURAHS.map((s) => (
-                        <CommandItem
-                          key={s.number}
-                          value={`${s.number} ${s.name}`}
-                          onSelect={() => {
-                            setSurah(s.name);
-                            setFromAyah("");
-                            setToAyah("");
-                            setSurahOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={`ml-2 h-4 w-4 ${surah === s.name ? "opacity-100" : "opacity-0"}`}
-                          />
-                          <span className="font-mono text-xs text-muted-foreground ml-2">
-                            {s.number}.
-                          </span>
-                          <span>{s.name}</span>
-                          <span className="mr-auto text-xs text-muted-foreground">
-                            {s.ayahs} آية
-                          </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                  <button
-                    type="button"
-                    onClick={() => scrollSurahList(200)}
-                    className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center h-7 bg-gradient-to-t from-popover to-transparent hover:from-accent text-muted-foreground"
-                    aria-label="تمرير لأسفل"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                </div>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
+        <p className="text-[11px] text-muted-foreground">
+          مرّر القائمة بإصبعك واختر السورة ثم التقييم بجوارها.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -607,7 +611,6 @@ function RecitationForm({
             value={fromAyah}
             onValueChange={(v) => {
               setFromAyah(v);
-              // Auto-fill "to" with same value when empty or smaller — user can still change it
               if (!toAyah || Number(toAyah) < Number(v)) setToAyah(v);
             }}
             disabled={!selectedSurah}
@@ -649,32 +652,6 @@ function RecitationForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>التقييم{surah && <span className="text-muted-foreground font-normal"> — {surah}</span>}</Label>
-        <div className="flex gap-2 flex-wrap">
-          {(["10", "9", "8", "repeat"] as const).map((v) => {
-            const active = rating === v;
-            const isRepeat = v === "repeat";
-            return (
-              <Button
-                key={v}
-                type="button"
-                size="sm"
-                variant={active ? (isRepeat ? "destructive" : "default") : "outline"}
-                onClick={() => {
-                  if (isRepeat && !active) {
-                    toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
-                  }
-                  setRating(active ? "" : v);
-                }}
-                className="min-w-14"
-              >
-                {isRepeat ? "إعادة" : `${v}/10`}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
 
       <div className="space-y-2">
         <Label htmlFor="rec-notes">ملاحظات (اختياري)</Label>
