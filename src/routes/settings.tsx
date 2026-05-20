@@ -94,6 +94,7 @@ function SettingsPage() {
 
   const deleteBat = useMutation({
     mutationFn: async (id: string) => {
+      await createBackup("pre_delete", `قبل حذف كتيبة ${id}`).catch(() => null);
       const { error } = await supabase.from("battalions").delete().eq("id", id);
       if (error) throw error;
     },
