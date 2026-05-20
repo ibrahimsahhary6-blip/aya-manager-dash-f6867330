@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies, type Battalion, type Company } from "@/lib/orgs";
+import { BackupRestore } from "@/components/BackupRestore";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -422,6 +423,8 @@ function SettingsPage() {
             })}
           </ul>
         </section>
+
+        <BackupRestore />
       </main>
 
       <AlertDialog
