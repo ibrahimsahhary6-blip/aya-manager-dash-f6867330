@@ -348,8 +348,8 @@ function AttendancePage() {
                     }
                     attendanceMap={attendanceMap}
                     recitedSet={recitedSet}
-                    onToggle={(id, v) =>
-                      toggleMutation.mutate({ studentId: id, present: v })
+                    onToggle={(id, v, rating) =>
+                      toggleMutation.mutate({ studentId: id, present: v, rating })
                     }
                   />
                 </section>
