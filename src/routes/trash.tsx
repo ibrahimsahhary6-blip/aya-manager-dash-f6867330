@@ -73,6 +73,8 @@ function TrashPage() {
 
   const purgeMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { createBackup } = await import("@/lib/backup");
+      await createBackup("pre_delete", `قبل حذف نهائي لطالب ${id}`).catch(() => null);
       const { error } = await supabase.from("students").delete().eq("id", id);
       if (error) throw error;
     },
@@ -86,6 +88,8 @@ function TrashPage() {
 
   const emptyMutation = useMutation({
     mutationFn: async () => {
+      const { createBackup } = await import("@/lib/backup");
+      await createBackup("pre_delete", "قبل إفراغ سلة المحذوفات").catch(() => null);
       const { error } = await supabase
         .from("students")
         .delete()
