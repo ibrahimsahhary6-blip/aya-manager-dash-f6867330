@@ -207,11 +207,9 @@ function StudentProfilePage() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-          <Button asChild variant="ghost" size="sm" className="gap-2">
-            <Link to="/">
-              <ArrowRight className="h-4 w-4" />
-              <span>العودة</span>
-            </Link>
+          <Button variant="ghost" size="sm" className="gap-2" onClick={goBack}>
+            <ArrowRight className="h-4 w-4" />
+            <span>العودة</span>
           </Button>
           <span className="font-mono text-xs text-primary font-semibold">
             {student.student_code}
