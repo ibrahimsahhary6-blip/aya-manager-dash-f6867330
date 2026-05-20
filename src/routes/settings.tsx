@@ -428,6 +428,10 @@ function SettingsPage() {
             })}
           </ul>
         </section>
+
+        <div className="lg:col-span-2">
+          <BackupsSection isAdmin={isAdmin} />
+        </div>
       </main>
 
       <AlertDialog
