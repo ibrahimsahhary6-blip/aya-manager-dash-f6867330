@@ -669,7 +669,34 @@ function RecitationForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rec-notes">التقييم / ملاحظات (اختياري)</Label>
+        <Label>التقييم{surah && <span className="text-muted-foreground font-normal"> — {surah}</span>}</Label>
+        <div className="flex gap-2 flex-wrap">
+          {(["10", "9", "8", "repeat"] as const).map((v) => {
+            const active = rating === v;
+            const isRepeat = v === "repeat";
+            return (
+              <Button
+                key={v}
+                type="button"
+                size="sm"
+                variant={active ? (isRepeat ? "destructive" : "default") : "outline"}
+                onClick={() => {
+                  if (isRepeat && !active) {
+                    toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
+                  }
+                  setRating(active ? "" : v);
+                }}
+                className="min-w-14"
+              >
+                {isRepeat ? "إعادة" : `${v}/10`}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="rec-notes">ملاحظات (اختياري)</Label>
         <Textarea
           id="rec-notes"
           value={notes}
