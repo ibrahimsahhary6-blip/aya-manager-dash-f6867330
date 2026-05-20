@@ -135,6 +135,7 @@ export type Database = {
           from_ayah: number
           id: string
           notes: string | null
+          rating: string | null
           recited_on: string
           student_id: string
           surah: string
@@ -146,6 +147,7 @@ export type Database = {
           from_ayah: number
           id?: string
           notes?: string | null
+          rating?: string | null
           recited_on?: string
           student_id: string
           surah: string
@@ -157,6 +159,7 @@ export type Database = {
           from_ayah?: number
           id?: string
           notes?: string | null
+          rating?: string | null
           recited_on?: string
           student_id?: string
           surah?: string

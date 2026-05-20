@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@/lib/errors";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +73,12 @@ export const Route = createFileRoute("/students/$studentId")({
 
 function StudentProfilePage() {
   const { studentId } = Route.useParams();
+  const router = useRouter();
   const qc = useQueryClient();
+  const goBack = () => {
+    if (window.history.length > 1) router.history.back();
+    else router.navigate({ to: "/" });
+  };
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -105,24 +110,16 @@ function StudentProfilePage() {
     },
   });
 
-  // Cumulative recitation rating (only 8/9/10 count; repeat & blank excluded)
-  const { data: ratingStats } = useQuery({
-    queryKey: ["attendance-ratings", studentId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("attendance")
-        .select("rating")
-        .eq("student_id", studentId);
-      if (error) throw error;
-      const rows = (data ?? []) as { rating: string | null }[];
-      const scored = rows
-        .map((r) => (r.rating && /^(8|9|10)$/.test(r.rating) ? Number(r.rating) : null))
-        .filter((n): n is number => n !== null);
-      const repeats = rows.filter((r) => r.rating === "repeat").length;
-      const avg = scored.length ? scored.reduce((a, b) => a + b, 0) / scored.length : null;
-      return { avg, count: scored.length, repeats };
-    },
-  });
+  // Cumulative recitation rating from recitations (per-surah)
+  const ratingStats = (() => {
+    const rows = (recitations as (Recitation & { rating?: string | null })[]) ?? [];
+    const scored = rows
+      .map((r) => (r.rating && /^(8|9|10)$/.test(r.rating) ? Number(r.rating) : null))
+      .filter((n): n is number => n !== null);
+    const repeats = rows.filter((r) => r.rating === "repeat").length;
+    const avg = scored.length ? scored.reduce((a, b) => a + b, 0) / scored.length : null;
+    return { avg, count: scored.length, repeats };
+  })();
 
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Recitation | null>(null);
@@ -210,11 +207,9 @@ function StudentProfilePage() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-          <Button asChild variant="ghost" size="sm" className="gap-2">
-            <Link to="/">
-              <ArrowRight className="h-4 w-4" />
-              <span>العودة</span>
-            </Link>
+          <Button variant="ghost" size="sm" className="gap-2" onClick={goBack}>
+            <ArrowRight className="h-4 w-4" />
+            <span>العودة</span>
           </Button>
           <span className="font-mono text-xs text-primary font-semibold">
             {student.student_code}
@@ -333,7 +328,12 @@ function StudentProfilePage() {
                           {new Date(r.recited_on).toLocaleDateString("ar-EG")}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-medium">{r.surah}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>{r.surah}</span>
+                          <RatingBadge rating={(r as Recitation & { rating?: string | null }).rating ?? null} />
+                        </div>
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {r.from_ayah} – {r.to_ayah}
                       </td>
@@ -399,6 +399,7 @@ function StudentProfilePage() {
                 from_ayah: editing.from_ayah,
                 to_ayah: editing.to_ayah,
                 notes: editing.notes ?? "",
+                rating: (editing as Recitation & { rating?: string | null }).rating ?? "",
               }}
               submitLabel="حفظ التغييرات"
               loading={updateMutation.isPending}
@@ -440,7 +441,24 @@ type RecitationFormValues = {
   from_ayah: number;
   to_ayah: number;
   notes: string;
+  rating: string | null;
 };
+
+function RatingBadge({ rating }: { rating: string | null }) {
+  if (!rating) return null;
+  if (rating === "repeat") {
+    return (
+      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+        إعادة
+      </span>
+    );
+  }
+  return (
+    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+      {rating}/10
+    </span>
+  );
+}
 
 function RecitationForm({
   initial,
@@ -465,6 +483,7 @@ function RecitationForm({
     initial?.to_ayah?.toString() ?? "",
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [rating, setRating] = useState<string>(initial?.rating ?? "");
   const [surahOpen, setSurahOpen] = useState(false);
   const surahListRef = useRef<HTMLDivElement | null>(null);
   const scrollSurahList = (delta: number) => {
@@ -499,6 +518,7 @@ function RecitationForm({
           from_ayah: from,
           to_ayah: to,
           notes: notes.trim().slice(0, 2000),
+          rating: rating || null,
         });
       }}
       className="space-y-4"
@@ -606,7 +626,8 @@ function RecitationForm({
             value={fromAyah}
             onValueChange={(v) => {
               setFromAyah(v);
-              if (toAyah && Number(toAyah) < Number(v)) setToAyah("");
+              // Auto-fill "to" with same value when empty or smaller — user can still change it
+              if (!toAyah || Number(toAyah) < Number(v)) setToAyah(v);
             }}
             disabled={!selectedSurah}
           >
@@ -648,7 +669,34 @@ function RecitationForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rec-notes">التقييم / ملاحظات (اختياري)</Label>
+        <Label>التقييم{surah && <span className="text-muted-foreground font-normal"> — {surah}</span>}</Label>
+        <div className="flex gap-2 flex-wrap">
+          {(["10", "9", "8", "repeat"] as const).map((v) => {
+            const active = rating === v;
+            const isRepeat = v === "repeat";
+            return (
+              <Button
+                key={v}
+                type="button"
+                size="sm"
+                variant={active ? (isRepeat ? "destructive" : "default") : "outline"}
+                onClick={() => {
+                  if (isRepeat && !active) {
+                    toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
+                  }
+                  setRating(active ? "" : v);
+                }}
+                className="min-w-14"
+              >
+                {isRepeat ? "إعادة" : `${v}/10`}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="rec-notes">ملاحظات (اختياري)</Label>
         <Textarea
           id="rec-notes"
           value={notes}
