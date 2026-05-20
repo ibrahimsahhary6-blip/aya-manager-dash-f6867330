@@ -474,31 +474,39 @@ function RecitationForm({
   const [rating, setRating] = useState<string>(initial?.rating ?? "");
 
 
-  const selectedSurah = getSurahByName(surah);
+  const selectedSurah = getSurahByName(fromSurah);
   const maxAyahs = selectedSurah?.ayahs ?? 0;
   const ayahNumbers = Array.from({ length: maxAyahs }, (_, i) => i + 1);
-  const fromNum = Number(fromAyah);
-  const toAyahNumbers = ayahNumbers.filter((n) => !fromAyah || n >= fromNum);
+  const toSurahMeta = getSurahByName(toSurah);
+  const toMaxAyahs = toSurahMeta?.ayahs ?? 0;
+  const toAyahNumbers = Array.from({ length: toMaxAyahs }, (_, i) => i + 1).filter(
+    (n) => fromSurah !== toSurah || !fromAyah || n >= Number(fromAyah),
+  );
 
   const from = Number(fromAyah);
   const to = Number(toAyah);
+  const sameSurah = fromSurah === toSurah;
   const valid =
-    !!surah &&
+    !!fromSurah &&
+    !!toSurah &&
     !!date &&
     !!fromAyah &&
     !!toAyah &&
     from >= 1 &&
-    to >= from &&
-    to <= maxAyahs;
+    to >= 1 &&
+    from <= maxAyahs &&
+    to <= toMaxAyahs &&
+    (!sameSurah || to >= from);
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         if (!valid) return;
+        const surahValue = sameSurah ? fromSurah : `${fromSurah} - ${toSurah}`;
         onSubmit({
           recited_on: date,
-          surah,
+          surah: surahValue,
           from_ayah: from,
           to_ayah: to,
           notes: notes.trim().slice(0, 2000),
@@ -518,94 +526,57 @@ function RecitationForm({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>
-          اختر السورة وقيّم التسميع
-          {surah && (
-            <span className="text-muted-foreground font-normal"> — المختارة: {surah}</span>
-          )}
-        </Label>
-        <div className="rounded-md border bg-background">
-          <ScrollArea
-            className="h-[320px] w-full"
-            style={{ WebkitOverflowScrolling: "touch" }}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>من سورة</Label>
+          <Select
+            value={fromSurah}
+            onValueChange={(v) => {
+              setFromSurah(v);
+              // Auto-mirror to "إلى سورة" so single-surah is the default
+              setToSurah(v);
+              setFromAyah("");
+              setToAyah("");
+            }}
           >
-            <ul className="divide-y">
-              {SURAHS.map((s) => {
-                const active = surah === s.name;
-                return (
-                  <li
-                    key={s.number}
-                    className={`flex items-center gap-2 px-3 py-2 ${active ? "bg-primary/10" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!active) {
-                          setSurah(s.name);
-                          setFromAyah("");
-                          setToAyah("");
-                        }
-                      }}
-                      className="flex items-center gap-2 flex-1 min-w-0 text-right"
-                    >
-                      <Check
-                        className={`h-4 w-4 shrink-0 ${active ? "opacity-100 text-primary" : "opacity-0"}`}
-                      />
-                      <span className="font-mono text-xs text-muted-foreground w-8 shrink-0">
-                        {s.number}.
-                      </span>
-                      <span className="truncate font-medium">{s.name}</span>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        {s.ayahs} آية
-                      </span>
-                    </button>
-                    <div className="flex gap-1 shrink-0">
-                      {(["10", "9", "8", "repeat"] as const).map((v) => {
-                        const isActiveRating = active && rating === v;
-                        const isRepeat = v === "repeat";
-                        return (
-                          <Button
-                            key={v}
-                            type="button"
-                            size="sm"
-                            variant={
-                              isActiveRating
-                                ? isRepeat
-                                  ? "destructive"
-                                  : "default"
-                                : "outline"
-                            }
-                            onClick={() => {
-                              if (!active) {
-                                setSurah(s.name);
-                                setFromAyah("");
-                                setToAyah("");
-                              }
-                              if (isRepeat && !isActiveRating) {
-                                toast.warning(
-                                  "تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.",
-                                );
-                              }
-                              setRating(isActiveRating ? "" : v);
-                            }}
-                            className="h-7 min-w-[34px] px-1.5 text-[11px]"
-                          >
-                            {isRepeat ? "إعادة" : v}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </ScrollArea>
+            <SelectTrigger>
+              <SelectValue placeholder="اختر .." />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {SURAHS.map((s) => (
+                <SelectItem key={s.number} value={s.name}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          مرّر القائمة بإصبعك واختر السورة ثم التقييم بجوارها.
-        </p>
+        <div className="space-y-2">
+          <Label>إلى سورة</Label>
+          <Select
+            value={toSurah}
+            onValueChange={(v) => {
+              setToSurah(v);
+              setToAyah("");
+            }}
+            disabled={!fromSurah}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={fromSurah ? "اختر .." : "اختر من سورة أولاً"} />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {SURAHS.filter(
+                (s) => !selectedSurah || s.number >= selectedSurah.number,
+              ).map((s) => (
+                <SelectItem key={s.number} value={s.name}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
