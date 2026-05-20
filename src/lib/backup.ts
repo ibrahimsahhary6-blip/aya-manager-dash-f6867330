@@ -26,7 +26,7 @@ export async function createBackup(kind: BackupKind, note?: string) {
   const payload = await snapshotAll();
   const { data, error } = await supabase
     .from("backups")
-    .insert({ kind, note: note ?? null, payload })
+    .insert({ kind, note: note ?? null, payload: payload as unknown as never })
     .select()
     .single();
   if (error) throw error;
