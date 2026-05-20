@@ -60,10 +60,31 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [battalionFilter, setBattalionFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
-  const [expandedBattalion, setExpandedBattalion] = useState<string | null>(null);
+  // Persist filters so returning from a student profile preserves context
+  const FILTERS_KEY = "dashboard-filters-v1";
+  const initialFilters = (() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = sessionStorage.getItem(FILTERS_KEY);
+      return raw ? (JSON.parse(raw) as { search: string; battalionFilter: string; companyFilter: string; expandedBattalion: string | null }) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const [search, setSearch] = useState(initialFilters?.search ?? "");
+  const [battalionFilter, setBattalionFilter] = useState<string>(initialFilters?.battalionFilter ?? "all");
+  const [companyFilter, setCompanyFilter] = useState<string>(initialFilters?.companyFilter ?? "all");
+  const [expandedBattalion, setExpandedBattalion] = useState<string | null>(initialFilters?.expandedBattalion ?? null);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        FILTERS_KEY,
+        JSON.stringify({ search, battalionFilter, companyFilter, expandedBattalion }),
+      );
+    } catch {
+      // ignore quota errors
+    }
+  }, [search, battalionFilter, companyFilter, expandedBattalion]);
 
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
