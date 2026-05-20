@@ -423,6 +423,8 @@ function SettingsPage() {
             })}
           </ul>
         </section>
+
+        <BackupRestore />
       </main>
 
       <AlertDialog
