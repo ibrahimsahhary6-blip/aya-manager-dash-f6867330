@@ -56,7 +56,7 @@ function downloadXlsx(sheetName: string, rows: (string | number | null)[][], fil
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws["!cols"] = [
     { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 12 },
-    { wch: 14 }, { wch: 14 }, { wch: 60 },
+    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 60 },
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31) || "Report");
