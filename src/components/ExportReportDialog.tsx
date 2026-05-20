@@ -137,34 +137,40 @@ export function ExportReportDialog() {
 
       const attByStudent = new Map<
         string,
-        { present: number; absent: number; ratedSum: number; ratedCount: number; repeats: number }
+        { present: number; absent: number }
       >();
       (attRes.data ?? []).forEach((a) => {
         const cur =
-          attByStudent.get(a.student_id) ?? {
-            present: 0,
-            absent: 0,
-            ratedSum: 0,
-            ratedCount: 0,
-            repeats: 0,
-          };
+          attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
         if (a.present) cur.present++;
         else cur.absent++;
-        const r = (a as { rating?: string | null }).rating;
-        if (r === "8" || r === "9" || r === "10") {
-          cur.ratedSum += Number(r);
-          cur.ratedCount++;
-        } else if (r === "repeat") {
-          cur.repeats++;
-        }
         attByStudent.set(a.student_id, cur);
       });
 
       const recByStudent = new Map<string, typeof recRes.data>();
+      const ratingByStudent = new Map<
+        string,
+        { ratedSum: number; ratedCount: number; repeats: number }
+      >();
       (recRes.data ?? []).forEach((r) => {
         const list = recByStudent.get(r.student_id) ?? [];
         list.push(r);
         recByStudent.set(r.student_id, list);
+
+        const cur =
+          ratingByStudent.get(r.student_id) ?? {
+            ratedSum: 0,
+            ratedCount: 0,
+            repeats: 0,
+          };
+        const rr = (r as { rating?: string | null }).rating;
+        if (rr === "8" || rr === "9" || rr === "10") {
+          cur.ratedSum += Number(rr);
+          cur.ratedCount++;
+        } else if (rr === "repeat") {
+          cur.repeats++;
+        }
+        ratingByStudent.set(r.student_id, cur);
       });
 
       const rows: (string | number | null)[][] = [];
@@ -187,23 +193,19 @@ export function ExportReportDialog() {
       ]);
 
       (students ?? []).forEach((s) => {
-        const a =
-          attByStudent.get(s.id) ?? {
-            present: 0,
-            absent: 0,
-            ratedSum: 0,
-            ratedCount: 0,
-            repeats: 0,
-          };
+        const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
+        const rt =
+          ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
         const total = a.present + a.absent;
         const pct = total ? Math.round((a.present / total) * 100) : 0;
-        const avg = a.ratedCount ? +(a.ratedSum / a.ratedCount).toFixed(2) : "";
+        const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
         const recs = recByStudent.get(s.id) ?? [];
         const recDetails = recs
-          .map(
-            (r) =>
-              `${r.recited_on}: ${r.surah} ${r.from_ayah}-${r.to_ayah}${r.notes ? ` (${r.notes})` : ""}`,
-          )
+          .map((r) => {
+            const rr = (r as { rating?: string | null }).rating;
+            const ratingLabel = rr === "repeat" ? " [إعادة]" : rr ? ` [${rr}/10]` : "";
+            return `${r.recited_on}: ${r.surah} ${r.from_ayah}-${r.to_ayah}${ratingLabel}${r.notes ? ` (${r.notes})` : ""}`;
+          })
           .join(" | ");
         rows.push([
           s.student_code,
@@ -212,8 +214,8 @@ export function ExportReportDialog() {
           a.absent,
           pct,
           avg,
-          a.ratedCount,
-          a.repeats,
+          rt.ratedCount,
+          rt.repeats,
           recs.length,
           recDetails,
         ]);
