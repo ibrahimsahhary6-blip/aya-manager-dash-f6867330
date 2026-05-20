@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@/lib/errors";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -13,9 +13,6 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   ScrollText,
-  ChevronsUpDown,
-  ChevronUp,
-  ChevronDown,
   Check,
 } from "lucide-react";
 import {
@@ -25,19 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { SURAHS, getSurahByName } from "@/lib/quran";
 
 import { Button } from "@/components/ui/button";
