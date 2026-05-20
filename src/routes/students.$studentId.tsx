@@ -399,6 +399,7 @@ function StudentProfilePage() {
                 from_ayah: editing.from_ayah,
                 to_ayah: editing.to_ayah,
                 notes: editing.notes ?? "",
+                rating: (editing as Recitation & { rating?: string | null }).rating ?? "",
               }}
               submitLabel="حفظ التغييرات"
               loading={updateMutation.isPending}
