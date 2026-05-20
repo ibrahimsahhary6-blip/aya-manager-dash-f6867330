@@ -373,7 +373,11 @@ function CompanyGroup({
   presentCount: number;
   attendanceMap: Map<string, Attendance>;
   recitedSet: Set<string>;
-  onToggle: (id: string, v: boolean) => void;
+  onToggle: (
+    id: string,
+    v: boolean,
+    rating?: string | null,
+  ) => void;
 }) {
   const [open, setOpen] = useState(true);
   return (
@@ -395,12 +399,13 @@ function CompanyGroup({
             const recited = recitedSet.has(s.id);
             const isPresent = rec ? rec.present : recited;
             const auto = !rec && recited;
+            const rating = (rec as (Attendance & { rating?: string | null }) | undefined)?.rating ?? "";
             return (
               <li
                 key={s.id}
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent/20"
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-accent/20"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
                     className={`h-9 w-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
                       isPresent
@@ -417,7 +422,32 @@ function CompanyGroup({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Select
+                    value={rating || "none"}
+                    onValueChange={(v) => {
+                      if (v === "repeat") {
+                        toast.warning(`${s.full_name}: تم تسجيل "إعادة" — لن تُحتسب ضمن معدّل الإتقان.`);
+                        onToggle(s.id, isPresent, "repeat");
+                      } else if (v === "none") {
+                        onToggle(s.id, isPresent, null);
+                      } else {
+                        // 8 / 9 / 10 → اعتبار الطالب حاضراً تلقائياً
+                        onToggle(s.id, true, v);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-24 text-xs">
+                      <SelectValue placeholder="التقييم" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— تقييم —</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="9">9</SelectItem>
+                      <SelectItem value="8">8</SelectItem>
+                      <SelectItem value="repeat">إعادة</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {auto && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                       تلقائي
