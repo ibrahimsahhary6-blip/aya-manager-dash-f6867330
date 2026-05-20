@@ -108,13 +108,24 @@ function AttendancePage() {
   };
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ studentId, present }: { studentId: string; present: boolean }) => {
+    mutationFn: async ({
+      studentId,
+      present,
+      rating,
+    }: {
+      studentId: string;
+      present: boolean;
+      rating?: string | null;
+    }) => {
+      const payload: Record<string, unknown> = {
+        student_id: studentId,
+        attended_on: date,
+        present,
+      };
+      if (rating !== undefined) payload.rating = rating;
       const { error } = await supabase
         .from("attendance")
-        .upsert(
-          { student_id: studentId, attended_on: date, present },
-          { onConflict: "student_id,attended_on" },
-        );
+        .upsert(payload, { onConflict: "student_id,attended_on" });
       if (error) throw error;
     },
     onSuccess: () => {
