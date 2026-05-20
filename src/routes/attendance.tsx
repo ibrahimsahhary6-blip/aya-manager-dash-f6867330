@@ -117,12 +117,12 @@ function AttendancePage() {
       present: boolean;
       rating?: string | null;
     }) => {
-      const payload: Record<string, unknown> = {
+      const payload = {
         student_id: studentId,
         attended_on: date,
         present,
+        ...(rating !== undefined ? { rating } : {}),
       };
-      if (rating !== undefined) payload.rating = rating;
       const { error } = await supabase
         .from("attendance")
         .upsert(payload, { onConflict: "student_id,attended_on" });
