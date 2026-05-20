@@ -45,6 +45,7 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const qc = useQueryClient();
+  const isAdmin = useIsAdmin();
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
 
