@@ -133,6 +133,8 @@ function DashboardPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { createBackup } = await import("@/lib/backup");
+      await createBackup("pre_delete", `قبل نقل طالب ${id} إلى المهملات`).catch(() => null);
       const { error } = await supabase
         .from("students")
         .update({ deleted_at: new Date().toISOString() })
