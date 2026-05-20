@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/public/hooks/daily-backup")({
 
           const { error: insertErr } = await supabaseAdmin
             .from("backups")
-            .insert({ kind: "daily", note: "نسخة يومية تلقائية", payload });
+            .insert({ kind: "daily", note: "نسخة يومية تلقائية", payload: payload as never });
           if (insertErr) throw insertErr;
 
           // Retention: keep last 30 daily backups
