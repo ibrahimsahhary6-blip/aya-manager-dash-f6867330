@@ -50,6 +50,7 @@ import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
+import { BackupDataButton } from "@/components/BackupDataButton";
 import { normalizeArabic } from "@/lib/normalize";
 
 type Student = Tables<"students">;
@@ -132,8 +133,6 @@ function DashboardPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { createBackup } = await import("@/lib/backup");
-      await createBackup("pre_delete", `قبل نقل طالب ${id} إلى المهملات`).catch(() => null);
       const { error } = await supabase
         .from("students")
         .update({ deleted_at: new Date().toISOString() })
@@ -200,6 +199,7 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <ExportReportDialog />
+            <BackupDataButton />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/trash">
                 <Trash className="h-4 w-4" />

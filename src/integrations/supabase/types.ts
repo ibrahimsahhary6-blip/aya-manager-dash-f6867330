@@ -49,30 +49,6 @@ export type Database = {
           },
         ]
       }
-      backups: {
-        Row: {
-          created_at: string
-          id: string
-          kind: string
-          note: string | null
-          payload: Json
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          kind: string
-          note?: string | null
-          payload: Json
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          kind?: string
-          note?: string | null
-          payload?: Json
-        }
-        Relationships: []
-      }
       battalions: {
         Row: {
           created_at: string
