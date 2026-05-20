@@ -426,6 +426,27 @@ function SettingsPage() {
           </ul>
         </section>
 
+        <section className="bg-card rounded-2xl border shadow-soft p-4 sm:p-6 lg:col-span-2">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Download className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold">التقارير وسلة المحذوفات</h2>
+              <p className="text-xs text-muted-foreground">تصدير بيانات السرايا وإدارة المحذوفات</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <ExportReportDialog />
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link to="/trash">
+                <Trash className="h-4 w-4" />
+                <span>سلة المحذوفات</span>
+              </Link>
+            </Button>
+          </div>
+        </section>
+
         <BackupRestore />
       </main>
 
