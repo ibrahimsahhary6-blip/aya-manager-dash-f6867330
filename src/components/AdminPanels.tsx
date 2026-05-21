@@ -112,7 +112,7 @@ export function InviteUserCard() {
 
   const { data: allowed = [], isLoading } = useQuery({
     queryKey: ["allowed_emails"],
-    enabled: isAdmin,
+    enabled: isSuperAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("allowed_emails")
@@ -135,7 +135,7 @@ export function InviteUserCard() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
-  if (!isAdmin) return null;
+  if (!isSuperAdmin) return null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
