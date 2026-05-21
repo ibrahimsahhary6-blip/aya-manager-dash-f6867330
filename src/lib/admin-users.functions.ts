@@ -174,3 +174,71 @@ export const removePlatformUser = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const transferSuperAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      targetEmail: z.string().email().max(255),
+      confirmEmail: z.string().email().max(255),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.userId);
+
+    const target = data.targetEmail.trim().toLowerCase();
+    const confirm = data.confirmEmail.trim().toLowerCase();
+    if (target !== confirm) {
+      throw new Error("الإيميل المُدخل للتأكيد لا يطابق");
+    }
+
+    // Find target user by email
+    const { data: targetProfile, error: pErr } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, email")
+      .ilike("email", target)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!targetProfile) {
+      throw new Error("لا يوجد مستخدم بهذا الإيميل. يجب أن يسجّل دخول مرة واحدة أولاً");
+    }
+    if (targetProfile.user_id === context.userId) {
+      throw new Error("أنت المدير العام بالفعل");
+    }
+
+    // 1) Grant super_admin to target
+    const { error: insErr } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: targetProfile.user_id, role: "super_admin" });
+    if (insErr && !insErr.message.toLowerCase().includes("duplicate")) {
+      throw new Error(insErr.message);
+    }
+
+    // 2) Ensure target profile is approved
+    await supabaseAdmin
+      .from("profiles")
+      .update({ is_approved: true, approved_at: new Date().toISOString() })
+      .eq("user_id", targetProfile.user_id);
+
+    // 3) Remove super_admin from current user, demote to admin
+    const { error: delErr } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", context.userId)
+      .eq("role", "super_admin");
+    if (delErr) throw new Error(delErr.message);
+
+    await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: context.userId, role: "admin" });
+
+    // Audit
+    await supabaseAdmin.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "super_admin_transferred",
+      target_user_id: targetProfile.user_id,
+      target_email: targetProfile.email,
+    });
+
+    return { ok: true, newSuperAdminEmail: targetProfile.email };
+  });
+
