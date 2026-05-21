@@ -565,7 +565,6 @@ function formatArabicDate(iso: string): string {
 }
 
 function DateGroup({
-  date,
   rows,
   onPatch,
   onEdit,
@@ -578,46 +577,21 @@ function DateGroup({
   onDelete: (r: Recitation) => void;
 }) {
   return (
-    <div className="px-3 sm:px-5 py-4" dir="rtl">
-      <div className="mb-3 flex items-center gap-2 bg-primary text-primary-foreground px-3 py-2 rounded-md">
-        <CalendarIcon className="h-4 w-4" />
-        <h3 className="text-sm font-bold">{formatArabicDate(date)}</h3>
-        <span className="text-xs opacity-90">({rows.length})</span>
-      </div>
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm min-w-[680px] table-fixed break-words" dir="rtl">
-          <colgroup>
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "10%" }} />
-          </colgroup>
-          <thead className="bg-primary text-primary-foreground text-xs">
-            <tr>
-              <th className="text-right p-3 font-bold">السورة</th>
-              <th className="text-right p-3 font-bold">الملاحظات</th>
-              <th className="text-right p-3 font-bold">التقييم</th>
-              <th className="p-3"></th>
-            </tr>
-          </thead>
-          <tbody className="[&_tr:nth-child(even)]:bg-muted/30">
-            {rows.map((r) => (
-              <RecitationTableRow
-                key={r.id}
-                rec={r}
-                onPatch={(patch) => onPatch(r.id, patch)}
-                onEdit={() => onEdit(r)}
-                onDelete={() => onDelete(r)}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="divide-y" dir="rtl">
+      {rows.map((r) => (
+        <RecitationCard
+          key={r.id}
+          rec={r}
+          onPatch={(patch) => onPatch(r.id, patch)}
+          onEdit={() => onEdit(r)}
+          onDelete={() => onDelete(r)}
+        />
+      ))}
     </div>
   );
 }
 
-function RecitationTableRow({
+function RecitationCard({
   rec,
   onPatch,
   onEdit,
@@ -658,65 +632,59 @@ function RecitationTableRow({
   };
 
   return (
-    <tr className="align-top hover:bg-accent/30 border-t">
-      <td className="p-3 align-top">
-        <div className="flex items-start gap-2 font-semibold leading-relaxed">
-          <BookOpen className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <span className="break-words">{rec.surah}</span>
-          {rec.is_review && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30 shrink-0">
-              مراجعة
-            </span>
-          )}
-        </div>
-        <div className="text-[11px] text-muted-foreground font-mono mt-1">
-          الآيات {rec.from_ayah}–{rec.to_ayah}
-        </div>
-      </td>
-      <td className="p-3 align-top">
-        <Textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={saveNotes}
-          placeholder="ملاحظات..."
-          maxLength={2000}
-          rows={2}
-          className="text-sm resize-y min-h-[40px]"
-          dir="rtl"
-        />
-      </td>
-      <td className="p-2">
-        <div className="flex gap-1 flex-wrap">
-          {RATING_BUTTONS.map((b) => {
-            const active = currentRating === b.value;
-            return (
-              <button
-                key={b.value}
-                onClick={() => setRating(b.value)}
-                type="button"
-                className={`h-8 px-2.5 min-w-[44px] text-xs font-semibold rounded-md border transition-colors ${
-                  active ? b.activeClass : b.idleClass
-                }`}
-              >
-                {b.label}
-              </button>
-            );
-          })}
-        </div>
-      </td>
-      <td className="p-2">
-        <div className="flex gap-1">
-          <Button size="icon" variant="ghost" onClick={onEdit} className="h-8 w-8" title="تعديل">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="icon" variant="ghost" onClick={onDelete} className="h-8 w-8" title="حذف">
-            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-          </Button>
-        </div>
-      </td>
-    </tr>
+    <div className="px-4 py-4 space-y-3">
+      <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground font-mono">
+        <span>{formatArabicDate(rec.recited_on)}</span>
+        <CalendarIcon className="h-3.5 w-3.5" />
+      </div>
+      <div className="flex items-center gap-2 font-bold">
+        <BookOpen className="h-4 w-4 text-primary shrink-0" />
+        <span className="break-words">{rec.surah}</span>
+        <span className="text-xs text-muted-foreground font-mono">({rec.from_ayah}-{rec.to_ayah})</span>
+        {rec.is_review && (
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">
+            مراجعة
+          </span>
+        )}
+      </div>
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        onBlur={saveNotes}
+        placeholder="ملاحظات..."
+        maxLength={2000}
+        rows={1}
+        className="text-sm resize-none min-h-[36px] rounded-full px-4"
+        dir="rtl"
+      />
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Button size="icon" variant="ghost" onClick={onDelete} className="h-8 w-8" title="حذف">
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+        <Button size="icon" variant="ghost" onClick={onEdit} className="h-8 w-8" title="تعديل">
+          <Pencil className="h-4 w-4" />
+        </Button>
+        {RATING_BUTTONS.map((b) => {
+          const active = currentRating === b.value;
+          return (
+            <button
+              key={b.value}
+              onClick={() => setRating(b.value)}
+              type="button"
+              className={`h-8 px-3 min-w-[40px] text-xs font-semibold rounded-md border transition-colors ${
+                active ? b.activeClass : b.idleClass
+              }`}
+            >
+              {b.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
+
+
 
 function PrintableReport({
   student,
