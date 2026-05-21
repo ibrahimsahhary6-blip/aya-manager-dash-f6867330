@@ -41,6 +41,7 @@ import { NotificationEmailCard, PendingApprovalsCard, InviteUserCard } from "@/c
 import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { AuditLogCard } from "@/components/AuditLogCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
+import { AccountCard } from "@/components/AccountCard";
 import { Download, Trash } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -455,6 +456,7 @@ function SettingsPage() {
         <PendingApprovalsCard />
         <PlatformUsersCard />
         <AuditLogCard />
+        <AccountCard />
         <NotificationEmailCard />
         <TransferSuperAdminCard />
         <BackupRestore />
