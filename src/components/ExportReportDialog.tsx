@@ -309,6 +309,7 @@ export function ExportReportDialog() {
         "تفاصيل التسميعات",
       ]);
 
+      const pdfRows: PdfRow[] = [];
       (students ?? []).forEach((s) => {
         const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
         const rt =
@@ -332,11 +333,30 @@ export function ExportReportDialog() {
           recs.length,
           recDetails,
         ]);
+        pdfRows.push({
+          code: s.student_code,
+          name: s.full_name,
+          present: a.present,
+          absent: a.absent,
+          pct,
+          avg: avg === "" ? "" : String(avg),
+          rated: rt.ratedCount,
+          repeats: rt.repeats,
+          total: recs.length,
+          details: recDetails,
+        });
       });
 
       const stamp = `${company?.name ?? "company"}_${from}_${to}`.replace(/\s+/g, "_");
       if (format === "csv") {
         downloadCsv(buildCsv(rows), `${stamp}.csv`);
+      } else if (format === "pdf") {
+        await downloadPdf(
+          `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`,
+          `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
+          pdfRows,
+          `${stamp}.pdf`,
+        );
       } else {
         downloadXlsx(company?.name ?? "Report", rows, `${stamp}.xlsx`);
       }
