@@ -37,7 +37,7 @@ import {
 import { useBattalions, useCompanies, type Battalion, type Company } from "@/lib/orgs";
 import { BackupRestore } from "@/components/BackupRestore";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
-import { NotificationEmailCard, PendingApprovalsCard, InviteUserCard } from "@/components/AdminPanels";
+import { AdminPanels_unused } from "@/components/AdminPanels";
 import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { AuditLogCard } from "@/components/AuditLogCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
