@@ -454,12 +454,9 @@ function SettingsPage() {
         </section>
 
         <CreateUserCard />
-        <InviteUserCard />
-        <PendingApprovalsCard />
         <PlatformUsersCard />
         <AuditLogCard />
         <AccountCard />
-        <NotificationEmailCard />
         <TransferSuperAdminCard />
         <BackupRestore />
       </main>

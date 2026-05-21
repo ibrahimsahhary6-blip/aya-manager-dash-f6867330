@@ -48,6 +48,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 import { normalizeArabic } from "@/lib/normalize";
 
@@ -217,6 +218,7 @@ function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <NotificationsBell />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/attendance">
                 <ClipboardCheck className="h-4 w-4" />
