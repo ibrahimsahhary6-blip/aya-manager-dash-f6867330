@@ -448,6 +448,8 @@ function SettingsPage() {
           </div>
         </section>
 
+        <PendingApprovalsCard />
+        <NotificationEmailCard />
         <BackupRestore />
       </main>
 
