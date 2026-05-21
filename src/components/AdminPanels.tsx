@@ -104,7 +104,7 @@ function NotificationEmailCardInner() {
 }
 
 export function InviteUserCard() {
-  const isAdmin = useIsAdmin();
+  const isSuperAdmin = useIsSuperAdmin();
   const qc = useQueryClient();
   const invite = useServerFn(inviteUser);
   const [email, setEmail] = useState("");
