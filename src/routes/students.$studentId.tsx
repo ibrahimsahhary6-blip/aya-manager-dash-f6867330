@@ -131,12 +131,26 @@ function StudentProfilePage() {
     setExporting(true);
     const prevStyle = node.getAttribute("style") ?? "";
     try {
+      // Preload Tajawal in the main document so html2canvas's clone can use it
+      if (!document.getElementById("__tajawal_pdf_font__")) {
+        const link = document.createElement("link");
+        link.id = "__tajawal_pdf_font__";
+        link.rel = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
+        document.head.appendChild(link);
+      }
+      try {
+        await (document as Document & { fonts?: { load: (f: string) => Promise<unknown>; ready: Promise<unknown> } }).fonts?.load("700 16px Tajawal");
+        await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+      } catch {
+        // ignore font loading errors
+      }
       // Temporarily make it visible for capture
       node.setAttribute(
         "style",
         "position:fixed;top:0;left:-9999px;width:794px;background:#fff;color:#000;padding:24px;font-family:Tajawal,system-ui,sans-serif;",
       );
-      await new Promise((r) => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 100));
       const canvas = await html2canvas(node, {
         scale: 2,
         useCORS: true,
