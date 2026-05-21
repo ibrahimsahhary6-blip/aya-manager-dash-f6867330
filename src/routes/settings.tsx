@@ -456,6 +456,7 @@ function SettingsPage() {
         <PlatformUsersCard />
         <AuditLogCard />
         <NotificationEmailCard />
+        <TransferSuperAdminCard />
         <BackupRestore />
       </main>
 
