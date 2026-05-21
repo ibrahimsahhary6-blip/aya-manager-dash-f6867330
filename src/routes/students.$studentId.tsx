@@ -588,7 +588,8 @@ function RecitationForm({
           from_ayah: from,
           to_ayah: to,
           notes: notes.trim().slice(0, 2000),
-          rating: rating || null,
+          rating: isReview ? null : (rating || null),
+          is_review: isReview,
         });
       }}
       className="space-y-4"
