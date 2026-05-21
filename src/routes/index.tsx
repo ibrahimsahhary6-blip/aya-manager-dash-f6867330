@@ -394,21 +394,21 @@ function DashboardPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-fixed break-words">
               <colgroup>
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "30%" }} />
-                <col style={{ width: "16%" }} />
-                <col className="hidden sm:table-column" style={{ width: "16%" }} />
-                <col className="hidden md:table-column" style={{ width: "14%" }} />
-                <col style={{ width: "10%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "34%" }} />
+                <col style={{ width: "22%" }} />
+                <col className="hidden sm:table-column" style={{ width: "14%" }} />
+                <col className="hidden md:table-column" style={{ width: "12%" }} />
+                <col style={{ width: "20%" }} />
               </colgroup>
               <thead className="bg-primary text-primary-foreground">
                 <tr>
-                  <Th>الرقم التعريفي</Th>
+                  <Th className="whitespace-nowrap">الرقم التعريفي</Th>
                   <Th>الاسم الكامل</Th>
                   <Th>الكتيبة</Th>
                   <Th className="hidden sm:table-cell">السرية</Th>
-                  <Th className="hidden md:table-cell">تاريخ الإضافة</Th>
-                  <Th className="text-left">إجراءات</Th>
+                  <Th className="hidden md:table-cell whitespace-nowrap">تاريخ الإضافة</Th>
+                  <Th className="text-left whitespace-nowrap">إجراءات</Th>
                 </tr>
               </thead>
               <tbody className="[&_tr:nth-child(even)]:bg-muted/30">
