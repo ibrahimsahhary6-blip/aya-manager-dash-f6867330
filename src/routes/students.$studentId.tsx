@@ -500,21 +500,15 @@ function groupByDate(rows: Recitation[]): { date: string; rows: Recitation[] }[]
     map.set(r.recited_on, arr);
   }
   return Array.from(map.entries())
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .map(([date, rows]) => ({ date, rows }));
+    .sort((a, b) => compareReportDates(a[0], b[0]))
+    .map(([date, rows]) => ({
+      date,
+      rows: [...rows].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))),
+    }));
 }
 
 function formatArabicDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("ar-EG", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+  return formatArabicReportDate(iso);
 }
 
 function DateGroup({
@@ -769,9 +763,7 @@ function PrintableReport({
                   <tr key={r.id}>
                     <td style={tdStyle}>{r.surah}</td>
                     <td style={tdStyle}>{r.from_ayah}–{r.to_ayah}</td>
-                    <td style={tdStyle}>
-                      {r.is_review ? "مراجعة" : r.rating === "repeat" ? "إعادة" : r.rating ?? "—"}
-                    </td>
+                    <td style={tdStyle}>{formatRecitationRating(r)}</td>
                     <td style={tdStyle}>{r.notes ?? ""}</td>
                   </tr>
                 ))}
