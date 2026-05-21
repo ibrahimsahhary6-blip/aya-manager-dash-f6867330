@@ -451,8 +451,8 @@ function DashboardPage() {
                         {s.student_code}
                       </td>
                       <td className="px-4 py-3 font-medium col-name">{s.full_name}</td>
-                      <td className="px-4 py-3 col-nowrap">
-                        <Badge variant="secondary" className="font-normal">
+                      <td className="px-2 py-3">
+                        <Badge variant="secondary" className="font-normal whitespace-normal text-center leading-tight">
                           {battalionName(s.battalion_id)}
                         </Badge>
                       </td>
