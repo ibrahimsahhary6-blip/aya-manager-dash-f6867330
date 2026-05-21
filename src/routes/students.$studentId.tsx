@@ -843,16 +843,21 @@ function PrintableReport({
 }
 
 const thStyle: React.CSSProperties = {
-  border: "1px solid #ccc",
-  padding: "4px 6px",
-  textAlign: "right",
+  border: "1.5px solid #0f5132",
+  padding: "8px 6px",
+  textAlign: "center",
   fontWeight: 700,
+  background: "#0f5132",
+  color: "#ffffff",
+  lineHeight: 1.6,
 };
 const tdStyle: React.CSSProperties = {
-  border: "1px solid #ddd",
-  padding: "4px 6px",
-  textAlign: "right",
-  verticalAlign: "top",
+  border: "1px solid #999",
+  padding: "8px 6px",
+  textAlign: "center",
+  verticalAlign: "middle",
+  lineHeight: 1.7,
+  wordBreak: "break-word",
 };
 
 function StatBox({ label, value }: { label: string; value: string }) {
