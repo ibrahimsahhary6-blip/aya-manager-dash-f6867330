@@ -3,15 +3,15 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-async function assertAdmin(userId: string) {
+async function assertSuperAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
-    .eq("role", "admin")
+    .eq("role", "super_admin")
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: admin only");
+  if (!data) throw new Error("Forbidden: super_admin only");
 }
 
 export const inviteUser = createServerFn({ method: "POST" })
@@ -23,7 +23,7 @@ export const inviteUser = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertSuperAdmin(context.userId);
     const email = data.email.trim().toLowerCase();
 
     // 1) add to allowlist (idempotent)

@@ -36,3 +36,26 @@ export function useIsAdmin() {
   });
   return q.data === true;
 }
+
+export function useIsSuperAdmin() {
+  const userId = useCurrentUserId();
+  const q = useQuery({
+    queryKey: ["is-super-admin", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      if (!userId) return false;
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "super_admin")
+        .maybeSingle();
+      if (error) {
+        console.error("[useIsSuperAdmin]", error);
+        return false;
+      }
+      return !!data;
+    },
+  });
+  return q.data === true;
+}

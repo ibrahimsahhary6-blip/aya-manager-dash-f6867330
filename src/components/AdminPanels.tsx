@@ -1,4 +1,4 @@
-import { useIsAdmin } from "@/lib/roles";
+import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,13 @@ import { getErrorMessage } from "@/lib/errors";
 import { Mail, ShieldCheck, UserCheck, UserPlus, Trash2 } from "lucide-react";
 
 export function NotificationEmailCard() {
-  const isAdmin = useIsAdmin();
+  const isSuperAdmin = useIsSuperAdmin();
+  if (!isSuperAdmin) return null;
+  return <NotificationEmailCardInner />;
+}
+
+function NotificationEmailCardInner() {
+  const isAdmin = true;
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["app_settings", "notification_email"],
@@ -98,7 +104,7 @@ export function NotificationEmailCard() {
 }
 
 export function InviteUserCard() {
-  const isAdmin = useIsAdmin();
+  const isSuperAdmin = useIsSuperAdmin();
   const qc = useQueryClient();
   const invite = useServerFn(inviteUser);
   const [email, setEmail] = useState("");
@@ -106,7 +112,7 @@ export function InviteUserCard() {
 
   const { data: allowed = [], isLoading } = useQuery({
     queryKey: ["allowed_emails"],
-    enabled: isAdmin,
+    enabled: isSuperAdmin,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("allowed_emails")
@@ -129,7 +135,7 @@ export function InviteUserCard() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
-  if (!isAdmin) return null;
+  if (!isSuperAdmin) return null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
