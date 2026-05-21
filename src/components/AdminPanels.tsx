@@ -12,7 +12,13 @@ import { getErrorMessage } from "@/lib/errors";
 import { Mail, ShieldCheck, UserCheck, UserPlus, Trash2 } from "lucide-react";
 
 export function NotificationEmailCard() {
-  const isAdmin = useIsAdmin();
+  const isSuperAdmin = useIsSuperAdmin();
+  if (!isSuperAdmin) return null;
+  return <NotificationEmailCardInner />;
+}
+
+function NotificationEmailCardInner() {
+  const isAdmin = true;
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["app_settings", "notification_email"],
