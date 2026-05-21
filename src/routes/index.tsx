@@ -577,7 +577,7 @@ function DashboardPage() {
 function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <th
-      className={`px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide ${className}`}
+      className={`px-4 py-3 text-right text-xs font-bold tracking-wide ${className}`}
     >
       {children}
     </th>
