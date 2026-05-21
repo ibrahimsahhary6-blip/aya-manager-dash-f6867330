@@ -99,22 +99,19 @@ function PendingScreen({ email }: { email: string }) {
 
 function LoginScreen() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [submittedStatus, setSubmittedStatus] = useState<null | "pending" | "magic_link_sent" | "not_approved">(null);
+  const submitRequest = useServerFn(submitAccessRequest);
+  const requestLink = useServerFn(requestLoginLink);
 
-  const submit = async (e: FormEvent) => {
+  const handleRequest = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        const msg = error.message?.toLowerCase() ?? "";
-        if (msg.includes("invalid") || msg.includes("not found") || msg.includes("credentials")) {
-          throw new Error("عذراً، هذا الحساب غير مصرح له بالدخول");
-        }
-        throw error;
-      }
-      toast.success("تم تسجيل الدخول");
+      const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+      const res = await submitRequest({ data: { email, fullName, redirectTo } });
+      setSubmittedStatus(res.status);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -122,35 +119,116 @@ function LoginScreen() {
     }
   };
 
+  const handleResendLink = async () => {
+    if (!email) return;
+    setBusy(true);
+    try {
+      const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+      const res = await requestLink({ data: { email, redirectTo } });
+      if (res.status === "sent") {
+        setSubmittedStatus("magic_link_sent");
+        toast.success("تم إرسال رابط الدخول إلى بريدك");
+      } else {
+        toast.error("هذا الحساب ليس مصرحاً له بعد. أرسل طلب دخول أولاً.");
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (submittedStatus === "magic_link_sent") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle>تحقق من بريدك الإلكتروني</CardTitle>
+            <CardDescription>
+              أرسلنا رابط دخول إلى <span dir="ltr">{email}</span>. اضغط عليه من بريدك لتسجيل الدخول.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full" onClick={() => setSubmittedStatus(null)}>
+              العودة
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (submittedStatus === "pending") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle>تم إرسال طلبك</CardTitle>
+            <CardDescription>
+              وصل طلبك إلى المدير. ستتلقى رابط دخول على <span dir="ltr">{email}</span> فور الموافقة.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full" onClick={() => setSubmittedStatus(null)}>
+              العودة
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>تسجيل الدخول</CardTitle>
-          <CardDescription>منصة إدارة حلقات القرآن</CardDescription>
+          <CardTitle>طلب الدخول إلى المنصة</CardTitle>
+          <CardDescription>
+            أدخل بريدك واسمك ليصل طلبك إلى المدير. بعد الموافقة سيصلك رابط دخول مباشر بالبريد.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={handleRequest} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">الاسم الكامل</Label>
+              <Input
+                id="fullName"
+                required
+                minLength={2}
+                maxLength={120}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">البريد الإلكتروني</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
-              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" />
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                dir="ltr"
+              />
             </div>
             <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? "..." : "دخول"}
+              {busy ? "..." : "إرسال طلب الدخول"}
             </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              التسجيل الذاتي غير متاح. للحصول على حساب، تواصل مع المدير.
-            </p>
+            <button
+              type="button"
+              onClick={handleResendLink}
+              disabled={busy || !email}
+              className="block w-full text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-50"
+            >
+              لدي حساب مصرّح به — أرسل لي رابط دخول
+            </button>
           </form>
         </CardContent>
       </Card>
     </div>
   );
 }
+
 
 export function LogoutButton() {
   return (
