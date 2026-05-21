@@ -49,6 +49,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import {
+  compareReportDates,
+  formatArabicReportDate,
+  formatRecitationRating,
+  validateStudentReportData,
+} from "@/lib/reportService";
 
 type Student = Tables<"students">;
 type Recitation = Tables<"recitations">;
@@ -116,17 +122,39 @@ function StudentProfilePage() {
   const handleExportPdf = async () => {
     const node = reportRef.current;
     if (!node) return;
+    const validationErrors = validateStudentReportData(student, recitations);
+    if (validationErrors.length > 0) {
+      console.error("PDF Validation Error:", validationErrors);
+      toast.error(validationErrors[0]);
+      return;
+    }
     setExporting(true);
+    const prevStyle = node.getAttribute("style") ?? "";
     try {
       // Temporarily make it visible for capture
-      const prevStyle = node.getAttribute("style") ?? "";
       node.setAttribute(
         "style",
         "position:fixed;top:0;left:-9999px;width:794px;background:#fff;color:#000;padding:24px;font-family:Tajawal,system-ui,sans-serif;",
       );
       await new Promise((r) => setTimeout(r, 50));
-      const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      node.setAttribute("style", prevStyle);
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        onclone: (doc) => {
+          doc.documentElement.style.backgroundColor = "#ffffff";
+          doc.documentElement.style.color = "#111111";
+          doc.body.style.backgroundColor = "#ffffff";
+          doc.body.style.color = "#111111";
+          const clonedReport = doc.getElementById("print-report")?.parentElement;
+          clonedReport?.querySelectorAll<HTMLElement>("*").forEach((el) => {
+            el.style.color = el.style.color || "#111111";
+            el.style.borderColor = el.style.borderColor || "#d1d5db";
+            el.style.boxShadow = "none";
+            if (!el.style.backgroundColor) el.style.backgroundColor = "transparent";
+          });
+        },
+      });
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
@@ -145,8 +173,11 @@ function StudentProfilePage() {
       }
       pdf.save(`تقرير-${student?.full_name ?? "طالب"}.pdf`);
     } catch (e) {
-      toast.error(getErrorMessage(e as Error));
+      console.error("PDF Generation Error:", e);
+      const message = e instanceof Error ? e.message : getErrorMessage(e);
+      toast.error(`فشل توليد PDF: ${message}`);
     } finally {
+      node.setAttribute("style", prevStyle);
       setExporting(false);
     }
   };
