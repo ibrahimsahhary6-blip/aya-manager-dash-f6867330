@@ -182,6 +182,8 @@ async function downloadPdf(
     container.remove();
   }
 }
+
+export function ExportReportDialog() {
   const [open, setOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
