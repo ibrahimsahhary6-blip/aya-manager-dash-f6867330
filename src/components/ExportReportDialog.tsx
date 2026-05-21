@@ -238,6 +238,7 @@ export function ExportReportDialog() {
   const [companyId, setCompanyId] = useState<string>("");
   const [format, setFormat] = useState<Format>("xlsx");
   const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<{ html: string; filename: string; title: string } | null>(null);
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
