@@ -423,6 +423,7 @@ export function ExportReportDialog() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
+                <SelectItem value="pdf">PDF (.pdf)</SelectItem>
                 <SelectItem value="csv">CSV (.csv)</SelectItem>
               </SelectContent>
             </Select>
