@@ -634,7 +634,7 @@ function RecitationCard({
   return (
     <div className="px-4 py-4 space-y-3">
       <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground font-mono">
-        <span>{formatArabicDate(rec.date)}</span>
+        <span>{formatArabicDate(rec.recited_on)}</span>
         <CalendarIcon className="h-3.5 w-3.5" />
       </div>
       <div className="flex items-center gap-2 font-bold">
