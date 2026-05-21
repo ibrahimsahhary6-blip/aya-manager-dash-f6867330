@@ -553,7 +553,7 @@ function groupByDate(rows: Recitation[]): { date: string; rows: Recitation[] }[]
     map.set(r.recited_on, arr);
   }
   return Array.from(map.entries())
-    .sort((a, b) => compareReportDates(a[0], b[0]))
+    .sort((a, b) => compareReportDates(b[0], a[0]))
     .map(([date, rows]) => ({
       date,
       rows: [...rows].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))),
