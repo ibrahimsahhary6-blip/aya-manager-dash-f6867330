@@ -94,11 +94,11 @@ type PdfRow = {
 
 function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
   return `
-    <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;">
+    <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
       <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${title}</h1>
       <div style="font-size:12px;color:#555555;margin-top:4px;">${subtitle}</div>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;direction:rtl;unicode-bidi:plaintext;">
       <colgroup>
         <col style="width:7%" />
         <col style="width:18%" />
@@ -131,7 +131,7 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-family:monospace;line-height:1.7;white-space:nowrap;">${r.code}</td>
-            <td style="border:1px solid #999;padding:10px 6px;text-align:right;font-weight:600;line-height:1.7;word-break:break-word;">${r.name}</td>
+            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:2;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${r.name}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:1.7;">${r.present}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b91c1c;line-height:1.7;">${r.absent}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.pct}%</td>
@@ -190,7 +190,6 @@ async function downloadPdf(html: string, filename: string) {
         const fontStyle = doc.createElement("style");
         fontStyle.textContent = `*, *::before, *::after { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif !important; }`;
         doc.head.appendChild(fontStyle);
-        doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
         const safeVars: Record<string, string> = {
           "--background": "#ffffff",
           "--foreground": "#111111",
