@@ -114,6 +114,27 @@
   th, td {
     text-align: right;
   }
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+  }
+  tbody td {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+    vertical-align: middle;
+  }
+  td.col-name, th.col-name {
+    white-space: normal;
+    word-break: break-word;
+    min-width: 180px;
+  }
+  td.col-nowrap, th.col-nowrap {
+    white-space: nowrap;
+    min-width: 110px;
+  }
 }
 
 /* Print: A4 student report */
