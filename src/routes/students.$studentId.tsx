@@ -585,12 +585,12 @@ function DateGroup({
         <span className="text-xs text-muted-foreground">({rows.length})</span>
       </div>
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm" dir="rtl">
+        <table className="w-full text-sm min-w-[640px]" dir="rtl">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th className="text-right p-2 font-medium w-[28%]">السورة</th>
-              <th className="text-right p-2 font-medium">الملاحظات</th>
-              <th className="text-right p-2 font-medium w-[260px]">التقييم</th>
+              <th className="text-right p-2 font-medium min-w-[140px]">السورة</th>
+              <th className="text-right p-2 font-medium min-w-[180px]">الملاحظات</th>
+              <th className="text-right p-2 font-medium min-w-[230px]">التقييم</th>
               <th className="p-2 w-[70px]"></th>
             </tr>
           </thead>
