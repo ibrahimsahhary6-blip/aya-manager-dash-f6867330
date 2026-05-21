@@ -154,6 +154,17 @@ function StudentProfilePage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const inlineMutation = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Recitation> }) => {
+      const { error } = await supabase.from("recitations").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("recitations").delete().eq("id", id);
@@ -281,76 +292,21 @@ function StudentProfilePage() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                      التاريخ
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                      السورة
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                      الآيات
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase hidden md:table-cell">
-                      التقييم / ملاحظات
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
-                      إجراءات
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recitations.map((r) => (
-                    <tr key={r.id} className="border-t hover:bg-accent/30">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <CalendarIcon className="h-3.5 w-3.5" />
-                          {new Date(r.recited_on).toLocaleDateString("ar-EG")}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-medium">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>{r.surah}</span>
-                          <RatingBadge rating={(r as Recitation & { rating?: string | null }).rating ?? null} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {r.from_ayah} – {r.to_ayah}
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground max-w-xs">
-                        <div className="line-clamp-2 whitespace-pre-wrap">
-                          {r.notes?.trim() || "—"}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-left">
-                        <div className="flex gap-1 justify-end">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditing(r)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeleting(r)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="divide-y">
+              {recitations.map((r) => (
+                <RecitationRow
+                  key={r.id}
+                  rec={r}
+                  onPatch={(patch) => inlineMutation.mutate({ id: r.id, patch })}
+                  onEdit={() => setEditing(r)}
+                  onDelete={() => setDeleting(r)}
+                />
+              ))}
+            </ul>
           )}
         </section>
       </main>
+
 
       {/* Add recitation */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -382,7 +338,8 @@ function StudentProfilePage() {
                 from_ayah: editing.from_ayah,
                 to_ayah: editing.to_ayah,
                 notes: editing.notes ?? "",
-                rating: (editing as Recitation & { rating?: string | null }).rating ?? "",
+                rating: editing.rating ?? "",
+                is_review: editing.is_review ?? false,
               }}
               submitLabel="حفظ التغييرات"
               loading={updateMutation.isPending}
@@ -425,21 +382,138 @@ type RecitationFormValues = {
   to_ayah: number;
   notes: string;
   rating: string | null;
+  is_review: boolean;
 };
 
-function RatingBadge({ rating }: { rating: string | null }) {
-  if (!rating) return null;
-  if (rating === "repeat") {
-    return (
-      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-        إعادة
-      </span>
-    );
+const RATING_BUTTONS: { value: string; label: string; tone: "score" | "repeat" | "review" }[] = [
+  { value: "10", label: "10", tone: "score" },
+  { value: "9", label: "9", tone: "score" },
+  { value: "8", label: "8", tone: "score" },
+  { value: "repeat", label: "إعادة", tone: "repeat" },
+  { value: "review", label: "مراجعة", tone: "review" },
+];
+
+function RecitationRow({
+  rec,
+  onPatch,
+  onEdit,
+  onDelete,
+}: {
+  rec: Recitation;
+  onPatch: (patch: Partial<Recitation>) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [notes, setNotes] = useState(rec.notes ?? "");
+  // Keep local notes in sync if upstream changes (e.g. after refetch)
+  const [lastSyncedId, setLastSyncedId] = useState(rec.id);
+  if (lastSyncedId !== rec.id) {
+    setLastSyncedId(rec.id);
+    setNotes(rec.notes ?? "");
   }
+
+  const currentRating: string | null = rec.is_review ? "review" : rec.rating ?? null;
+
+  const setRating = (value: string) => {
+    if (value === "review") {
+      const next = !rec.is_review;
+      onPatch({ is_review: next, rating: next ? null : rec.rating });
+      if (next) toast("تم تسجيل السجل كجلسة مراجعة");
+      return;
+    }
+    // Numeric or repeat — clear review and toggle rating
+    const same = rec.rating === value && !rec.is_review;
+    if (value === "repeat" && !same) {
+      toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
+    }
+    onPatch({ rating: same ? null : value, is_review: false });
+  };
+
+  const saveNotes = () => {
+    const trimmed = notes.trim().slice(0, 2000);
+    if (trimmed === (rec.notes ?? "")) return;
+    onPatch({ notes: trimmed });
+  };
+
   return (
-    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
-      {rating}/10
-    </span>
+    <li className="px-3 sm:px-4 py-3 hover:bg-accent/30">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+        {/* Date */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap lg:w-28">
+          <CalendarIcon className="h-3.5 w-3.5" />
+          {new Date(rec.recited_on).toLocaleDateString("ar-EG")}
+        </div>
+
+        {/* Surah */}
+        <div className="font-semibold text-sm lg:w-44 truncate flex items-center gap-2">
+          <BookOpen className="h-4 w-4 text-primary shrink-0" />
+          <span className="truncate">{rec.surah}</span>
+          {rec.is_review && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30 shrink-0">
+              مراجعة
+            </span>
+          )}
+          <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+            ({rec.from_ayah}–{rec.to_ayah})
+          </span>
+        </div>
+
+        {/* Notes inline */}
+        <Input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={saveNotes}
+          placeholder="ملاحظات..."
+          maxLength={2000}
+          className="flex-1 h-9 text-sm"
+        />
+
+        {/* Rating buttons */}
+        <div className="flex gap-1 flex-wrap lg:flex-nowrap">
+          {RATING_BUTTONS.map((b) => {
+            const active = currentRating === b.value;
+            const variant =
+              active
+                ? b.tone === "repeat"
+                  ? "destructive"
+                  : b.tone === "review"
+                    ? "secondary"
+                    : "default"
+                : "outline";
+            return (
+              <Button
+                key={b.value}
+                size="sm"
+                variant={variant}
+                onClick={() => setRating(b.value)}
+                className="h-8 px-2 min-w-[40px] text-xs"
+                type="button"
+              >
+                {b.label}
+              </Button>
+            );
+          })}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onEdit}
+            className="h-8 w-8"
+            title="تعديل كامل"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onDelete}
+            className="h-8 w-8"
+            title="حذف"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -476,6 +550,7 @@ function RecitationForm({
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [rating, setRating] = useState<string>(initial?.rating ?? "");
+  const [isReview, setIsReview] = useState<boolean>(initial?.is_review ?? false);
 
 
   const selectedSurah = getSurahByName(fromSurah);
@@ -514,7 +589,8 @@ function RecitationForm({
           from_ayah: from,
           to_ayah: to,
           notes: notes.trim().slice(0, 2000),
-          rating: rating || null,
+          rating: isReview ? null : (rating || null),
+          is_review: isReview,
         });
       }}
       className="space-y-4"
@@ -634,22 +710,19 @@ function RecitationForm({
         <Label>تقييم التسميع</Label>
         <div className="flex gap-2 flex-wrap">
           {(["10", "9", "8", "repeat"] as const).map((v) => {
-            const isActive = rating === v;
+            const isActive = !isReview && rating === v;
             const isRepeat = v === "repeat";
             return (
               <Button
                 key={v}
                 type="button"
                 size="sm"
-                variant={
-                  isActive ? (isRepeat ? "destructive" : "default") : "outline"
-                }
+                variant={isActive ? (isRepeat ? "destructive" : "default") : "outline"}
                 onClick={() => {
                   if (isRepeat && !isActive) {
-                    toast.warning(
-                      "تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.",
-                    );
+                    toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
                   }
+                  setIsReview(false);
                   setRating(isActive ? "" : v);
                 }}
                 className="min-w-[56px]"
@@ -658,8 +731,25 @@ function RecitationForm({
               </Button>
             );
           })}
+          <Button
+            type="button"
+            size="sm"
+            variant={isReview ? "secondary" : "outline"}
+            onClick={() => {
+              const next = !isReview;
+              setIsReview(next);
+              if (next) {
+                setRating("");
+                toast("سيُسجل كجلسة مراجعة");
+              }
+            }}
+            className="min-w-[56px]"
+          >
+            مراجعة
+          </Button>
         </div>
       </div>
+
 
 
       <div className="space-y-2">
