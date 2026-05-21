@@ -74,7 +74,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <PendingScreen email={session.user.email ?? ""} />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <UserMenu />
+    </>
+  );
 }
 
 function PendingScreen({ email }: { email: string }) {
