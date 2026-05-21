@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { useIsSuperAdmin } from "@/lib/roles";
 import { Bell } from "lucide-react";
 import {
   Popover,
