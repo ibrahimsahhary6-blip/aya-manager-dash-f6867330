@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       attendance: {
         Row: {
           attended_on: string
@@ -129,11 +147,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          email: string | null
+          is_approved: boolean
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          email?: string | null
+          is_approved?: boolean
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          email?: string | null
+          is_approved?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       recitations: {
         Row: {
           created_at: string
           from_ayah: number
           id: string
+          is_review: boolean
           notes: string | null
           rating: string | null
           recited_on: string
@@ -146,6 +189,7 @@ export type Database = {
           created_at?: string
           from_ayah: number
           id?: string
+          is_review?: boolean
           notes?: string | null
           rating?: string | null
           recited_on?: string
@@ -158,6 +202,7 @@ export type Database = {
           created_at?: string
           from_ayah?: number
           id?: string
+          is_review?: boolean
           notes?: string | null
           rating?: string | null
           recited_on?: string
