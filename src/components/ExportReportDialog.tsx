@@ -419,74 +419,120 @@ export function ExportReportDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">تصدير التقارير</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>تصدير تقرير سرية</DialogTitle>
-          <DialogDescription>
-            اختر السرية والفترة الزمنية لتحميل بيانات الحضور والتسميعات.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label>السرية</Label>
-            <Select value={companyId} onValueChange={setCompanyId}>
-              <SelectTrigger>
-                <SelectValue placeholder="اختر سرية" />
-              </SelectTrigger>
-              <SelectContent>
-                {companyOptions.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>من تاريخ</Label>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>إلى تاريخ</Label>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>صيغة الملف</Label>
-            <Select value={format} onValueChange={(v) => setFormat(v as Format)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
-                <SelectItem value="pdf">PDF (.pdf)</SelectItem>
-                <SelectItem value="csv">CSV (.csv)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            إلغاء
-          </Button>
-          <Button onClick={handleExport} disabled={loading} className="gap-2">
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
-            {loading ? "جارٍ التحضير..." : "تحميل"}
+            <span className="hidden sm:inline">تصدير التقارير</span>
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>تصدير تقرير سرية</DialogTitle>
+            <DialogDescription>
+              اختر السرية والفترة الزمنية لتحميل بيانات الحضور والتسميعات.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>السرية</Label>
+              <Select value={companyId} onValueChange={setCompanyId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر سرية" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companyOptions.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>من تاريخ</Label>
+                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>إلى تاريخ</Label>
+                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>صيغة الملف</Label>
+              <Select value={format} onValueChange={(v) => setFormat(v as Format)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
+                  <SelectItem value="pdf">PDF (.pdf) — مع معاينة</SelectItem>
+                  <SelectItem value="csv">CSV (.csv)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              إلغاء
+            </Button>
+            <Button onClick={handleExport} disabled={loading} className="gap-2">
+              <Download className="h-4 w-4" />
+              {loading ? "جارٍ التحضير..." : format === "pdf" ? "معاينة" : "تحميل"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b">
+            <DialogTitle>معاينة قبل التحميل</DialogTitle>
+            <DialogDescription>راجع التقرير قبل تنزيله كملف PDF.</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-white p-4" dir="rtl">
+            {preview && (
+              <div
+                className="bg-white text-black mx-auto"
+                style={{ width: "100%", maxWidth: 1280 }}
+                dangerouslySetInnerHTML={{ __html: preview.html }}
+              />
+            )}
+          </div>
+          <DialogFooter className="px-6 py-4 border-t bg-muted/20">
+            <Button variant="outline" onClick={() => setPreview(null)} disabled={loading}>
+              إغلاق
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!preview) return;
+                setLoading(true);
+                try {
+                  await downloadPdf(preview.html, preview.filename);
+                  toast.success("تم تحميل التقرير");
+                  setPreview(null);
+                  setOpen(false);
+                } catch (e) {
+                  toast.error(getErrorMessage(e));
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {loading ? "جارٍ التوليد..." : "تحميل PDF"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
