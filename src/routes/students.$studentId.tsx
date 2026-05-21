@@ -507,12 +507,42 @@ type RecitationFormValues = {
   is_review: boolean;
 };
 
-const RATING_BUTTONS: { value: string; label: string; tone: "score" | "repeat" | "review" }[] = [
-  { value: "10", label: "10", tone: "score" },
-  { value: "9", label: "9", tone: "score" },
-  { value: "8", label: "8", tone: "score" },
-  { value: "repeat", label: "إعادة", tone: "repeat" },
-  { value: "review", label: "مراجعة", tone: "review" },
+const RATING_BUTTONS: {
+  value: string;
+  label: string;
+  activeClass: string;
+  idleClass: string;
+}[] = [
+  {
+    value: "10",
+    label: "10",
+    activeClass: "bg-emerald-600 hover:bg-emerald-600/90 text-white border-emerald-600 shadow-sm",
+    idleClass: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+  },
+  {
+    value: "9",
+    label: "9",
+    activeClass: "bg-teal-600 hover:bg-teal-600/90 text-white border-teal-600 shadow-sm",
+    idleClass: "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-900",
+  },
+  {
+    value: "8",
+    label: "8",
+    activeClass: "bg-sky-600 hover:bg-sky-600/90 text-white border-sky-600 shadow-sm",
+    idleClass: "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
+  },
+  {
+    value: "repeat",
+    label: "إعادة",
+    activeClass: "bg-amber-500 hover:bg-amber-500/90 text-white border-amber-500 shadow-sm",
+    idleClass: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+  },
+  {
+    value: "review",
+    label: "مراجعة",
+    activeClass: "bg-indigo-600 hover:bg-indigo-600/90 text-white border-indigo-600 shadow-sm",
+    idleClass: "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900",
+  },
 ];
 
 function groupByDate(rows: Recitation[]): { date: string; rows: Recitation[] }[] {
