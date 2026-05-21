@@ -392,8 +392,16 @@ function DashboardPage() {
         {/* Table */}
         <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-muted-foreground">
+            <table className="w-full text-sm table-fixed break-words">
+              <colgroup>
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "16%" }} />
+                <col className="hidden sm:table-column" style={{ width: "16%" }} />
+                <col className="hidden md:table-column" style={{ width: "14%" }} />
+                <col style={{ width: "10%" }} />
+              </colgroup>
+              <thead className="bg-primary text-primary-foreground">
                 <tr>
                   <Th>الرقم التعريفي</Th>
                   <Th>الاسم الكامل</Th>
@@ -403,7 +411,7 @@ function DashboardPage() {
                   <Th className="text-left">إجراءات</Th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&_tr:nth-child(even)]:bg-muted/30">
                 {isLoading ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-muted-foreground">
