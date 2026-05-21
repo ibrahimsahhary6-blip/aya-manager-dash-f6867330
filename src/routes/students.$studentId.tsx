@@ -13,6 +13,7 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   ScrollText,
+  Printer,
 } from "lucide-react";
 import {
   Select,
