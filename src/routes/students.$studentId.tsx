@@ -292,76 +292,21 @@ function StudentProfilePage() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                      التاريخ
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                      السورة
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                      الآيات
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase hidden md:table-cell">
-                      التقييم / ملاحظات
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
-                      إجراءات
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recitations.map((r) => (
-                    <tr key={r.id} className="border-t hover:bg-accent/30">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <CalendarIcon className="h-3.5 w-3.5" />
-                          {new Date(r.recited_on).toLocaleDateString("ar-EG")}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-medium">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>{r.surah}</span>
-                          <RatingBadge rating={(r as Recitation & { rating?: string | null }).rating ?? null} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {r.from_ayah} – {r.to_ayah}
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground max-w-xs">
-                        <div className="line-clamp-2 whitespace-pre-wrap">
-                          {r.notes?.trim() || "—"}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-left">
-                        <div className="flex gap-1 justify-end">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditing(r)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeleting(r)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="divide-y">
+              {recitations.map((r) => (
+                <RecitationRow
+                  key={r.id}
+                  rec={r}
+                  onPatch={(patch) => inlineMutation.mutate({ id: r.id, patch })}
+                  onEdit={() => setEditing(r)}
+                  onDelete={() => setDeleting(r)}
+                />
+              ))}
+            </ul>
           )}
         </section>
       </main>
+
 
       {/* Add recitation */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
