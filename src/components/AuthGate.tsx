@@ -8,9 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/errors";
 
+type ApprovalStatus = "checking" | "approved" | "pending" | "error";
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [approval, setApproval] = useState<ApprovalStatus>("checking");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -24,6 +27,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!session) {
+      setApproval("checking");
+      return;
+    }
+    setApproval("checking");
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_approved")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (error) {
+        setApproval("error");
+        return;
+      }
+      setApproval(data?.is_approved ? "approved" : "pending");
+    })();
+  }, [session]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -33,7 +56,43 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) return <LoginScreen />;
+
+  if (approval === "checking") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">جاري التحقق من الحساب...</p>
+      </div>
+    );
+  }
+
+  if (approval !== "approved") {
+    return <PendingScreen email={session.user.email ?? ""} />;
+  }
+
   return <>{children}</>;
+}
+
+function PendingScreen({ email }: { email: string }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-md text-center">
+        <CardHeader>
+          <CardTitle>بانتظار موافقة المدير</CardTitle>
+          <CardDescription>
+            تم تسجيل حسابك بنجاح ({email}) وهو الآن بانتظار موافقة المدير لتفعيل الدخول.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            سيتم إعلامك عند تفعيل الحساب. يمكنك إغلاق الصفحة والعودة لاحقاً.
+          </p>
+          <Button variant="outline" className="w-full" onClick={() => supabase.auth.signOut()}>
+            تسجيل الخروج
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function LoginScreen() {
@@ -57,7 +116,7 @@ function LoginScreen() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        toast.success("تم إنشاء الحساب");
+        toast.success("تم إنشاء الحساب — بانتظار موافقة المدير");
       }
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -86,6 +145,11 @@ function LoginScreen() {
             <Button type="submit" className="w-full" disabled={busy}>
               {busy ? "..." : mode === "login" ? "دخول" : "إنشاء"}
             </Button>
+            {mode === "signup" && (
+              <p className="text-xs text-muted-foreground text-center">
+                ملاحظة: يتطلب الحساب الجديد موافقة المدير قبل التفعيل.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setMode(mode === "login" ? "signup" : "login")}
