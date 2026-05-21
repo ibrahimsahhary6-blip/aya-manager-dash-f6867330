@@ -49,6 +49,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import {
+  compareReportDates,
+  formatArabicReportDate,
+  formatRecitationRating,
+  validateStudentReportData,
+} from "@/lib/reportService";
 
 type Student = Tables<"students">;
 type Recitation = Tables<"recitations">;
@@ -116,17 +122,62 @@ function StudentProfilePage() {
   const handleExportPdf = async () => {
     const node = reportRef.current;
     if (!node) return;
+    const validationErrors = validateStudentReportData(student, recitations);
+    if (validationErrors.length > 0) {
+      console.error("PDF Validation Error:", validationErrors);
+      toast.error(validationErrors[0]);
+      return;
+    }
     setExporting(true);
+    const prevStyle = node.getAttribute("style") ?? "";
     try {
       // Temporarily make it visible for capture
-      const prevStyle = node.getAttribute("style") ?? "";
       node.setAttribute(
         "style",
         "position:fixed;top:0;left:-9999px;width:794px;background:#fff;color:#000;padding:24px;font-family:Tajawal,system-ui,sans-serif;",
       );
       await new Promise((r) => setTimeout(r, 50));
-      const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      node.setAttribute("style", prevStyle);
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        onclone: (doc) => {
+          doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
+          const safeVars: Record<string, string> = {
+            "--background": "#ffffff",
+            "--foreground": "#111111",
+            "--card": "#ffffff",
+            "--card-foreground": "#111111",
+            "--popover": "#ffffff",
+            "--popover-foreground": "#111111",
+            "--primary": "#111111",
+            "--primary-foreground": "#ffffff",
+            "--secondary": "#f3f4f6",
+            "--secondary-foreground": "#111111",
+            "--muted": "#f3f4f6",
+            "--muted-foreground": "#4b5563",
+            "--accent": "#f3f4f6",
+            "--accent-foreground": "#111111",
+            "--border": "#d1d5db",
+            "--input": "#d1d5db",
+            "--ring": "#111111",
+          };
+          Object.entries(safeVars).forEach(([key, value]) => {
+            doc.documentElement.style.setProperty(key, value);
+          });
+          doc.documentElement.style.backgroundColor = "#ffffff";
+          doc.documentElement.style.color = "#111111";
+          doc.body.style.backgroundColor = "#ffffff";
+          doc.body.style.color = "#111111";
+          const clonedReport = doc.getElementById("print-report")?.parentElement;
+          clonedReport?.querySelectorAll<HTMLElement>("*").forEach((el) => {
+            el.style.color = el.style.color || "#111111";
+            el.style.borderColor = el.style.borderColor || "#d1d5db";
+            el.style.boxShadow = "none";
+            if (!el.style.backgroundColor) el.style.backgroundColor = "transparent";
+          });
+        },
+      });
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
@@ -145,8 +196,11 @@ function StudentProfilePage() {
       }
       pdf.save(`تقرير-${student?.full_name ?? "طالب"}.pdf`);
     } catch (e) {
-      toast.error(getErrorMessage(e as Error));
+      console.error("PDF Generation Error:", e);
+      const message = e instanceof Error ? e.message : getErrorMessage(e);
+      toast.error(`فشل توليد PDF: ${message}`);
     } finally {
+      node.setAttribute("style", prevStyle);
       setExporting(false);
     }
   };
@@ -469,21 +523,15 @@ function groupByDate(rows: Recitation[]): { date: string; rows: Recitation[] }[]
     map.set(r.recited_on, arr);
   }
   return Array.from(map.entries())
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .map(([date, rows]) => ({ date, rows }));
+    .sort((a, b) => compareReportDates(a[0], b[0]))
+    .map(([date, rows]) => ({
+      date,
+      rows: [...rows].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))),
+    }));
 }
 
 function formatArabicDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("ar-EG", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+  return formatArabicReportDate(iso);
 }
 
 function DateGroup({
@@ -738,9 +786,7 @@ function PrintableReport({
                   <tr key={r.id}>
                     <td style={tdStyle}>{r.surah}</td>
                     <td style={tdStyle}>{r.from_ayah}–{r.to_ayah}</td>
-                    <td style={tdStyle}>
-                      {r.is_review ? "مراجعة" : r.rating === "repeat" ? "إعادة" : r.rating ?? "—"}
-                    </td>
+                    <td style={tdStyle}>{formatRecitationRating(r)}</td>
                     <td style={tdStyle}>{r.notes ?? ""}</td>
                   </tr>
                 ))}
