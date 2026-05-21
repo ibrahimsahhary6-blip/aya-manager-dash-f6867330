@@ -163,13 +163,33 @@ async function downloadPdf(html: string, filename: string) {
   container.innerHTML = html;
   document.body.appendChild(container);
   try {
-    await new Promise((r) => setTimeout(r, 50));
+    if (!document.getElementById("__tajawal_pdf_font__")) {
+      const link = document.createElement("link");
+      link.id = "__tajawal_pdf_font__";
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
+      document.head.appendChild(link);
+    }
+    try {
+      await (document as any).fonts?.load?.("700 16px Tajawal");
+      await (document as any).fonts?.load?.("400 14px Tajawal");
+      await (document as any).fonts?.ready;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 100));
     const canvas = await html2canvas(container, {
       scale: 2,
       backgroundColor: "#ffffff",
       useCORS: true,
       logging: false,
       onclone: (doc) => {
+        doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
+        const fontLink = doc.createElement("link");
+        fontLink.rel = "stylesheet";
+        fontLink.href = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
+        doc.head.appendChild(fontLink);
+        const fontStyle = doc.createElement("style");
+        fontStyle.textContent = `*, *::before, *::after { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif !important; }`;
+        doc.head.appendChild(fontStyle);
         doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
         const safeVars: Record<string, string> = {
           "--background": "#ffffff",
