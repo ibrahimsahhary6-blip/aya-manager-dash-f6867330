@@ -667,8 +667,7 @@ function PrintableReport({
     <div
       id="print-report"
       dir="rtl"
-      className="hidden print:block"
-      style={{ fontFamily: "Tajawal, system-ui, sans-serif" }}
+      style={{ fontFamily: "Tajawal, system-ui, sans-serif", background: "#fff", color: "#000", padding: "16px" }}
     >
       <div style={{ borderBottom: "2px solid #111", paddingBottom: "8px", marginBottom: "14px" }}>
         <h1 style={{ margin: 0, fontSize: "20px", fontWeight: 700 }}>
