@@ -549,6 +549,7 @@ function RecitationForm({
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [rating, setRating] = useState<string>(initial?.rating ?? "");
+  const [isReview, setIsReview] = useState<boolean>(initial?.is_review ?? false);
 
 
   const selectedSurah = getSurahByName(fromSurah);
