@@ -456,6 +456,7 @@ function SettingsPage() {
         <PendingApprovalsCard />
         <PlatformUsersCard />
         <AuditLogCard />
+        <AccountCard />
         <NotificationEmailCard />
         <TransferSuperAdminCard />
         <BackupRestore />
