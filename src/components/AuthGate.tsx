@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyFirstLogin } from "@/lib/admin-users.functions";
+import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +75,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <PendingScreen email={session.user.email ?? ""} />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <UserMenu />
+    </>
+  );
 }
 
 function PendingScreen({ email }: { email: string }) {
