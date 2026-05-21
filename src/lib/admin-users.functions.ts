@@ -23,7 +23,7 @@ export const inviteUser = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    await assertSuperAdmin(context.userId);
     const email = data.email.trim().toLowerCase();
 
     // 1) add to allowlist (idempotent)
