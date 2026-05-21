@@ -40,6 +40,7 @@ import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { NotificationEmailCard, PendingApprovalsCard, InviteUserCard } from "@/components/AdminPanels";
 import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { AuditLogCard } from "@/components/AuditLogCard";
+import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
 import { Download, Trash } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -455,6 +456,7 @@ function SettingsPage() {
         <PlatformUsersCard />
         <AuditLogCard />
         <NotificationEmailCard />
+        <TransferSuperAdminCard />
         <BackupRestore />
       </main>
 
