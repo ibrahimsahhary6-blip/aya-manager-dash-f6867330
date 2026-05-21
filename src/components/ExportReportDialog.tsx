@@ -92,49 +92,37 @@ type PdfRow = {
   details: string;
 };
 
-async function downloadPdf(
-  title: string,
-  subtitle: string,
-  rows: PdfRow[],
-  filename: string,
-) {
-  if (!rows || rows.length === 0) {
-    throw new Error("لا توجد بيانات لتصديرها");
-  }
-
-  const container = document.createElement("div");
-  container.setAttribute("dir", "rtl");
-  container.id = "__pdf_export_container__";
-  container.style.cssText =
-    "position:fixed;top:0;left:-9999px;width:1100px;background:#ffffff;color:#111111;padding:24px;font-family:Tajawal,system-ui,sans-serif;";
-  container.innerHTML = `
+function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
+  return `
     <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;">
       <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${title}</h1>
       <div style="font-size:12px;color:#555555;margin-top:4px;">${subtitle}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;">
       <colgroup>
+        <col style="width:7%" />
+        <col style="width:18%" />
+        <col style="width:6%" />
+        <col style="width:6%" />
         <col style="width:8%" />
-        <col style="width:24%" />
         <col style="width:7%" />
         <col style="width:7%" />
-        <col style="width:9%" />
-        <col style="width:8%" />
-        <col style="width:8%" />
+        <col style="width:6%" />
         <col style="width:7%" />
-        <col style="width:8%" />
+        <col style="width:28%" />
       </colgroup>
       <thead>
         <tr style="background:#0f5132;color:#ffffff;">
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">الرقم</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">الاسم</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">حضور</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">غياب</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">% الحضور</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">المعدل</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">مُقيَّمة</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">إعادة</th>
-          <th style="border:1.5px solid #0f5132;padding:8px 4px;text-align:center;line-height:1.6;">إجمالي</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">الرقم</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">الاسم</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">حضور</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">غياب</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">% الحضور</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">المعدل</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">مُقيَّمة</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">إعادة</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">إجمالي</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">تفاصيل الأسبوع</th>
         </tr>
       </thead>
       <tbody>
@@ -142,25 +130,19 @@ async function downloadPdf(
           .map(
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;font-family:monospace;line-height:1.6;">${r.code}</td>
-            <td style="border:1px solid #999;padding:7px 6px;text-align:right;font-weight:600;line-height:1.7;word-break:break-word;">${r.name}</td>
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:1.6;">${r.present}</td>
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;color:#b91c1c;line-height:1.6;">${r.absent}</td>
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;line-height:1.6;">${r.pct}%</td>
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;font-weight:700;line-height:1.6;">${r.avg || "—"}</td>
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;line-height:1.6;">${r.rated}</td>
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;color:#b45309;line-height:1.6;">${r.repeats}</td>
-            <td style="border:1px solid #999;padding:7px 4px;text-align:center;line-height:1.6;">${r.total}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-family:monospace;line-height:1.7;white-space:nowrap;">${r.code}</td>
+            <td style="border:1px solid #999;padding:10px 6px;text-align:right;font-weight:600;line-height:1.7;word-break:break-word;">${r.name}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:1.7;">${r.present}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b91c1c;line-height:1.7;">${r.absent}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.pct}%</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-weight:700;line-height:1.7;">${r.avg || "—"}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.rated}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b45309;line-height:1.7;">${r.repeats}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.total}</td>
+            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-size:10px;color:#374151;line-height:1.9;word-break:break-word;">${
+              r.details ? r.details.replace(/</g, "&lt;") : "—"
+            }</td>
           </tr>
-          ${
-            r.details
-              ? `<tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
-                  <td colspan="9" style="border:1px solid #999;padding:6px 10px;font-size:10px;color:#374151;text-align:right;line-height:1.8;word-break:break-word;">
-                    <strong>تفاصيل:</strong> ${r.details.replace(/</g, "&lt;")}
-                  </td>
-                </tr>`
-              : ""
-          }
         `,
           )
           .join("")}
@@ -170,6 +152,15 @@ async function downloadPdf(
       تاريخ التوليد: ${new Date().toLocaleString("ar-EG")}
     </div>
   `;
+}
+
+async function downloadPdf(html: string, filename: string) {
+  const container = document.createElement("div");
+  container.setAttribute("dir", "rtl");
+  container.id = "__pdf_export_container__";
+  container.style.cssText =
+    "position:fixed;top:0;left:-9999px;width:1400px;background:#ffffff;color:#111111;padding:24px;font-family:Tajawal,system-ui,sans-serif;";
+  container.innerHTML = html;
   document.body.appendChild(container);
   try {
     await new Promise((r) => setTimeout(r, 50));
@@ -179,7 +170,6 @@ async function downloadPdf(
       useCORS: true,
       logging: false,
       onclone: (doc) => {
-        // Remove project stylesheets — Tailwind v4 emits oklch() which html2canvas cannot parse.
         doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
         const safeVars: Record<string, string> = {
           "--background": "#ffffff",
