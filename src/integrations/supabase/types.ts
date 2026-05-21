@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      allowed_emails: {
+        Row: {
+          email: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          notes: string | null
+        }
+        Insert: {
+          email: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+        }
+        Update: {
+          email?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -152,6 +176,8 @@ export type Database = {
           approved_at: string | null
           created_at: string
           email: string | null
+          first_login_at: string | null
+          first_login_notified: boolean
           is_approved: boolean
           user_id: string
         }
@@ -159,6 +185,8 @@ export type Database = {
           approved_at?: string | null
           created_at?: string
           email?: string | null
+          first_login_at?: string | null
+          first_login_notified?: boolean
           is_approved?: boolean
           user_id: string
         }
@@ -166,6 +194,8 @@ export type Database = {
           approved_at?: string | null
           created_at?: string
           email?: string | null
+          first_login_at?: string | null
+          first_login_notified?: boolean
           is_approved?: boolean
           user_id?: string
         }
