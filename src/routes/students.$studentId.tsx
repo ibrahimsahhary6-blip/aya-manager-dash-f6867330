@@ -507,12 +507,42 @@ type RecitationFormValues = {
   is_review: boolean;
 };
 
-const RATING_BUTTONS: { value: string; label: string; tone: "score" | "repeat" | "review" }[] = [
-  { value: "10", label: "10", tone: "score" },
-  { value: "9", label: "9", tone: "score" },
-  { value: "8", label: "8", tone: "score" },
-  { value: "repeat", label: "إعادة", tone: "repeat" },
-  { value: "review", label: "مراجعة", tone: "review" },
+const RATING_BUTTONS: {
+  value: string;
+  label: string;
+  activeClass: string;
+  idleClass: string;
+}[] = [
+  {
+    value: "10",
+    label: "10",
+    activeClass: "bg-emerald-600 hover:bg-emerald-600/90 text-white border-emerald-600 shadow-sm",
+    idleClass: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+  },
+  {
+    value: "9",
+    label: "9",
+    activeClass: "bg-teal-600 hover:bg-teal-600/90 text-white border-teal-600 shadow-sm",
+    idleClass: "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-900",
+  },
+  {
+    value: "8",
+    label: "8",
+    activeClass: "bg-sky-600 hover:bg-sky-600/90 text-white border-sky-600 shadow-sm",
+    idleClass: "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
+  },
+  {
+    value: "repeat",
+    label: "إعادة",
+    activeClass: "bg-amber-500 hover:bg-amber-500/90 text-white border-amber-500 shadow-sm",
+    idleClass: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+  },
+  {
+    value: "review",
+    label: "مراجعة",
+    activeClass: "bg-indigo-600 hover:bg-indigo-600/90 text-white border-indigo-600 shadow-sm",
+    idleClass: "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900",
+  },
 ];
 
 function groupByDate(rows: Recitation[]): { date: string; rows: Recitation[] }[] {
@@ -555,12 +585,12 @@ function DateGroup({
         <span className="text-xs text-muted-foreground">({rows.length})</span>
       </div>
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm" dir="rtl">
+        <table className="w-full text-sm min-w-[640px]" dir="rtl">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th className="text-right p-2 font-medium w-[28%]">السورة</th>
-              <th className="text-right p-2 font-medium">الملاحظات</th>
-              <th className="text-right p-2 font-medium w-[260px]">التقييم</th>
+              <th className="text-right p-2 font-medium min-w-[140px]">السورة</th>
+              <th className="text-right p-2 font-medium min-w-[180px]">الملاحظات</th>
+              <th className="text-right p-2 font-medium min-w-[230px]">التقييم</th>
               <th className="p-2 w-[70px]"></th>
             </tr>
           </thead>
@@ -653,25 +683,17 @@ function RecitationTableRow({
         <div className="flex gap-1 flex-wrap">
           {RATING_BUTTONS.map((b) => {
             const active = currentRating === b.value;
-            const variant =
-              active
-                ? b.tone === "repeat"
-                  ? "destructive"
-                  : b.tone === "review"
-                    ? "secondary"
-                    : "default"
-                : "outline";
             return (
-              <Button
+              <button
                 key={b.value}
-                size="sm"
-                variant={variant}
                 onClick={() => setRating(b.value)}
-                className="h-8 px-2 min-w-[40px] text-xs"
                 type="button"
+                className={`h-8 px-2.5 min-w-[44px] text-xs font-semibold rounded-md border transition-colors ${
+                  active ? b.activeClass : b.idleClass
+                }`}
               >
                 {b.label}
-              </Button>
+              </button>
             );
           })}
         </div>
