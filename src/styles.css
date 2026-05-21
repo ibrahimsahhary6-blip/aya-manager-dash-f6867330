@@ -107,3 +107,33 @@
     font-feature-settings: "kern", "liga";
   }
 }
+
+/* Print: A4 student report */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  #print-report, #print-report * {
+    visibility: visible !important;
+  }
+  #print-report {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print { display: none !important; }
+  #print-report table { page-break-inside: auto; }
+  #print-report tr { page-break-inside: avoid; page-break-after: auto; }
+  #print-report thead { display: table-header-group; }
+}
