@@ -5,6 +5,11 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
+import {
+  buildRecitationDetail,
+  formatReportDate,
+  sortRecitationsByDateAsc,
+} from "@/lib/reportService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,16 +129,22 @@ export function ExportReportDialog() {
           .select("*")
           .in("student_id", studentIds)
           .gte("attended_on", from)
-          .lte("attended_on", to),
+          .lte("attended_on", to)
+          .order("attended_on", { ascending: true }),
         supabase
           .from("recitations")
           .select("*")
           .in("student_id", studentIds)
           .gte("recited_on", from)
-          .lte("recited_on", to),
+          .lte("recited_on", to)
+          .order("recited_on", { ascending: true })
+          .order("created_at", { ascending: true }),
       ]);
       if (attRes.error) throw attRes.error;
       if (recRes.error) throw recRes.error;
+      const filteredRecitations = sortRecitationsByDateAsc(
+        (recRes.data ?? []).filter((r) => studentIds.includes(r.student_id)),
+      );
 
       const attByStudent = new Map<
         string,
@@ -152,7 +163,7 @@ export function ExportReportDialog() {
         string,
         { ratedSum: number; ratedCount: number; repeats: number }
       >();
-      (recRes.data ?? []).forEach((r) => {
+      filteredRecitations.forEach((r) => {
         const list = recByStudent.get(r.student_id) ?? [];
         list.push(r);
         recByStudent.set(r.student_id, list);
@@ -177,7 +188,7 @@ export function ExportReportDialog() {
       rows.push([
         `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`,
       ]);
-      rows.push([`الفترة: من ${from} إلى ${to}`]);
+      rows.push([`الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`]);
       rows.push([]);
       rows.push([
         "الرقم التعريفي",
@@ -199,13 +210,9 @@ export function ExportReportDialog() {
         const total = a.present + a.absent;
         const pct = total ? Math.round((a.present / total) * 100) : 0;
         const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
-        const recs = recByStudent.get(s.id) ?? [];
+        const recs = sortRecitationsByDateAsc(recByStudent.get(s.id) ?? []);
         const recDetails = recs
-          .map((r) => {
-            const rr = (r as { rating?: string | null }).rating;
-            const ratingLabel = rr === "repeat" ? " [إعادة]" : rr ? ` [${rr}/10]` : "";
-            return `${r.recited_on}: ${r.surah} ${r.from_ayah}-${r.to_ayah}${ratingLabel}${r.notes ? ` (${r.notes})` : ""}`;
-          })
+          .map((r) => buildRecitationDetail(r))
           .join(" | ");
         rows.push([
           s.student_code,
@@ -231,6 +238,7 @@ export function ExportReportDialog() {
       toast.success("تم تحميل التقرير");
       setOpen(false);
     } catch (e) {
+      console.error("Comprehensive Export Error:", e);
       toast.error(getErrorMessage(e));
     } finally {
       setLoading(false);
