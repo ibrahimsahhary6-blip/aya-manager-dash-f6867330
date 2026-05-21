@@ -579,22 +579,28 @@ function DateGroup({
 }) {
   return (
     <div className="px-3 sm:px-5 py-4" dir="rtl">
-      <div className="mb-3 flex items-center gap-2">
-        <CalendarIcon className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-bold text-primary">{formatArabicDate(date)}</h3>
-        <span className="text-xs text-muted-foreground">({rows.length})</span>
+      <div className="mb-3 flex items-center gap-2 bg-primary text-primary-foreground px-3 py-2 rounded-md">
+        <CalendarIcon className="h-4 w-4" />
+        <h3 className="text-sm font-bold">{formatArabicDate(date)}</h3>
+        <span className="text-xs opacity-90">({rows.length})</span>
       </div>
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm min-w-[640px]" dir="rtl">
-          <thead className="bg-muted/40 text-xs text-muted-foreground">
+        <table className="w-full text-sm min-w-[680px] table-fixed break-words" dir="rtl">
+          <colgroup>
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "10%" }} />
+          </colgroup>
+          <thead className="bg-primary text-primary-foreground text-xs">
             <tr>
-              <th className="text-right p-2 font-medium min-w-[140px]">السورة</th>
-              <th className="text-right p-2 font-medium min-w-[180px]">الملاحظات</th>
-              <th className="text-right p-2 font-medium min-w-[230px]">التقييم</th>
-              <th className="p-2 w-[70px]"></th>
+              <th className="text-right p-3 font-bold">السورة</th>
+              <th className="text-right p-3 font-bold">الملاحظات</th>
+              <th className="text-right p-3 font-bold">التقييم</th>
+              <th className="p-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="[&_tr:nth-child(even)]:bg-muted/30">
             {rows.map((r) => (
               <RecitationTableRow
                 key={r.id}
@@ -652,11 +658,11 @@ function RecitationTableRow({
   };
 
   return (
-    <tr className="align-top hover:bg-accent/20">
-      <td className="p-2">
-        <div className="flex items-center gap-2 font-semibold">
-          <BookOpen className="h-4 w-4 text-primary shrink-0" />
-          <span className="truncate">{rec.surah}</span>
+    <tr className="align-top hover:bg-accent/30 border-t">
+      <td className="p-3 align-top">
+        <div className="flex items-start gap-2 font-semibold leading-relaxed">
+          <BookOpen className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <span className="break-words">{rec.surah}</span>
           {rec.is_review && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30 shrink-0">
               مراجعة
@@ -667,7 +673,7 @@ function RecitationTableRow({
           الآيات {rec.from_ayah}–{rec.to_ayah}
         </div>
       </td>
-      <td className="p-2 min-w-[180px]">
+      <td className="p-3 align-top">
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -779,24 +785,31 @@ function PrintableReport({
         <p style={{ fontSize: "12px", color: "#666" }}>لا توجد سجلات.</p>
       ) : (
         groups.map((g) => (
-          <div key={g.date} style={{ marginBottom: "10px" }}>
+          <div key={g.date} style={{ marginBottom: "12px" }}>
             <div style={{
               fontWeight: 700,
-              fontSize: "12px",
-              background: "#f1f1f1",
-              padding: "4px 6px",
-              borderRight: "3px solid #111",
+              fontSize: "13px",
+              background: "#0f5132",
+              color: "#ffffff",
+              padding: "6px 10px",
+              borderRadius: "3px 3px 0 0",
             }}>
               {formatArabicDate(g.date)}
             </div>
             <table style={{
               width: "100%",
               borderCollapse: "collapse",
-              fontSize: "11px",
-              marginTop: "2px",
+              fontSize: "12px",
+              tableLayout: "fixed",
             }}>
+              <colgroup>
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "35%" }} />
+              </colgroup>
               <thead>
-                <tr style={{ background: "#fafafa" }}>
+                <tr>
                   <th style={thStyle}>السورة</th>
                   <th style={thStyle}>الآيات</th>
                   <th style={thStyle}>التقييم</th>
@@ -804,12 +817,12 @@ function PrintableReport({
                 </tr>
               </thead>
               <tbody>
-                {g.rows.map((r) => (
-                  <tr key={r.id}>
+                {g.rows.map((r, i) => (
+                  <tr key={r.id} style={{ background: i % 2 ? "#f5f7f6" : "#ffffff" }}>
                     <td style={tdStyle}>{r.surah}</td>
                     <td style={tdStyle}>{r.from_ayah}–{r.to_ayah}</td>
                     <td style={tdStyle}>{formatRecitationRating(r)}</td>
-                    <td style={tdStyle}>{r.notes ?? ""}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{r.notes ?? ""}</td>
                   </tr>
                 ))}
               </tbody>
@@ -837,16 +850,21 @@ function PrintableReport({
 }
 
 const thStyle: React.CSSProperties = {
-  border: "1px solid #ccc",
-  padding: "4px 6px",
-  textAlign: "right",
+  border: "1.5px solid #0f5132",
+  padding: "8px 6px",
+  textAlign: "center",
   fontWeight: 700,
+  background: "#0f5132",
+  color: "#ffffff",
+  lineHeight: 1.6,
 };
 const tdStyle: React.CSSProperties = {
-  border: "1px solid #ddd",
-  padding: "4px 6px",
-  textAlign: "right",
-  verticalAlign: "top",
+  border: "1px solid #999",
+  padding: "8px 6px",
+  textAlign: "center",
+  verticalAlign: "middle",
+  lineHeight: 1.7,
+  wordBreak: "break-word",
 };
 
 function StatBox({ label, value }: { label: string; value: string }) {
