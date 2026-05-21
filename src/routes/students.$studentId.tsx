@@ -143,6 +143,14 @@ function StudentProfilePage() {
         backgroundColor: "#ffffff",
         onclone: (doc) => {
           doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
+          // Inject Tajawal font so Arabic shaping renders correctly in html2canvas
+          const fontLink = doc.createElement("link");
+          fontLink.rel = "stylesheet";
+          fontLink.href = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
+          doc.head.appendChild(fontLink);
+          const fontStyle = doc.createElement("style");
+          fontStyle.textContent = `*, *::before, *::after { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif !important; }`;
+          doc.head.appendChild(fontStyle);
           const safeVars: Record<string, string> = {
             "--background": "#ffffff",
             "--foreground": "#111111",
