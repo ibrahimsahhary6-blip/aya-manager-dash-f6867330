@@ -447,19 +447,19 @@ function DashboardPage() {
                       }
                       className="border-t hover:bg-accent/40 cursor-pointer transition-colors"
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">
+                      <td className="px-4 py-3 font-mono text-xs text-primary font-semibold col-nowrap">
                         {s.student_code}
                       </td>
-                      <td className="px-4 py-3 font-medium">{s.full_name}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 font-medium col-name">{s.full_name}</td>
+                      <td className="px-4 py-3 col-nowrap">
                         <Badge variant="secondary" className="font-normal">
                           {battalionName(s.battalion_id)}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">
+                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground col-nowrap">
                         {companyName(s.company_id)}
                       </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
+                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground col-nowrap">
                         {new Date(s.created_at).toLocaleDateString("ar-EG")}
                       </td>
                       <td className="px-4 py-3 text-left">
