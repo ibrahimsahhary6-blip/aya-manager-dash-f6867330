@@ -110,6 +110,46 @@ function StudentProfilePage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Recitation | null>(null);
   const [deleting, setDeleting] = useState<Recitation | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const handleExportPdf = async () => {
+    const node = reportRef.current;
+    if (!node) return;
+    setExporting(true);
+    try {
+      // Temporarily make it visible for capture
+      const prevStyle = node.getAttribute("style") ?? "";
+      node.setAttribute(
+        "style",
+        "position:fixed;top:0;left:-9999px;width:794px;background:#fff;color:#000;padding:24px;font-family:Tajawal,system-ui,sans-serif;",
+      );
+      await new Promise((r) => setTimeout(r, 50));
+      const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      node.setAttribute("style", prevStyle);
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = 210;
+      const pageH = 297;
+      const imgH = (canvas.height * pageW) / canvas.width;
+      let heightLeft = imgH;
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
+      heightLeft -= pageH;
+      while (heightLeft > 0) {
+        position = heightLeft - imgH;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
+        heightLeft -= pageH;
+      }
+      pdf.save(`تقرير-${student?.full_name ?? "طالب"}.pdf`);
+    } catch (e) {
+      toast.error(getErrorMessage(e as Error));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const battalionName =
     battalions.find((b) => b.id === student?.battalion_id)?.name ?? "—";
