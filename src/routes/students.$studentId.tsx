@@ -658,11 +658,11 @@ function RecitationTableRow({
   };
 
   return (
-    <tr className="align-top hover:bg-accent/20">
-      <td className="p-2">
-        <div className="flex items-center gap-2 font-semibold">
-          <BookOpen className="h-4 w-4 text-primary shrink-0" />
-          <span className="truncate">{rec.surah}</span>
+    <tr className="align-top hover:bg-accent/30 border-t">
+      <td className="p-3 align-top">
+        <div className="flex items-start gap-2 font-semibold leading-relaxed">
+          <BookOpen className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <span className="break-words">{rec.surah}</span>
           {rec.is_review && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30 shrink-0">
               مراجعة
@@ -673,7 +673,7 @@ function RecitationTableRow({
           الآيات {rec.from_ayah}–{rec.to_ayah}
         </div>
       </td>
-      <td className="p-2 min-w-[180px]">
+      <td className="p-3 align-top">
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
