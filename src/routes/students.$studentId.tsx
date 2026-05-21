@@ -200,19 +200,30 @@ function StudentProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
+      <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30 no-print">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <Button variant="ghost" size="sm" className="gap-2" onClick={goBack}>
             <ArrowRight className="h-4 w-4" />
             <span>العودة</span>
           </Button>
-          <span className="font-mono text-xs text-primary font-semibold">
-            {student.student_code}
-          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => window.print()}
+            >
+              <Printer className="h-4 w-4" />
+              <span>تصدير تقرير</span>
+            </Button>
+            <span className="font-mono text-xs text-primary font-semibold">
+              {student.student_code}
+            </span>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 no-print">
         {/* Profile card */}
         <section className="bg-card rounded-2xl border shadow-soft p-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -258,7 +269,7 @@ function StudentProfilePage() {
         </section>
 
 
-        {/* Recitations log */}
+        {/* Recitations log — grouped by date */}
         <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
           <div className="flex items-center justify-between p-4 sm:p-6 border-b">
             <div className="flex items-center gap-3">
@@ -293,20 +304,31 @@ function StudentProfilePage() {
               </Button>
             </div>
           ) : (
-            <ul className="divide-y">
-              {recitations.map((r) => (
-                <RecitationRow
-                  key={r.id}
-                  rec={r}
-                  onPatch={(patch) => inlineMutation.mutate({ id: r.id, patch })}
-                  onEdit={() => setEditing(r)}
-                  onDelete={() => setDeleting(r)}
+            <div className="divide-y">
+              {groupByDate(recitations).map((group) => (
+                <DateGroup
+                  key={group.date}
+                  date={group.date}
+                  rows={group.rows}
+                  onPatch={(id, patch) => inlineMutation.mutate({ id, patch })}
+                  onEdit={(r) => setEditing(r)}
+                  onDelete={(r) => setDeleting(r)}
                 />
               ))}
-            </ul>
+            </div>
           )}
         </section>
       </main>
+
+      {/* Printable report (hidden on screen, shown on print) */}
+      <PrintableReport
+        student={student}
+        battalionName={battalionName}
+        companyName={companyName}
+        recitations={recitations}
+        stats={ratingStats}
+      />
+
 
 
       {/* Add recitation */}
