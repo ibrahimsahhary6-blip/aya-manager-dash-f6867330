@@ -37,7 +37,7 @@ import {
 import { useBattalions, useCompanies, type Battalion, type Company } from "@/lib/orgs";
 import { BackupRestore } from "@/components/BackupRestore";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
-import { NotificationEmailCard, PendingApprovalsCard } from "@/components/AdminPanels";
+import { NotificationEmailCard, PendingApprovalsCard, InviteUserCard } from "@/components/AdminPanels";
 import { Download, Trash } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -448,6 +448,7 @@ function SettingsPage() {
           </div>
         </section>
 
+        <InviteUserCard />
         <PendingApprovalsCard />
         <NotificationEmailCard />
         <BackupRestore />

@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyFirstLogin } from "@/lib/admin-users.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +16,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState<ApprovalStatus>("checking");
+  const notify = useServerFn(notifyFirstLogin);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -44,8 +47,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         return;
       }
       setApproval(data?.is_approved ? "approved" : "pending");
+      // Fire-and-forget first-login notification
+      notify({}).catch(() => {});
     })();
-  }, [session]);
+  }, [session, notify]);
 
   if (loading) {
     return (
@@ -79,13 +84,10 @@ function PendingScreen({ email }: { email: string }) {
         <CardHeader>
           <CardTitle>بانتظار موافقة المدير</CardTitle>
           <CardDescription>
-            تم تسجيل حسابك بنجاح ({email}) وهو الآن بانتظار موافقة المدير لتفعيل الدخول.
+            حسابك ({email}) بانتظار موافقة المدير لتفعيل الدخول.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            سيتم إعلامك عند تفعيل الحساب. يمكنك إغلاق الصفحة والعودة لاحقاً.
-          </p>
           <Button variant="outline" className="w-full" onClick={() => supabase.auth.signOut()}>
             تسجيل الخروج
           </Button>
@@ -96,7 +98,6 @@ function PendingScreen({ email }: { email: string }) {
 }
 
 function LoginScreen() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,19 +106,15 @@ function LoginScreen() {
     e.preventDefault();
     setBusy(true);
     try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("تم تسجيل الدخول");
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast.success("تم إنشاء الحساب — بانتظار موافقة المدير");
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        const msg = error.message?.toLowerCase() ?? "";
+        if (msg.includes("invalid") || msg.includes("not found") || msg.includes("credentials")) {
+          throw new Error("عذراً، هذا الحساب غير مصرح له بالدخول");
+        }
+        throw error;
       }
+      toast.success("تم تسجيل الدخول");
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -129,7 +126,7 @@ function LoginScreen() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>{mode === "login" ? "تسجيل الدخول" : "إنشاء حساب"}</CardTitle>
+          <CardTitle>تسجيل الدخول</CardTitle>
           <CardDescription>منصة إدارة حلقات القرآن</CardDescription>
         </CardHeader>
         <CardContent>
@@ -143,20 +140,11 @@ function LoginScreen() {
               <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" />
             </div>
             <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? "..." : mode === "login" ? "دخول" : "إنشاء"}
+              {busy ? "..." : "دخول"}
             </Button>
-            {mode === "signup" && (
-              <p className="text-xs text-muted-foreground text-center">
-                ملاحظة: يتطلب الحساب الجديد موافقة المدير قبل التفعيل.
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={() => setMode(mode === "login" ? "signup" : "login")}
-              className="w-full text-sm text-muted-foreground hover:text-foreground"
-            >
-              {mode === "login" ? "ليس لديك حساب؟ أنشئ حساباً" : "لديك حساب؟ سجل الدخول"}
-            </button>
+            <p className="text-xs text-muted-foreground text-center">
+              التسجيل الذاتي غير متاح. للحصول على حساب، تواصل مع المدير.
+            </p>
           </form>
         </CardContent>
       </Card>
