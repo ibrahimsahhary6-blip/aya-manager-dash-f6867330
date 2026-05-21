@@ -100,16 +100,16 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;">
       <colgroup>
+        <col style="width:7%" />
+        <col style="width:18%" />
         <col style="width:6%" />
-        <col style="width:24%" />
         <col style="width:6%" />
-        <col style="width:6%" />
+        <col style="width:8%" />
+        <col style="width:7%" />
         <col style="width:7%" />
         <col style="width:6%" />
         <col style="width:7%" />
-        <col style="width:6%" />
-        <col style="width:7%" />
-        <col style="width:25%" />
+        <col style="width:28%" />
       </colgroup>
       <thead>
         <tr style="background:#0f5132;color:#ffffff;">
@@ -130,16 +130,16 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
           .map(
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;font-family:monospace;line-height:2;white-space:nowrap;vertical-align:middle;">${r.code}</td>
-            <td style="border:1px solid #999;padding:14px 10px;text-align:right;font-weight:600;line-height:2.2;word-break:break-word;overflow-wrap:break-word;white-space:normal;vertical-align:middle;">${r.name}</td>
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:2;vertical-align:middle;">${r.present}</td>
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;color:#b91c1c;line-height:2;vertical-align:middle;">${r.absent}</td>
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;line-height:2;vertical-align:middle;">${r.pct}%</td>
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;font-weight:700;line-height:2;vertical-align:middle;">${r.avg || "—"}</td>
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;line-height:2;vertical-align:middle;">${r.rated}</td>
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;color:#b45309;line-height:2;vertical-align:middle;">${r.repeats}</td>
-            <td style="border:1px solid #999;padding:14px 4px;text-align:center;line-height:2;vertical-align:middle;">${r.total}</td>
-            <td style="border:1px solid #999;padding:14px 8px;text-align:right;font-size:10px;color:#374151;line-height:2.1;word-break:break-word;overflow-wrap:break-word;vertical-align:middle;">${
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-family:monospace;line-height:1.7;white-space:nowrap;">${r.code}</td>
+            <td style="border:1px solid #999;padding:10px 6px;text-align:right;font-weight:600;line-height:1.7;word-break:break-word;">${r.name}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:1.7;">${r.present}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b91c1c;line-height:1.7;">${r.absent}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.pct}%</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-weight:700;line-height:1.7;">${r.avg || "—"}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.rated}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b45309;line-height:1.7;">${r.repeats}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.total}</td>
+            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-size:10px;color:#374151;line-height:1.9;word-break:break-word;">${
               r.details ? r.details.replace(/</g, "&lt;") : "—"
             }</td>
           </tr>
