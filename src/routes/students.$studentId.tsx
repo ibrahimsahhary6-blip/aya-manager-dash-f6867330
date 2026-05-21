@@ -381,21 +381,138 @@ type RecitationFormValues = {
   to_ayah: number;
   notes: string;
   rating: string | null;
+  is_review: boolean;
 };
 
-function RatingBadge({ rating }: { rating: string | null }) {
-  if (!rating) return null;
-  if (rating === "repeat") {
-    return (
-      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-        إعادة
-      </span>
-    );
+const RATING_BUTTONS: { value: string; label: string; tone: "score" | "repeat" | "review" }[] = [
+  { value: "10", label: "10", tone: "score" },
+  { value: "9", label: "9", tone: "score" },
+  { value: "8", label: "8", tone: "score" },
+  { value: "repeat", label: "إعادة", tone: "repeat" },
+  { value: "review", label: "مراجعة", tone: "review" },
+];
+
+function RecitationRow({
+  rec,
+  onPatch,
+  onEdit,
+  onDelete,
+}: {
+  rec: Recitation;
+  onPatch: (patch: Partial<Recitation>) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [notes, setNotes] = useState(rec.notes ?? "");
+  // Keep local notes in sync if upstream changes (e.g. after refetch)
+  const [lastSyncedId, setLastSyncedId] = useState(rec.id);
+  if (lastSyncedId !== rec.id) {
+    setLastSyncedId(rec.id);
+    setNotes(rec.notes ?? "");
   }
+
+  const currentRating: string | null = rec.is_review ? "review" : rec.rating ?? null;
+
+  const setRating = (value: string) => {
+    if (value === "review") {
+      const next = !rec.is_review;
+      onPatch({ is_review: next, rating: next ? null : rec.rating });
+      if (next) toast("تم تسجيل السجل كجلسة مراجعة");
+      return;
+    }
+    // Numeric or repeat — clear review and toggle rating
+    const same = rec.rating === value && !rec.is_review;
+    if (value === "repeat" && !same) {
+      toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
+    }
+    onPatch({ rating: same ? null : value, is_review: false });
+  };
+
+  const saveNotes = () => {
+    const trimmed = notes.trim().slice(0, 2000);
+    if (trimmed === (rec.notes ?? "")) return;
+    onPatch({ notes: trimmed });
+  };
+
   return (
-    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
-      {rating}/10
-    </span>
+    <li className="px-3 sm:px-4 py-3 hover:bg-accent/30">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+        {/* Date */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap lg:w-28">
+          <CalendarIcon className="h-3.5 w-3.5" />
+          {new Date(rec.recited_on).toLocaleDateString("ar-EG")}
+        </div>
+
+        {/* Surah */}
+        <div className="font-semibold text-sm lg:w-44 truncate flex items-center gap-2">
+          <BookOpen className="h-4 w-4 text-primary shrink-0" />
+          <span className="truncate">{rec.surah}</span>
+          {rec.is_review && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30 shrink-0">
+              مراجعة
+            </span>
+          )}
+          <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+            ({rec.from_ayah}–{rec.to_ayah})
+          </span>
+        </div>
+
+        {/* Notes inline */}
+        <Input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={saveNotes}
+          placeholder="ملاحظات..."
+          maxLength={2000}
+          className="flex-1 h-9 text-sm"
+        />
+
+        {/* Rating buttons */}
+        <div className="flex gap-1 flex-wrap lg:flex-nowrap">
+          {RATING_BUTTONS.map((b) => {
+            const active = currentRating === b.value;
+            const variant =
+              active
+                ? b.tone === "repeat"
+                  ? "destructive"
+                  : b.tone === "review"
+                    ? "secondary"
+                    : "default"
+                : "outline";
+            return (
+              <Button
+                key={b.value}
+                size="sm"
+                variant={variant}
+                onClick={() => setRating(b.value)}
+                className="h-8 px-2 min-w-[40px] text-xs"
+                type="button"
+              >
+                {b.label}
+              </Button>
+            );
+          })}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onEdit}
+            className="h-8 w-8"
+            title="تعديل كامل"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onDelete}
+            className="h-8 w-8"
+            title="حذف"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        </div>
+      </div>
+    </li>
   );
 }
 
