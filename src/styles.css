@@ -98,13 +98,21 @@
   * {
     border-color: var(--color-border);
   }
-  html {
+  html, body {
     font-family: var(--font-sans);
+    direction: rtl;
+    text-align: right;
   }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-feature-settings: "kern", "liga";
+  }
+  table, thead, tbody, tr, th, td {
+    direction: rtl;
+  }
+  th, td {
+    text-align: right;
   }
 }
 
