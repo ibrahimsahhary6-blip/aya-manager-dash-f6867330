@@ -79,7 +79,109 @@ function downloadCsv(content: string, filename: string) {
   saveBlob(new Blob(["\uFEFF" + content], { type: "text/csv;charset=utf-8" }), filename);
 }
 
-export function ExportReportDialog() {
+type PdfRow = {
+  code: string;
+  name: string;
+  present: number;
+  absent: number;
+  pct: number;
+  avg: string;
+  rated: number;
+  repeats: number;
+  total: number;
+  details: string;
+};
+
+async function downloadPdf(
+  title: string,
+  subtitle: string,
+  rows: PdfRow[],
+  filename: string,
+) {
+  const container = document.createElement("div");
+  container.setAttribute("dir", "rtl");
+  container.style.cssText =
+    "position:fixed;top:0;left:-9999px;width:1100px;background:#fff;color:#111;padding:24px;font-family:Tajawal,system-ui,sans-serif;";
+  container.innerHTML = `
+    <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;">
+      <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${title}</h1>
+      <div style="font-size:12px;color:#555;margin-top:4px;">${subtitle}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead>
+        <tr style="background:#0f5132;color:#fff;">
+          <th style="border:1px solid #0f5132;padding:6px;text-align:right;">الرقم</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:right;">الاسم</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:center;">حضور</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:center;">غياب</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:center;">% الحضور</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:center;">المعدل</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:center;">مُقيَّمة</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:center;">إعادة</th>
+          <th style="border:1px solid #0f5132;padding:6px;text-align:center;">إجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows
+          .map(
+            (r, i) => `
+          <tr style="background:${i % 2 ? "#f7faf8" : "#fff"};">
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:right;font-family:monospace;">${r.code}</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:right;font-weight:600;">${r.name}</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;color:#0f5132;font-weight:600;">${r.present}</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;color:#b91c1c;">${r.absent}</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;">${r.pct}%</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;font-weight:700;">${r.avg || "—"}</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;">${r.rated}</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;color:#b45309;">${r.repeats}</td>
+            <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;">${r.total}</td>
+          </tr>
+          ${
+            r.details
+              ? `<tr style="background:${i % 2 ? "#f7faf8" : "#fff"};">
+                  <td colspan="9" style="border:1px solid #d6d6d6;padding:5px 8px;font-size:10px;color:#444;text-align:right;">
+                    <strong>تفاصيل:</strong> ${r.details.replace(/</g, "&lt;")}
+                  </td>
+                </tr>`
+              : ""
+          }
+        `,
+          )
+          .join("")}
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:10px;color:#666;text-align:left;">
+      تاريخ التوليد: ${new Date().toLocaleString("ar-EG")}
+    </div>
+  `;
+  document.body.appendChild(container);
+  try {
+    await new Promise((r) => setTimeout(r, 50));
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+    });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("l", "mm", "a4");
+    const pageW = 297;
+    const pageH = 210;
+    const imgH = (canvas.height * pageW) / canvas.width;
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
+      heightLeft -= pageH;
+    }
+    pdf.save(filename);
+  } finally {
+    container.remove();
+  }
+}
   const [open, setOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
