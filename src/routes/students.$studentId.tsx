@@ -579,22 +579,28 @@ function DateGroup({
 }) {
   return (
     <div className="px-3 sm:px-5 py-4" dir="rtl">
-      <div className="mb-3 flex items-center gap-2">
-        <CalendarIcon className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-bold text-primary">{formatArabicDate(date)}</h3>
-        <span className="text-xs text-muted-foreground">({rows.length})</span>
+      <div className="mb-3 flex items-center gap-2 bg-primary text-primary-foreground px-3 py-2 rounded-md">
+        <CalendarIcon className="h-4 w-4" />
+        <h3 className="text-sm font-bold">{formatArabicDate(date)}</h3>
+        <span className="text-xs opacity-90">({rows.length})</span>
       </div>
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm min-w-[640px]" dir="rtl">
-          <thead className="bg-muted/40 text-xs text-muted-foreground">
+        <table className="w-full text-sm min-w-[680px] table-fixed break-words" dir="rtl">
+          <colgroup>
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "10%" }} />
+          </colgroup>
+          <thead className="bg-primary text-primary-foreground text-xs">
             <tr>
-              <th className="text-right p-2 font-medium min-w-[140px]">السورة</th>
-              <th className="text-right p-2 font-medium min-w-[180px]">الملاحظات</th>
-              <th className="text-right p-2 font-medium min-w-[230px]">التقييم</th>
-              <th className="p-2 w-[70px]"></th>
+              <th className="text-right p-3 font-bold">السورة</th>
+              <th className="text-right p-3 font-bold">الملاحظات</th>
+              <th className="text-right p-3 font-bold">التقييم</th>
+              <th className="p-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="[&_tr:nth-child(even)]:bg-muted/30">
             {rows.map((r) => (
               <RecitationTableRow
                 key={r.id}
