@@ -338,7 +338,7 @@ export type Database = {
       normalize_arabic: { Args: { input: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "user" | "super_admin"
+      app_role: "admin" | "user" | "super_admin" | "moderator" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -466,7 +466,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "super_admin"],
+      app_role: ["admin", "user", "super_admin", "moderator", "viewer"],
     },
   },
 } as const
