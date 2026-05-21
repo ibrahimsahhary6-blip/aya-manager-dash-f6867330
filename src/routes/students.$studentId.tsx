@@ -142,6 +142,28 @@ function StudentProfilePage() {
         useCORS: true,
         backgroundColor: "#ffffff",
         onclone: (doc) => {
+          const safeVars: Record<string, string> = {
+            "--background": "#ffffff",
+            "--foreground": "#111111",
+            "--card": "#ffffff",
+            "--card-foreground": "#111111",
+            "--popover": "#ffffff",
+            "--popover-foreground": "#111111",
+            "--primary": "#111111",
+            "--primary-foreground": "#ffffff",
+            "--secondary": "#f3f4f6",
+            "--secondary-foreground": "#111111",
+            "--muted": "#f3f4f6",
+            "--muted-foreground": "#4b5563",
+            "--accent": "#f3f4f6",
+            "--accent-foreground": "#111111",
+            "--border": "#d1d5db",
+            "--input": "#d1d5db",
+            "--ring": "#111111",
+          };
+          Object.entries(safeVars).forEach(([key, value]) => {
+            doc.documentElement.style.setProperty(key, value);
+          });
           doc.documentElement.style.backgroundColor = "#ffffff";
           doc.documentElement.style.color = "#111111";
           doc.body.style.backgroundColor = "#ffffff";
