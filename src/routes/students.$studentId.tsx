@@ -785,24 +785,31 @@ function PrintableReport({
         <p style={{ fontSize: "12px", color: "#666" }}>لا توجد سجلات.</p>
       ) : (
         groups.map((g) => (
-          <div key={g.date} style={{ marginBottom: "10px" }}>
+          <div key={g.date} style={{ marginBottom: "12px" }}>
             <div style={{
               fontWeight: 700,
-              fontSize: "12px",
-              background: "#f1f1f1",
-              padding: "4px 6px",
-              borderRight: "3px solid #111",
+              fontSize: "13px",
+              background: "#0f5132",
+              color: "#ffffff",
+              padding: "6px 10px",
+              borderRadius: "3px 3px 0 0",
             }}>
               {formatArabicDate(g.date)}
             </div>
             <table style={{
               width: "100%",
               borderCollapse: "collapse",
-              fontSize: "11px",
-              marginTop: "2px",
+              fontSize: "12px",
+              tableLayout: "fixed",
             }}>
+              <colgroup>
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "35%" }} />
+              </colgroup>
               <thead>
-                <tr style={{ background: "#fafafa" }}>
+                <tr>
                   <th style={thStyle}>السورة</th>
                   <th style={thStyle}>الآيات</th>
                   <th style={thStyle}>التقييم</th>
@@ -810,12 +817,12 @@ function PrintableReport({
                 </tr>
               </thead>
               <tbody>
-                {g.rows.map((r) => (
-                  <tr key={r.id}>
+                {g.rows.map((r, i) => (
+                  <tr key={r.id} style={{ background: i % 2 ? "#f5f7f6" : "#ffffff" }}>
                     <td style={tdStyle}>{r.surah}</td>
                     <td style={tdStyle}>{r.from_ayah}–{r.to_ayah}</td>
                     <td style={tdStyle}>{formatRecitationRating(r)}</td>
-                    <td style={tdStyle}>{r.notes ?? ""}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{r.notes ?? ""}</td>
                   </tr>
                 ))}
               </tbody>
