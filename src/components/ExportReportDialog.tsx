@@ -98,18 +98,23 @@ async function downloadPdf(
   rows: PdfRow[],
   filename: string,
 ) {
+  if (!rows || rows.length === 0) {
+    throw new Error("لا توجد بيانات لتصديرها");
+  }
+
   const container = document.createElement("div");
   container.setAttribute("dir", "rtl");
+  container.id = "__pdf_export_container__";
   container.style.cssText =
-    "position:fixed;top:0;left:-9999px;width:1100px;background:#fff;color:#111;padding:24px;font-family:Tajawal,system-ui,sans-serif;";
+    "position:fixed;top:0;left:-9999px;width:1100px;background:#ffffff;color:#111111;padding:24px;font-family:Tajawal,system-ui,sans-serif;";
   container.innerHTML = `
     <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;">
       <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${title}</h1>
-      <div style="font-size:12px;color:#555;margin-top:4px;">${subtitle}</div>
+      <div style="font-size:12px;color:#555555;margin-top:4px;">${subtitle}</div>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;">
       <thead>
-        <tr style="background:#0f5132;color:#fff;">
+        <tr style="background:#0f5132;color:#ffffff;">
           <th style="border:1px solid #0f5132;padding:6px;text-align:right;">الرقم</th>
           <th style="border:1px solid #0f5132;padding:6px;text-align:right;">الاسم</th>
           <th style="border:1px solid #0f5132;padding:6px;text-align:center;">حضور</th>
@@ -125,7 +130,7 @@ async function downloadPdf(
         ${rows
           .map(
             (r, i) => `
-          <tr style="background:${i % 2 ? "#f7faf8" : "#fff"};">
+          <tr style="background:${i % 2 ? "#f7faf8" : "#ffffff"};color:#111111;">
             <td style="border:1px solid #d6d6d6;padding:5px;text-align:right;font-family:monospace;">${r.code}</td>
             <td style="border:1px solid #d6d6d6;padding:5px;text-align:right;font-weight:600;">${r.name}</td>
             <td style="border:1px solid #d6d6d6;padding:5px;text-align:center;color:#0f5132;font-weight:600;">${r.present}</td>
@@ -138,8 +143,8 @@ async function downloadPdf(
           </tr>
           ${
             r.details
-              ? `<tr style="background:${i % 2 ? "#f7faf8" : "#fff"};">
-                  <td colspan="9" style="border:1px solid #d6d6d6;padding:5px 8px;font-size:10px;color:#444;text-align:right;">
+              ? `<tr style="background:${i % 2 ? "#f7faf8" : "#ffffff"};color:#111111;">
+                  <td colspan="9" style="border:1px solid #d6d6d6;padding:5px 8px;font-size:10px;color:#444444;text-align:right;">
                     <strong>تفاصيل:</strong> ${r.details.replace(/</g, "&lt;")}
                   </td>
                 </tr>`
@@ -150,7 +155,7 @@ async function downloadPdf(
           .join("")}
       </tbody>
     </table>
-    <div style="margin-top:12px;font-size:10px;color:#666;text-align:left;">
+    <div style="margin-top:12px;font-size:10px;color:#666666;text-align:left;">
       تاريخ التوليد: ${new Date().toLocaleString("ar-EG")}
     </div>
   `;
@@ -161,6 +166,41 @@ async function downloadPdf(
       scale: 2,
       backgroundColor: "#ffffff",
       useCORS: true,
+      logging: false,
+      onclone: (doc) => {
+        // Remove project stylesheets — Tailwind v4 emits oklch() which html2canvas cannot parse.
+        doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
+        const safeVars: Record<string, string> = {
+          "--background": "#ffffff",
+          "--foreground": "#111111",
+          "--card": "#ffffff",
+          "--card-foreground": "#111111",
+          "--primary": "#0f5132",
+          "--primary-foreground": "#ffffff",
+          "--secondary": "#f3f4f6",
+          "--secondary-foreground": "#111111",
+          "--muted": "#f3f4f6",
+          "--muted-foreground": "#4b5563",
+          "--accent": "#f3f4f6",
+          "--accent-foreground": "#111111",
+          "--border": "#d1d5db",
+          "--input": "#d1d5db",
+          "--ring": "#111111",
+          "--color-border": "#d1d5db",
+        };
+        Object.entries(safeVars).forEach(([key, value]) => {
+          doc.documentElement.style.setProperty(key, value);
+        });
+        doc.documentElement.style.backgroundColor = "#ffffff";
+        doc.documentElement.style.color = "#111111";
+        doc.body.style.backgroundColor = "#ffffff";
+        doc.body.style.color = "#111111";
+        const cloned = doc.getElementById("__pdf_export_container__");
+        cloned?.querySelectorAll<HTMLElement>("*").forEach((el) => {
+          el.style.boxShadow = "none";
+          if (!el.style.borderColor) el.style.borderColor = "#d1d5db";
+        });
+      },
     });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("l", "mm", "a4");
@@ -178,6 +218,11 @@ async function downloadPdf(
       heightLeft -= pageH;
     }
     pdf.save(filename);
+  } catch (err) {
+    console.error("PDF Export — html2canvas/jsPDF failed:", err);
+    throw err instanceof Error
+      ? new Error(`فشل توليد PDF: ${err.message}`)
+      : new Error("فشل توليد PDF");
   } finally {
     container.remove();
   }
