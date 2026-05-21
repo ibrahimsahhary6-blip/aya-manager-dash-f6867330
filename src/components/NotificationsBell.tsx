@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { useIsSuperAdmin } from "@/lib/roles";
 import { Bell } from "lucide-react";
 import {
   Popover,
@@ -50,9 +50,7 @@ function timeAgo(iso: string) {
 }
 
 export function NotificationsBell() {
-  const isAdmin = useIsAdmin();
-  const isSuper = useIsSuperAdmin();
-  const canSee = isAdmin || isSuper;
+  const canSee = useIsSuperAdmin();
   const [open, setOpen] = useState(false);
   const [lastSeen, setLastSeen] = useState<string>(() => {
     if (typeof window === "undefined") return new Date(0).toISOString();
