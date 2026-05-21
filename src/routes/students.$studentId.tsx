@@ -154,6 +154,17 @@ function StudentProfilePage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const inlineMutation = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const { error } = await supabase.from("recitations").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("recitations").delete().eq("id", id);
