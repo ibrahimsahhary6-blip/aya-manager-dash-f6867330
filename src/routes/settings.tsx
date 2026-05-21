@@ -453,6 +453,7 @@ function SettingsPage() {
           </div>
         </section>
 
+        <AccessRequestsCard />
         <InviteUserCard />
         <PendingApprovalsCard />
         <PlatformUsersCard />
