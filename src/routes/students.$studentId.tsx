@@ -683,25 +683,17 @@ function RecitationTableRow({
         <div className="flex gap-1 flex-wrap">
           {RATING_BUTTONS.map((b) => {
             const active = currentRating === b.value;
-            const variant =
-              active
-                ? b.tone === "repeat"
-                  ? "destructive"
-                  : b.tone === "review"
-                    ? "secondary"
-                    : "default"
-                : "outline";
             return (
-              <Button
+              <button
                 key={b.value}
-                size="sm"
-                variant={variant}
                 onClick={() => setRating(b.value)}
-                className="h-8 px-2 min-w-[40px] text-xs"
                 type="button"
+                className={`h-8 px-2.5 min-w-[44px] text-xs font-semibold rounded-md border transition-colors ${
+                  active ? b.activeClass : b.idleClass
+                }`}
               >
                 {b.label}
-              </Button>
+              </button>
             );
           })}
         </div>
