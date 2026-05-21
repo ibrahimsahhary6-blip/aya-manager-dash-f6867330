@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Format = "csv" | "xlsx";
+type Format = "csv" | "xlsx" | "pdf";
 
 function csvEscape(v: unknown): string {
   if (v === null || v === undefined) return "";
