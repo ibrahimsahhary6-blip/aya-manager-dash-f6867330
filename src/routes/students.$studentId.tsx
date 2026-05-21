@@ -155,7 +155,7 @@ function StudentProfilePage() {
   });
 
   const inlineMutation = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Recitation> }) => {
       const { error } = await supabase.from("recitations").update(patch).eq("id", id);
       if (error) throw error;
     },
