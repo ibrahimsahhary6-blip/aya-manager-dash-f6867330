@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          email: string
+          full_name: string
+          id: string
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          requested_at: string
+          status: string
+        }
+        Insert: {
+          email: string
+          full_name: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Update: {
+          email?: string
+          full_name?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       allowed_emails: {
         Row: {
           email: string
