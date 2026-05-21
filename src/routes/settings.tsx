@@ -42,7 +42,7 @@ import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { AuditLogCard } from "@/components/AuditLogCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
 import { AccountCard } from "@/components/AccountCard";
-import { AccessRequestsCard } from "@/components/AccessRequestsCard";
+import { CreateUserCard } from "@/components/CreateUserCard";
 import { Download, Trash } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -453,7 +453,7 @@ function SettingsPage() {
           </div>
         </section>
 
-        <AccessRequestsCard />
+        <CreateUserCard />
         <InviteUserCard />
         <PendingApprovalsCard />
         <PlatformUsersCard />

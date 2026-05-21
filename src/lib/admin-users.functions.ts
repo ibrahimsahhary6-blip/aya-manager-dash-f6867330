@@ -14,6 +14,74 @@ async function assertSuperAdmin(userId: string) {
   if (!data) throw new Error("Forbidden: super_admin only");
 }
 
+async function assertAdmin(userId: string) {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  const ok = data?.some((r) => r.role === "admin" || r.role === "super_admin");
+  if (!ok) throw new Error("Forbidden: admin only");
+}
+
+export const createPlatformUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      email: z.string().trim().email().max(255),
+      password: z.string().min(3).max(100),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const email = data.email.toLowerCase();
+
+    // 1) Allowlist
+    const { error: aErr } = await supabaseAdmin
+      .from("allowed_emails")
+      .upsert(
+        { email, invited_by: context.userId, notes: "created_by_admin" },
+        { onConflict: "email" },
+      );
+    if (aErr) throw new Error(aErr.message);
+
+    // 2) Create auth user with password, auto-confirmed
+    const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: data.password,
+      email_confirm: true,
+    });
+    if (cErr) {
+      const msg = cErr.message.toLowerCase();
+      if (msg.includes("already") || msg.includes("registered")) {
+        // Update password for existing user
+        const { data: list } = await supabaseAdmin.auth.admin.listUsers();
+        const existing = list.users.find((u) => u.email?.toLowerCase() === email);
+        if (!existing) throw new Error(cErr.message);
+        const { error: uErr } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+          password: data.password,
+          email_confirm: true,
+        });
+        if (uErr) throw new Error(uErr.message);
+        await supabaseAdmin
+          .from("profiles")
+          .update({ is_approved: true, approved_at: new Date().toISOString() })
+          .eq("user_id", existing.id);
+        return { ok: true, updated: true };
+      }
+      throw new Error(cErr.message);
+    }
+
+    // 3) Approve profile (trigger should have created it)
+    if (created?.user) {
+      await supabaseAdmin
+        .from("profiles")
+        .update({ is_approved: true, approved_at: new Date().toISOString() })
+        .eq("user_id", created.user.id);
+    }
+
+    return { ok: true, updated: false };
+  });
+
 export const inviteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
