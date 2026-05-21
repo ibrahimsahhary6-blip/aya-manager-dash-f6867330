@@ -142,6 +142,7 @@ function StudentProfilePage() {
         useCORS: true,
         backgroundColor: "#ffffff",
         onclone: (doc) => {
+          doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
           const safeVars: Record<string, string> = {
             "--background": "#ffffff",
             "--foreground": "#111111",
