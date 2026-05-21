@@ -363,14 +363,16 @@ function StudentProfilePage() {
         </section>
       </main>
 
-      {/* Printable report (hidden on screen, shown on print) */}
-      <PrintableReport
-        student={student}
-        battalionName={battalionName}
-        companyName={companyName}
-        recitations={recitations}
-        stats={ratingStats}
-      />
+      {/* Printable report (off-screen, used for PDF capture) */}
+      <div ref={reportRef} style={{ position: "fixed", top: 0, left: "-9999px", width: "794px" }}>
+        <PrintableReport
+          student={student}
+          battalionName={battalionName}
+          companyName={companyName}
+          recitations={recitations}
+          stats={ratingStats}
+        />
+      </div>
 
 
 
