@@ -84,3 +84,93 @@ export const notifyFirstLogin = createServerFn({ method: "POST" })
 
     return { ok: true, alreadyNotified: false };
   });
+
+const ROLE_VALUES = ["admin", "moderator", "viewer", "user"] as const;
+
+export const setUserRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      targetUserId: z.string().uuid(),
+      role: z.enum(ROLE_VALUES),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.userId);
+
+    // Block changing a super_admin's role from the UI
+    const { data: existing } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.targetUserId);
+    if (existing?.some((r) => r.role === "super_admin")) {
+      throw new Error("لا يمكن تعديل صلاحية المدير العام من الواجهة");
+    }
+
+    // Replace non-super_admin roles
+    const { error: delErr } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.targetUserId)
+      .neq("role", "super_admin");
+    if (delErr) throw new Error(delErr.message);
+
+    const { error: insErr } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: data.targetUserId, role: data.role });
+    if (insErr) throw new Error(insErr.message);
+
+    return { ok: true };
+  });
+
+export const removePlatformUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ targetUserId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.userId);
+    if (data.targetUserId === context.userId) {
+      throw new Error("لا يمكنك إزالة حسابك");
+    }
+
+    // Reject if target is super_admin
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.targetUserId);
+    if (roles?.some((r) => r.role === "super_admin")) {
+      throw new Error("لا يمكن إزالة حساب المدير العام");
+    }
+
+    // Fetch email
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("user_id", data.targetUserId)
+      .maybeSingle();
+
+    // Remove from allowlist (by email)
+    if (profile?.email) {
+      await supabaseAdmin.from("allowed_emails").delete().eq("email", profile.email);
+    }
+    // Remove roles
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.targetUserId);
+    // Remove profile
+    await supabaseAdmin.from("profiles").delete().eq("user_id", data.targetUserId);
+    // Remove auth user
+    const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(data.targetUserId);
+    if (authErr) {
+      // Log a soft error in audit but don't fail hard
+      await supabaseAdmin.from("audit_log").insert({
+        actor_id: context.userId,
+        action: "user_removed_auth_error",
+        target_user_id: data.targetUserId,
+        target_email: profile?.email,
+        metadata: { error: authErr.message },
+      });
+    }
+
+    return { ok: true };
+  });
+
