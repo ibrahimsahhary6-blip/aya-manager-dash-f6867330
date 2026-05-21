@@ -416,7 +416,79 @@ const RATING_BUTTONS: { value: string; label: string; tone: "score" | "repeat" |
   { value: "review", label: "مراجعة", tone: "review" },
 ];
 
-function RecitationRow({
+function groupByDate(rows: Recitation[]): { date: string; rows: Recitation[] }[] {
+  const map = new Map<string, Recitation[]>();
+  for (const r of rows) {
+    const arr = map.get(r.recited_on) ?? [];
+    arr.push(r);
+    map.set(r.recited_on, arr);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([date, rows]) => ({ date, rows }));
+}
+
+function formatArabicDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("ar-EG", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function DateGroup({
+  date,
+  rows,
+  onPatch,
+  onEdit,
+  onDelete,
+}: {
+  date: string;
+  rows: Recitation[];
+  onPatch: (id: string, patch: Partial<Recitation>) => void;
+  onEdit: (r: Recitation) => void;
+  onDelete: (r: Recitation) => void;
+}) {
+  return (
+    <div className="px-3 sm:px-5 py-4" dir="rtl">
+      <div className="mb-3 flex items-center gap-2">
+        <CalendarIcon className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-bold text-primary">{formatArabicDate(date)}</h3>
+        <span className="text-xs text-muted-foreground">({rows.length})</span>
+      </div>
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full text-sm" dir="rtl">
+          <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <tr>
+              <th className="text-right p-2 font-medium w-[28%]">السورة</th>
+              <th className="text-right p-2 font-medium">الملاحظات</th>
+              <th className="text-right p-2 font-medium w-[260px]">التقييم</th>
+              <th className="p-2 w-[70px]"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {rows.map((r) => (
+              <RecitationTableRow
+                key={r.id}
+                rec={r}
+                onPatch={(patch) => onPatch(r.id, patch)}
+                onEdit={() => onEdit(r)}
+                onDelete={() => onDelete(r)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RecitationTableRow({
   rec,
   onPatch,
   onEdit,
@@ -428,7 +500,6 @@ function RecitationRow({
   onDelete: () => void;
 }) {
   const [notes, setNotes] = useState(rec.notes ?? "");
-  // Keep local notes in sync if upstream changes (e.g. after refetch)
   const [lastSyncedId, setLastSyncedId] = useState(rec.id);
   if (lastSyncedId !== rec.id) {
     setLastSyncedId(rec.id);
@@ -444,7 +515,6 @@ function RecitationRow({
       if (next) toast("تم تسجيل السجل كجلسة مراجعة");
       return;
     }
-    // Numeric or repeat — clear review and toggle rating
     const same = rec.rating === value && !rec.is_review;
     if (value === "repeat" && !same) {
       toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
@@ -459,16 +529,9 @@ function RecitationRow({
   };
 
   return (
-    <li className="px-3 sm:px-4 py-3 hover:bg-accent/30">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-        {/* Date */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap lg:w-28">
-          <CalendarIcon className="h-3.5 w-3.5" />
-          {new Date(rec.recited_on).toLocaleDateString("ar-EG")}
-        </div>
-
-        {/* Surah */}
-        <div className="font-semibold text-sm lg:w-44 truncate flex items-center gap-2">
+    <tr className="align-top hover:bg-accent/20">
+      <td className="p-2">
+        <div className="flex items-center gap-2 font-semibold">
           <BookOpen className="h-4 w-4 text-primary shrink-0" />
           <span className="truncate">{rec.surah}</span>
           {rec.is_review && (
@@ -476,23 +539,25 @@ function RecitationRow({
               مراجعة
             </span>
           )}
-          <span className="text-[10px] text-muted-foreground font-mono shrink-0">
-            ({rec.from_ayah}–{rec.to_ayah})
-          </span>
         </div>
-
-        {/* Notes inline */}
-        <Input
+        <div className="text-[11px] text-muted-foreground font-mono mt-1">
+          الآيات {rec.from_ayah}–{rec.to_ayah}
+        </div>
+      </td>
+      <td className="p-2 min-w-[180px]">
+        <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={saveNotes}
           placeholder="ملاحظات..."
           maxLength={2000}
-          className="flex-1 h-9 text-sm"
+          rows={2}
+          className="text-sm resize-y min-h-[40px]"
+          dir="rtl"
         />
-
-        {/* Rating buttons */}
-        <div className="flex gap-1 flex-wrap lg:flex-nowrap">
+      </td>
+      <td className="p-2">
+        <div className="flex gap-1 flex-wrap">
           {RATING_BUTTONS.map((b) => {
             const active = currentRating === b.value;
             const variant =
@@ -516,27 +581,168 @@ function RecitationRow({
               </Button>
             );
           })}
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onEdit}
-            className="h-8 w-8"
-            title="تعديل كامل"
-          >
+        </div>
+      </td>
+      <td className="p-2">
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" onClick={onEdit} className="h-8 w-8" title="تعديل">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onDelete}
-            className="h-8 w-8"
-            title="حذف"
-          >
+          <Button size="icon" variant="ghost" onClick={onDelete} className="h-8 w-8" title="حذف">
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </Button>
         </div>
+      </td>
+    </tr>
+  );
+}
+
+function PrintableReport({
+  student,
+  battalionName,
+  companyName,
+  recitations,
+  stats,
+}: {
+  student: Student;
+  battalionName: string;
+  companyName: string;
+  recitations: Recitation[];
+  stats: { avg: number | null; count: number; repeats: number };
+}) {
+  const groups = groupByDate(recitations);
+  const uniqueSurahs = new Set(recitations.map((r) => r.surah)).size;
+  const printedAt = new Date().toLocaleDateString("ar-EG", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  return (
+    <div
+      id="print-report"
+      dir="rtl"
+      className="hidden print:block"
+      style={{ fontFamily: "Tajawal, system-ui, sans-serif" }}
+    >
+      <div style={{ borderBottom: "2px solid #111", paddingBottom: "8px", marginBottom: "14px" }}>
+        <h1 style={{ margin: 0, fontSize: "20px", fontWeight: 700 }}>
+          التقرير الفردي للطالب
+        </h1>
+        <div style={{ fontSize: "11px", color: "#555", marginTop: "4px" }}>
+          منصة إدارة حلقات القرآن — اللواء 642 · تاريخ الطباعة: {printedAt}
+        </div>
       </div>
-    </li>
+
+      <table style={{ width: "100%", fontSize: "12px", marginBottom: "14px", borderCollapse: "collapse" }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: "4px 6px", fontWeight: 700, width: "20%" }}>الاسم:</td>
+            <td style={{ padding: "4px 6px" }}>{student.full_name}</td>
+            <td style={{ padding: "4px 6px", fontWeight: 700, width: "20%" }}>الرقم:</td>
+            <td style={{ padding: "4px 6px" }}>{student.student_code}</td>
+          </tr>
+          <tr>
+            <td style={{ padding: "4px 6px", fontWeight: 700 }}>الكتيبة:</td>
+            <td style={{ padding: "4px 6px" }}>{battalionName}</td>
+            <td style={{ padding: "4px 6px", fontWeight: 700 }}>السرية:</td>
+            <td style={{ padding: "4px 6px" }}>{companyName}</td>
+          </tr>
+          {student.notes?.trim() && (
+            <tr>
+              <td style={{ padding: "4px 6px", fontWeight: 700 }}>ملاحظات:</td>
+              <td style={{ padding: "4px 6px" }} colSpan={3}>{student.notes}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      <h2 style={{ fontSize: "14px", fontWeight: 700, margin: "10px 0 6px" }}>
+        سجل التسميع ({recitations.length})
+      </h2>
+
+      {groups.length === 0 ? (
+        <p style={{ fontSize: "12px", color: "#666" }}>لا توجد سجلات.</p>
+      ) : (
+        groups.map((g) => (
+          <div key={g.date} style={{ marginBottom: "10px" }}>
+            <div style={{
+              fontWeight: 700,
+              fontSize: "12px",
+              background: "#f1f1f1",
+              padding: "4px 6px",
+              borderRight: "3px solid #111",
+            }}>
+              {formatArabicDate(g.date)}
+            </div>
+            <table style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "11px",
+              marginTop: "2px",
+            }}>
+              <thead>
+                <tr style={{ background: "#fafafa" }}>
+                  <th style={thStyle}>السورة</th>
+                  <th style={thStyle}>الآيات</th>
+                  <th style={thStyle}>التقييم</th>
+                  <th style={thStyle}>الملاحظات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.rows.map((r) => (
+                  <tr key={r.id}>
+                    <td style={tdStyle}>{r.surah}</td>
+                    <td style={tdStyle}>{r.from_ayah}–{r.to_ayah}</td>
+                    <td style={tdStyle}>
+                      {r.is_review ? "مراجعة" : r.rating === "repeat" ? "إعادة" : r.rating ?? "—"}
+                    </td>
+                    <td style={tdStyle}>{r.notes ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))
+      )}
+
+      <div style={{
+        marginTop: "14px",
+        paddingTop: "8px",
+        borderTop: "2px solid #111",
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: "8px",
+        fontSize: "12px",
+      }}>
+        <StatBox label="متوسط التقييم العام" value={stats.avg != null ? `${stats.avg.toFixed(2)} / 10` : "—"} />
+        <StatBox label="عدد التسميعات المُقيَّمة" value={String(stats.count)} />
+        <StatBox label="مرات الإعادة" value={String(stats.repeats)} />
+        <StatBox label="إجمالي السور" value={String(uniqueSurahs)} />
+      </div>
+    </div>
+  );
+}
+
+const thStyle: React.CSSProperties = {
+  border: "1px solid #ccc",
+  padding: "4px 6px",
+  textAlign: "right",
+  fontWeight: 700,
+};
+const tdStyle: React.CSSProperties = {
+  border: "1px solid #ddd",
+  padding: "4px 6px",
+  textAlign: "right",
+  verticalAlign: "top",
+};
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ border: "1px solid #ccc", padding: "6px 8px", borderRadius: "4px" }}>
+      <div style={{ fontSize: "10px", color: "#555" }}>{label}</div>
+      <div style={{ fontWeight: 700, fontSize: "13px", marginTop: "2px" }}>{value}</div>
+    </div>
   );
 }
 
