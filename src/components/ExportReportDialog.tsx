@@ -397,19 +397,19 @@ export function ExportReportDialog() {
       const stamp = `${company?.name ?? "company"}_${from}_${to}`.replace(/\s+/g, "_");
       if (format === "csv") {
         downloadCsv(buildCsv(rows), `${stamp}.csv`);
+        toast.success("تم تحميل التقرير");
+        setOpen(false);
       } else if (format === "pdf") {
-        await downloadPdf(
-          `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`,
-          `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
-          pdfRows,
-          `${stamp}.pdf`,
-        );
+        if (pdfRows.length === 0) throw new Error("لا توجد بيانات لتصديرها");
+        const title = `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`;
+        const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
+        const html = buildPdfHtml(title, subtitle, pdfRows);
+        setPreview({ html, filename: `${stamp}.pdf`, title });
       } else {
         downloadXlsx(company?.name ?? "Report", rows, `${stamp}.xlsx`);
+        toast.success("تم تحميل التقرير");
+        setOpen(false);
       }
-
-      toast.success("تم تحميل التقرير");
-      setOpen(false);
     } catch (e) {
       console.error("Comprehensive Export Error:", e);
       toast.error(getErrorMessage(e));
