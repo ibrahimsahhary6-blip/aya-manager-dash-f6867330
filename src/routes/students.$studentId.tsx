@@ -710,22 +710,19 @@ function RecitationForm({
         <Label>تقييم التسميع</Label>
         <div className="flex gap-2 flex-wrap">
           {(["10", "9", "8", "repeat"] as const).map((v) => {
-            const isActive = rating === v;
+            const isActive = !isReview && rating === v;
             const isRepeat = v === "repeat";
             return (
               <Button
                 key={v}
                 type="button"
                 size="sm"
-                variant={
-                  isActive ? (isRepeat ? "destructive" : "default") : "outline"
-                }
+                variant={isActive ? (isRepeat ? "destructive" : "default") : "outline"}
                 onClick={() => {
                   if (isRepeat && !isActive) {
-                    toast.warning(
-                      "تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.",
-                    );
+                    toast.warning("تم اختيار 'إعادة' — لن تُحتسب ضمن معدّل الإتقان.");
                   }
+                  setIsReview(false);
                   setRating(isActive ? "" : v);
                 }}
                 className="min-w-[56px]"
@@ -734,8 +731,25 @@ function RecitationForm({
               </Button>
             );
           })}
+          <Button
+            type="button"
+            size="sm"
+            variant={isReview ? "secondary" : "outline"}
+            onClick={() => {
+              const next = !isReview;
+              setIsReview(next);
+              if (next) {
+                setRating("");
+                toast("سيُسجل كجلسة مراجعة");
+              }
+            }}
+            className="min-w-[56px]"
+          >
+            مراجعة
+          </Button>
         </div>
       </div>
+
 
 
       <div className="space-y-2">
