@@ -20,8 +20,8 @@ export function ChangePasswordCard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل");
+    if (password.length < 4) {
+      toast.error("كلمة المرور يجب أن تكون 4 أحرف على الأقل");
       return;
     }
     if (password !== confirm) {
