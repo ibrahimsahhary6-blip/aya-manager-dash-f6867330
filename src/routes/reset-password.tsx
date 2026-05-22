@@ -26,16 +26,40 @@ function ResetPasswordPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // Supabase puts the recovery session in the URL hash on first load.
-    // It fires PASSWORD_RECOVERY via onAuthStateChange; also check existing session.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setReady(true);
       }
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        // PKCE flow: exchange ?code= for a session
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          url.searchParams.delete("code");
+          window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+          setReady(true);
+          return;
+        }
+        // Implicit flow fallback: tokens in hash (#access_token=...&type=recovery)
+        if (window.location.hash.includes("access_token")) {
+          // supabase-js auto-detects and fires SIGNED_IN; just wait
+          const { data } = await supabase.auth.getSession();
+          if (data.session) setReady(true);
+          return;
+        }
+        const { data } = await supabase.auth.getSession();
+        if (data.session) setReady(true);
+        else toast.error("رابط الاستعادة غير صالح أو منتهي الصلاحية");
+      } catch (err) {
+        toast.error(getErrorMessage(err));
+      }
+    })();
+
     return () => subscription.unsubscribe();
   }, []);
 
