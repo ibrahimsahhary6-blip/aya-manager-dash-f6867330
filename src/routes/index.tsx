@@ -49,6 +49,7 @@ import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { useIsAdmin } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
 
