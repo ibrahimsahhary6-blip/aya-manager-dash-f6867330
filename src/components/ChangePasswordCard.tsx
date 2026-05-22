@@ -48,7 +48,7 @@ export function ChangePasswordCard() {
           تغيير كلمة المرور
         </CardTitle>
         <CardDescription>
-          اختر كلمة مرور جديدة قوية (8 أحرف على الأقل).
+          اختر كلمة مرور جديدة (4 أحرف على الأقل).
         </CardDescription>
       </CardHeader>
       <CardContent>
