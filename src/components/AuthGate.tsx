@@ -54,6 +54,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     })();
   }, [session, notify]);
 
+  if (isResetRoute) return <>{children}</>;
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
