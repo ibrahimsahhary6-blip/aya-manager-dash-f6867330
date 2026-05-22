@@ -13,6 +13,9 @@ import { getErrorMessage } from "@/lib/errors";
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
+  const isResetRoute =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/reset-password");
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState<ApprovalStatus>("checking");
