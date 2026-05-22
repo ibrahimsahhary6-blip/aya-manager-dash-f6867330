@@ -142,7 +142,9 @@ function DashboardPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: StudentFormValues }) => {
-      const { error } = await supabase.from("students").update(values).eq("id", id);
+      const payload: Partial<StudentFormValues> = { ...values };
+      if (!isAdmin) delete payload.full_name;
+      const { error } = await supabase.from("students").update(payload).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
