@@ -25,9 +25,10 @@ interface Props {
   onSubmit: (values: StudentFormValues) => Promise<void> | void;
   onCancel?: () => void;
   loading?: boolean;
+  lockName?: boolean;
 }
 
-export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCancel, loading }: Props) {
+export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCancel, loading, lockName }: Props) {
   const [fullName, setFullName] = useState(initial?.full_name ?? "");
   const [battalionId, setBattalionId] = useState(initial?.battalion_id ?? "");
   const [companyId, setCompanyId] = useState(initial?.company_id ?? "");
@@ -78,7 +79,14 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
           placeholder="أدخل الاسم الكامل للطالب"
           maxLength={200}
           required
+          readOnly={lockName}
+          disabled={lockName}
         />
+        {lockName && (
+          <p className="text-xs text-muted-foreground">
+            تعديل الاسم متاح للمدير فقط.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

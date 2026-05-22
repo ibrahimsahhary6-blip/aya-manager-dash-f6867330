@@ -49,6 +49,7 @@ import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { useIsAdmin } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
 
@@ -61,6 +62,7 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const isAdmin = useIsAdmin();
   // Persist filters so returning from a student profile preserves context
   const FILTERS_KEY = "dashboard-filters-v1";
   const initialFilters = (() => {
@@ -140,7 +142,9 @@ function DashboardPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: StudentFormValues }) => {
-      const { error } = await supabase.from("students").update(values).eq("id", id);
+      const payload: Partial<StudentFormValues> = { ...values };
+      if (!isAdmin) delete payload.full_name;
+      const { error } = await supabase.from("students").update(payload).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -548,6 +552,7 @@ function DashboardPage() {
               }}
               submitLabel="حفظ التغييرات"
               loading={updateMutation.isPending}
+              lockName={!isAdmin}
               onSubmit={(values) =>
                 updateMutation.mutate({ id: editing.id, values })
               }
