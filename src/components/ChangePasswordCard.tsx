@@ -20,8 +20,8 @@ export function ChangePasswordCard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل");
+    if (password.length < 4) {
+      toast.error("كلمة المرور يجب أن تكون 4 أحرف على الأقل");
       return;
     }
     if (password !== confirm) {
@@ -48,7 +48,7 @@ export function ChangePasswordCard() {
           تغيير كلمة المرور
         </CardTitle>
         <CardDescription>
-          اختر كلمة مرور جديدة قوية (8 أحرف على الأقل).
+          اختر كلمة مرور جديدة (4 أحرف على الأقل).
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -61,7 +61,7 @@ export function ChangePasswordCard() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              minLength={8}
+              minLength={4}
               required
             />
           </div>
@@ -73,7 +73,7 @@ export function ChangePasswordCard() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
-              minLength={8}
+              minLength={4}
               required
             />
           </div>

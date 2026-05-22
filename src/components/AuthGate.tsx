@@ -13,6 +13,9 @@ import { getErrorMessage } from "@/lib/errors";
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
+  const isResetRoute =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/reset-password");
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState<ApprovalStatus>("checking");
@@ -50,6 +53,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       notify({}).catch(() => {});
     })();
   }, [session, notify]);
+
+  if (isResetRoute) return <>{children}</>;
 
   if (loading) {
     return (
@@ -100,6 +105,8 @@ function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [resetEmail, setResetEmail] = useState("");
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -114,6 +121,64 @@ function LoginScreen() {
       setBusy(false);
     }
   };
+
+  const handleForgot = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك");
+      setMode("login");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (mode === "forgot") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>نسيت كلمة المرور</CardTitle>
+            <CardDescription>
+              أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleForgot} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">البريد الإلكتروني</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  required
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                {busy ? "..." : "إرسال الرابط"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setMode("login")}
+              >
+                العودة لتسجيل الدخول
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -152,12 +217,23 @@ function LoginScreen() {
             <Button type="submit" className="w-full" disabled={busy}>
               {busy ? "..." : "دخول"}
             </Button>
+            <button
+              type="button"
+              className="w-full text-sm text-primary hover:underline"
+              onClick={() => {
+                setResetEmail(email);
+                setMode("forgot");
+              }}
+            >
+              نسيت كلمة المرور؟
+            </button>
           </form>
         </CardContent>
       </Card>
     </div>
   );
 }
+
 
 export function LogoutButton() {
   return (
