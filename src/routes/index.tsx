@@ -62,6 +62,7 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const isAdmin = useIsAdmin();
   // Persist filters so returning from a student profile preserves context
   const FILTERS_KEY = "dashboard-filters-v1";
   const initialFilters = (() => {
