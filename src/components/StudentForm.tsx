@@ -79,7 +79,14 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
           placeholder="أدخل الاسم الكامل للطالب"
           maxLength={200}
           required
+          readOnly={lockName}
+          disabled={lockName}
         />
+        {lockName && (
+          <p className="text-xs text-muted-foreground">
+            تعديل الاسم متاح للمدير فقط.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
