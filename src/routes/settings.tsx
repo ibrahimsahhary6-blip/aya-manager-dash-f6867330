@@ -42,6 +42,7 @@ import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { AuditLogCard } from "@/components/AuditLogCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
 import { AccountCard } from "@/components/AccountCard";
+import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 import { CreateUserCard } from "@/components/CreateUserCard";
 import { Download, Trash } from "lucide-react";
 
