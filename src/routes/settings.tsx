@@ -458,6 +458,7 @@ function SettingsPage() {
         <PlatformUsersCard />
         <AuditLogCard />
         <AccountCard />
+        <ChangePasswordCard />
         <TransferSuperAdminCard />
         <BackupRestore />
       </main>
