@@ -101,7 +101,7 @@ function LookupPage() {
                   id="q-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="مثال: محمد أحمد"
+                  placeholder="مثال: محمد أحمد علي"
                 />
               </div>
               <div className="space-y-2">
