@@ -523,8 +523,41 @@ function DashboardPage() {
             </table>
           </div>
           {filtered.length > 0 && (
-            <div className="border-t px-4 py-2 text-xs text-muted-foreground bg-muted/30">
-              عدد النتائج: {filtered.length}
+            <div className="border-t px-4 py-2 bg-muted/30 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between text-xs text-muted-foreground">
+              <div>
+                عرض <span className="font-semibold text-foreground">{pageStart + 1}</span>
+                {" - "}
+                <span className="font-semibold text-foreground">
+                  {Math.min(pageStart + PAGE_SIZE, filtered.length)}
+                </span>
+                {" من "}
+                <span className="font-semibold text-foreground">{filtered.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  السابق
+                </Button>
+                <span className="px-2">
+                  صفحة {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  التالي
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </section>
