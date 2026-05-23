@@ -13,9 +13,10 @@ import { getErrorMessage } from "@/lib/errors";
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const isResetRoute =
+  const isPublicRoute =
     typeof window !== "undefined" &&
-    window.location.pathname.startsWith("/reset-password");
+    (window.location.pathname.startsWith("/reset-password") ||
+      window.location.pathname.startsWith("/lookup"));
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState<ApprovalStatus>("checking");
@@ -54,7 +55,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     })();
   }, [session, notify]);
 
-  if (isResetRoute) return <>{children}</>;
+  if (isPublicRoute) return <>{children}</>;
 
   if (loading) {
     return (
