@@ -15,7 +15,12 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as StudentsStudentIdRouteImport } from './routes/students.$studentId'
+import { Route as SettingsUsersRouteImport } from './routes/settings.users'
+import { Route as SettingsSystemRouteImport } from './routes/settings.system'
+import { Route as SettingsGroupsRouteImport } from './routes/settings.groups'
+import { Route as SettingsAccountRouteImport } from './routes/settings.account'
 import { Route as ApiPublicHooksDailyBackupRouteImport } from './routes/api/public/hooks/daily-backup'
 
 const TrashRoute = TrashRouteImport.update({
@@ -48,10 +53,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const StudentsStudentIdRoute = StudentsStudentIdRouteImport.update({
   id: '/students/$studentId',
   path: '/students/$studentId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsUsersRoute = SettingsUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSystemRoute = SettingsSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsGroupsRoute = SettingsGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAccountRoute = SettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const ApiPublicHooksDailyBackupRoute =
   ApiPublicHooksDailyBackupRouteImport.update({
@@ -65,9 +95,14 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AttendanceRoute
   '/lookup': typeof LookupRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/trash': typeof TrashRoute
+  '/settings/account': typeof SettingsAccountRoute
+  '/settings/groups': typeof SettingsGroupsRoute
+  '/settings/system': typeof SettingsSystemRoute
+  '/settings/users': typeof SettingsUsersRoute
   '/students/$studentId': typeof StudentsStudentIdRoute
+  '/settings/': typeof SettingsIndexRoute
   '/api/public/hooks/daily-backup': typeof ApiPublicHooksDailyBackupRoute
 }
 export interface FileRoutesByTo {
@@ -75,9 +110,13 @@ export interface FileRoutesByTo {
   '/attendance': typeof AttendanceRoute
   '/lookup': typeof LookupRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/settings': typeof SettingsRoute
   '/trash': typeof TrashRoute
+  '/settings/account': typeof SettingsAccountRoute
+  '/settings/groups': typeof SettingsGroupsRoute
+  '/settings/system': typeof SettingsSystemRoute
+  '/settings/users': typeof SettingsUsersRoute
   '/students/$studentId': typeof StudentsStudentIdRoute
+  '/settings': typeof SettingsIndexRoute
   '/api/public/hooks/daily-backup': typeof ApiPublicHooksDailyBackupRoute
 }
 export interface FileRoutesById {
@@ -86,9 +125,14 @@ export interface FileRoutesById {
   '/attendance': typeof AttendanceRoute
   '/lookup': typeof LookupRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/trash': typeof TrashRoute
+  '/settings/account': typeof SettingsAccountRoute
+  '/settings/groups': typeof SettingsGroupsRoute
+  '/settings/system': typeof SettingsSystemRoute
+  '/settings/users': typeof SettingsUsersRoute
   '/students/$studentId': typeof StudentsStudentIdRoute
+  '/settings/': typeof SettingsIndexRoute
   '/api/public/hooks/daily-backup': typeof ApiPublicHooksDailyBackupRoute
 }
 export interface FileRouteTypes {
@@ -100,7 +144,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/settings'
     | '/trash'
+    | '/settings/account'
+    | '/settings/groups'
+    | '/settings/system'
+    | '/settings/users'
     | '/students/$studentId'
+    | '/settings/'
     | '/api/public/hooks/daily-backup'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -108,9 +157,13 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/lookup'
     | '/reset-password'
-    | '/settings'
     | '/trash'
+    | '/settings/account'
+    | '/settings/groups'
+    | '/settings/system'
+    | '/settings/users'
     | '/students/$studentId'
+    | '/settings'
     | '/api/public/hooks/daily-backup'
   id:
     | '__root__'
@@ -120,7 +173,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/settings'
     | '/trash'
+    | '/settings/account'
+    | '/settings/groups'
+    | '/settings/system'
+    | '/settings/users'
     | '/students/$studentId'
+    | '/settings/'
     | '/api/public/hooks/daily-backup'
   fileRoutesById: FileRoutesById
 }
@@ -129,7 +187,7 @@ export interface RootRouteChildren {
   AttendanceRoute: typeof AttendanceRoute
   LookupRoute: typeof LookupRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SettingsRoute: typeof SettingsRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   TrashRoute: typeof TrashRoute
   StudentsStudentIdRoute: typeof StudentsStudentIdRoute
   ApiPublicHooksDailyBackupRoute: typeof ApiPublicHooksDailyBackupRoute
@@ -179,12 +237,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/students/$studentId': {
       id: '/students/$studentId'
       path: '/students/$studentId'
       fullPath: '/students/$studentId'
       preLoaderRoute: typeof StudentsStudentIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/settings/users': {
+      id: '/settings/users'
+      path: '/users'
+      fullPath: '/settings/users'
+      preLoaderRoute: typeof SettingsUsersRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/system': {
+      id: '/settings/system'
+      path: '/system'
+      fullPath: '/settings/system'
+      preLoaderRoute: typeof SettingsSystemRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/groups': {
+      id: '/settings/groups'
+      path: '/groups'
+      fullPath: '/settings/groups'
+      preLoaderRoute: typeof SettingsGroupsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/account': {
+      id: '/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof SettingsAccountRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/api/public/hooks/daily-backup': {
       id: '/api/public/hooks/daily-backup'
@@ -196,12 +289,32 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SettingsRouteChildren {
+  SettingsAccountRoute: typeof SettingsAccountRoute
+  SettingsGroupsRoute: typeof SettingsGroupsRoute
+  SettingsSystemRoute: typeof SettingsSystemRoute
+  SettingsUsersRoute: typeof SettingsUsersRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAccountRoute: SettingsAccountRoute,
+  SettingsGroupsRoute: SettingsGroupsRoute,
+  SettingsSystemRoute: SettingsSystemRoute,
+  SettingsUsersRoute: SettingsUsersRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AttendanceRoute: AttendanceRoute,
   LookupRoute: LookupRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SettingsRoute: SettingsRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   TrashRoute: TrashRoute,
   StudentsStudentIdRoute: StudentsStudentIdRoute,
   ApiPublicHooksDailyBackupRoute: ApiPublicHooksDailyBackupRoute,
@@ -209,13 +322,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
