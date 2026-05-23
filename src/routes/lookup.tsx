@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Printer } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,7 +103,7 @@ function LookupPage() {
                   id="q-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="مثال: محمد أحمد"
+                  placeholder="مثال: محمد أحمد علي"
                 />
               </div>
               <div className="space-y-2">
@@ -165,9 +167,47 @@ function HistoryView({ data }: { data: History }) {
   const printedAt = new Date().toLocaleDateString("ar-EG", {
     year: "numeric", month: "long", day: "numeric",
   });
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const onDownload = async () => {
+    if (!reportRef.current) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+      });
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const imgW = pageW - margin * 2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+
+      let heightLeft = imgH;
+      let position = margin;
+      pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
+      heightLeft -= pageH - margin * 2;
+      while (heightLeft > 0) {
+        position = margin - (imgH - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
+        heightLeft -= pageH - margin * 2;
+      }
+      const safeName = data.student.full_name.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "student";
+      pdf.save(`${safeName}-${data.student.student_code}.pdf`);
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "تعذر إنشاء الملف");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-4" dir="rtl" ref={reportRef}>
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
@@ -181,11 +221,13 @@ function HistoryView({ data }: { data: History }) {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => window.print()}
+            onClick={onDownload}
+            disabled={downloading}
             className="print:hidden gap-2"
+            data-html2canvas-ignore="true"
           >
             <Printer className="h-4 w-4" />
-            تنزيل / طباعة PDF
+            {downloading ? "جاري الإنشاء..." : "تنزيل PDF"}
           </Button>
         </CardHeader>
       </Card>

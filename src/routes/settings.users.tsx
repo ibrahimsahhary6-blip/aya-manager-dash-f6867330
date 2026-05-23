@@ -6,7 +6,6 @@ import { NotificationEmailCard } from "@/components/AdminPanels";
 import { CreateUserCard } from "@/components/CreateUserCard";
 import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
-import { StudentLinkCard } from "@/components/StudentLinkCard";
 import { StudentQrCard } from "@/components/StudentQrCard";
 
 export const Route = createFileRoute("/settings/users")({
@@ -33,7 +32,6 @@ function UsersSettingsPage() {
         <NotificationEmailCard />
         <CreateUserCard />
         <PlatformUsersCard />
-        <StudentLinkCard />
         <StudentQrCard />
         <TransferSuperAdminCard />
       </main>
