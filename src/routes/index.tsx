@@ -94,6 +94,8 @@ function DashboardPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState<Student | null>(null);
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -108,12 +110,13 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("*")
+        .select("id, full_name, student_code, battalion_id, company_id, created_at, deleted_at, notes, updated_at")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Student[];
     },
+    staleTime: 60_000,
   });
 
   const filtered = useMemo(() => {
