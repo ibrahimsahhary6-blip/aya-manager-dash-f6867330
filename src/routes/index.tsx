@@ -16,6 +16,8 @@ import {
   Settings,
   ClipboardCheck,
   ChevronDown,
+  ChevronRight,
+  ChevronLeft,
   X,
 } from "lucide-react";
 
@@ -92,6 +94,8 @@ function DashboardPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState<Student | null>(null);
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -106,12 +110,13 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("*")
+        .select("id, full_name, student_code, battalion_id, company_id, created_at, deleted_at, notes, updated_at")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Student[];
     },
+    staleTime: 60_000,
   });
 
   const filtered = useMemo(() => {
@@ -126,6 +131,16 @@ function DashboardPage() {
       );
     });
   }, [students, search, battalionFilter, companyFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, battalionFilter, companyFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
 
   const addMutation = useMutation({
     mutationFn: async (values: StudentFormValues) => {
@@ -451,7 +466,7 @@ function DashboardPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((s) => (
+                  pageItems.map((s) => (
                     <tr
                       key={s.id}
                       onClick={() =>
@@ -508,8 +523,41 @@ function DashboardPage() {
             </table>
           </div>
           {filtered.length > 0 && (
-            <div className="border-t px-4 py-2 text-xs text-muted-foreground bg-muted/30">
-              عدد النتائج: {filtered.length}
+            <div className="border-t px-4 py-2 bg-muted/30 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between text-xs text-muted-foreground">
+              <div>
+                عرض <span className="font-semibold text-foreground">{pageStart + 1}</span>
+                {" - "}
+                <span className="font-semibold text-foreground">
+                  {Math.min(pageStart + PAGE_SIZE, filtered.length)}
+                </span>
+                {" من "}
+                <span className="font-semibold text-foreground">{filtered.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  السابق
+                </Button>
+                <span className="px-2">
+                  صفحة {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  التالي
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </section>
