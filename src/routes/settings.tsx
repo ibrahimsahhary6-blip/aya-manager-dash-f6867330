@@ -44,6 +44,8 @@ import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
 import { AccountCard } from "@/components/AccountCard";
 import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 import { CreateUserCard } from "@/components/CreateUserCard";
+import { StudentLinkCard } from "@/components/StudentLinkCard";
+
 import { Download, Trash } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -454,6 +456,7 @@ function SettingsPage() {
           </div>
         </section>
 
+        <StudentLinkCard />
         <CreateUserCard />
         <PlatformUsersCard />
         <AuditLogCard />
