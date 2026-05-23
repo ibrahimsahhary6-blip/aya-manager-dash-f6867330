@@ -32,7 +32,6 @@ function UsersSettingsPage() {
         <NotificationEmailCard />
         <CreateUserCard />
         <PlatformUsersCard />
-        <StudentLinkCard />
         <StudentQrCard />
         <TransferSuperAdminCard />
       </main>
