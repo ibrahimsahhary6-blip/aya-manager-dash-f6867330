@@ -466,7 +466,7 @@ function DashboardPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((s) => (
+                  pageItems.map((s) => (
                     <tr
                       key={s.id}
                       onClick={() =>
