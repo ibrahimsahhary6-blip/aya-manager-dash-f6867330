@@ -28,7 +28,7 @@ export const createPlatformUser = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({
       email: z.string().trim().email().max(255),
-      password: z.string().min(3).max(100),
+      password: z.string().min(8).max(100),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {

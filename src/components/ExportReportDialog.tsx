@@ -92,11 +92,20 @@ type PdfRow = {
   details: string;
 };
 
+function escHtml(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
   return `
     <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-      <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${title}</h1>
-      <div style="font-size:12px;color:#555555;margin-top:4px;">${subtitle}</div>
+      <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${escHtml(title)}</h1>
+      <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;direction:rtl;unicode-bidi:plaintext;">
       <colgroup>
@@ -130,17 +139,17 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
           .map(
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-family:monospace;line-height:1.7;white-space:nowrap;">${r.code}</td>
-            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:2;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${r.name}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-family:monospace;line-height:1.7;white-space:nowrap;">${escHtml(r.code)}</td>
+            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:2;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:1.7;">${r.present}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b91c1c;line-height:1.7;">${r.absent}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.pct}%</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-weight:700;line-height:1.7;">${r.avg || "—"}</td>
+            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-weight:700;line-height:1.7;">${escHtml(r.avg) || "—"}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.rated}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b45309;line-height:1.7;">${r.repeats}</td>
             <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.total}</td>
             <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-size:10px;color:#374151;line-height:1.9;word-break:break-word;">${
-              r.details ? r.details.replace(/</g, "&lt;") : "—"
+              r.details ? escHtml(r.details) : "—"
             }</td>
           </tr>
         `,
@@ -149,7 +158,7 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
       </tbody>
     </table>
     <div style="margin-top:12px;font-size:10px;color:#666666;text-align:left;">
-      تاريخ التوليد: ${new Date().toLocaleString("ar-EG")}
+      تاريخ التوليد: ${escHtml(new Date().toLocaleString("ar-EG"))}
     </div>
   `;
 }
