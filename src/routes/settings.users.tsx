@@ -34,6 +34,7 @@ function UsersSettingsPage() {
         <CreateUserCard />
         <PlatformUsersCard />
         <StudentLinkCard />
+        <StudentQrCard />
         <TransferSuperAdminCard />
       </main>
     </div>
