@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AccessRequestsCard } from "@/components/AccessRequestsCard";
-import { NotificationEmailCard } from "@/components/AdminPanels";
+
 import { CreateUserCard } from "@/components/CreateUserCard";
 import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
