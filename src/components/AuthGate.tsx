@@ -55,7 +55,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     })();
   }, [session, notify]);
 
-  if (isResetRoute) return <>{children}</>;
+  if (isPublicRoute) return <>{children}</>;
 
   if (loading) {
     return (
