@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Printer } from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -167,38 +165,106 @@ function HistoryView({ data }: { data: History }) {
   const printedAt = new Date().toLocaleDateString("ar-EG", {
     year: "numeric", month: "long", day: "numeric",
   });
-  const reportRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
-  const onDownload = async () => {
-    if (!reportRef.current) return;
+  const onDownload = () => {
     setDownloading(true);
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const imgW = pageW - margin * 2;
-      const imgH = (canvas.height * imgW) / canvas.width;
+      const esc = (s: unknown) =>
+        String(s ?? "—")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
 
-      let heightLeft = imgH;
-      let position = margin;
-      pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
-      heightLeft -= pageH - margin * 2;
-      while (heightLeft > 0) {
-        position = margin - (imgH - heightLeft);
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
-        heightLeft -= pageH - margin * 2;
+      const recRows = data.recitations
+        .map(
+          (r) => `<tr>
+            <td dir="ltr">${esc(r.recited_on)}</td>
+            <td>${esc(r.surah)}</td>
+            <td dir="ltr">${esc(r.from_ayah)} - ${esc(r.to_ayah)}</td>
+            <td>${r.is_review ? "مراجعة" : "حفظ"}</td>
+            <td>${esc(r.rating)}</td>
+            <td>${esc(r.notes)}</td>
+          </tr>`,
+        )
+        .join("");
+
+      const attRows = data.attendance
+        .map(
+          (a) => `<tr>
+            <td dir="ltr">${esc(a.attended_on)}</td>
+            <td>${a.present ? "حاضر" : "غائب"}</td>
+            <td>${esc(a.rating)}</td>
+          </tr>`,
+        )
+        .join("");
+
+      const html = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>${esc(data.student.full_name)} - ${esc(data.student.student_code)}</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: #111; margin: 0; padding: 16px; background: #fff; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .muted { color: #666; font-size: 12px; }
+  .code { direction: ltr; font-family: monospace; }
+  .section { margin-top: 18px; }
+  .section h2 { font-size: 15px; margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid #ddd; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: right; vertical-align: top; }
+  th { background: #f3f4f6; }
+  .empty { color: #666; font-size: 12px; }
+  @media print { button { display: none; } }
+</style>
+</head>
+<body>
+  <header>
+    <h1>${esc(data.student.full_name)}</h1>
+    <div class="muted code">${esc(data.student.student_code)}</div>
+    <div class="muted">تاريخ الطباعة: ${esc(printedAt)}</div>
+  </header>
+
+  <div class="section">
+    <h2>سجل التسميع (${data.recitations.length})</h2>
+    ${
+      data.recitations.length === 0
+        ? '<p class="empty">لا يوجد تسميع مسجل</p>'
+        : `<table><thead><tr>
+            <th>التاريخ</th><th>السورة</th><th>الآيات</th><th>النوع</th><th>التقييم</th><th>ملاحظات</th>
+          </tr></thead><tbody>${recRows}</tbody></table>`
+    }
+  </div>
+
+  <div class="section">
+    <h2>سجل الحضور (${data.attendance.length})</h2>
+    ${
+      data.attendance.length === 0
+        ? '<p class="empty">لا يوجد سجل حضور</p>'
+        : `<table><thead><tr>
+            <th>التاريخ</th><th>الحضور</th><th>التقييم</th>
+          </tr></thead><tbody>${attRows}</tbody></table>`
+    }
+  </div>
+
+  <script>
+    window.addEventListener("load", function () {
+      setTimeout(function () { window.focus(); window.print(); }, 250);
+    });
+  </script>
+</body>
+</html>`;
+
+      const w = window.open("", "_blank");
+      if (!w) {
+        toast.error("الرجاء السماح بفتح النوافذ المنبثقة");
+        return;
       }
-      const safeName = data.student.full_name.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "student";
-      pdf.save(`${safeName}-${data.student.student_code}.pdf`);
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
     } catch (err) {
       toast.error(getErrorMessage(err) || "تعذر إنشاء الملف");
     } finally {
@@ -207,7 +273,7 @@ function HistoryView({ data }: { data: History }) {
   };
 
   return (
-    <div className="space-y-4" dir="rtl" ref={reportRef}>
+    <div className="space-y-4" dir="rtl">
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
@@ -224,13 +290,13 @@ function HistoryView({ data }: { data: History }) {
             onClick={onDownload}
             disabled={downloading}
             className="print:hidden gap-2"
-            data-html2canvas-ignore="true"
           >
             <Printer className="h-4 w-4" />
             {downloading ? "جاري الإنشاء..." : "تنزيل PDF"}
           </Button>
         </CardHeader>
       </Card>
+
 
       <Card>
         <CardHeader>
