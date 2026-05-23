@@ -132,6 +132,16 @@ function DashboardPage() {
     });
   }, [students, search, battalionFilter, companyFilter]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, battalionFilter, companyFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+
   const addMutation = useMutation({
     mutationFn: async (values: StudentFormValues) => {
       const { error } = await supabase.from("students").insert(values);
