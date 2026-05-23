@@ -209,7 +209,7 @@ function LoginScreen() {
                 id="password"
                 type="password"
                 required
-                minLength={3}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 dir="ltr"
