@@ -16,6 +16,8 @@ import {
   Settings,
   ClipboardCheck,
   ChevronDown,
+  ChevronRight,
+  ChevronLeft,
   X,
 } from "lucide-react";
 
