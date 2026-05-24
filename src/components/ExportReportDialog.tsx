@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
+import { BRAND_LOGO_URL, BRAND_NAME } from "@/components/BrandLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
@@ -204,11 +205,16 @@ function escHtml(v: unknown): string {
 }
 
 function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
+  const logoSrc = new URL(BRAND_LOGO_URL, window.location.origin).toString();
   return `
     <div style="box-sizing:border-box;width:1200px;max-width:1200px;background:#ffffff;color:#111111;padding:24px;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-    <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-      <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${escHtml(title)}</h1>
-      <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
+    <div style="border-bottom:2px solid #1f6b6b;padding-bottom:10px;margin-bottom:14px;display:flex;align-items:center;gap:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
+      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:68px;width:68px;object-fit:cover;border-radius:8px;border:1px solid #1f6b6b;flex-shrink:0;" />
+      <div style="flex:1;">
+        <div style="font-size:18px;font-weight:700;color:#1f6b6b;">${escHtml(BRAND_NAME)}</div>
+        <h1 style="margin:2px 0 0;font-size:18px;font-weight:700;color:#111;">${escHtml(title)}</h1>
+        <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
+      </div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;direction:rtl;unicode-bidi:plaintext;">
       <colgroup>
