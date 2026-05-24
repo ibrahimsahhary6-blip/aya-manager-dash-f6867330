@@ -8,6 +8,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/settings/")({
   component: SettingsMenuPage,

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useBattalions } from "@/lib/orgs";
 import { useIsAdmin } from "@/lib/roles";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type Student = Tables<"students">;
 
