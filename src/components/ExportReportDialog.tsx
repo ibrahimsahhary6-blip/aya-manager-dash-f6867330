@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
@@ -239,41 +241,75 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
 }
 
 async function downloadPdf(html: string, filename: string) {
-  const doc = `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8" />
-<title>${filename.replace(/\.pdf$/i, "")}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-  @page { size: A4 landscape; margin: 12mm; }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #111;
-    font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; }
-  body { padding: 16px; direction: rtl; }
-  table { width: 100%; border-collapse: collapse; }
-  @media print { body { padding: 0; } }
-</style>
-</head>
-<body>${html}
-<script>
-  window.addEventListener('load', function () {
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(function(){ setTimeout(function(){ window.print(); }, 200); });
-    } else { setTimeout(function(){ window.print(); }, 400); }
-  });
-  window.addEventListener('afterprint', function(){ window.close(); });
-<\/script>
-</body></html>`;
-  const w = window.open("", "_blank");
-  if (!w) {
-    throw new Error("فشل فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة.");
+  // Ensure Tajawal font is loaded in the parent document so html2canvas
+  // captures Arabic glyphs correctly (no character separation).
+  if (!document.getElementById("__tajawal_font__")) {
+    const link = document.createElement("link");
+    link.id = "__tajawal_font__";
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
+    document.head.appendChild(link);
   }
-  w.document.open();
-  w.document.write(doc);
-  w.document.close();
+
+  // Render the report HTML into an off-screen container.
+  const container = document.createElement("div");
+  container.style.cssText = [
+    "position:fixed",
+    "top:0",
+    "left:-99999px",
+    "width:1200px",
+    "padding:24px",
+    "background:#ffffff",
+    "color:#111111",
+    "direction:rtl",
+    "font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif",
+    "z-index:-1",
+  ].join(";");
+  container.setAttribute("dir", "rtl");
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  try {
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch { /* ignore */ }
+    }
+    await new Promise((r) => setTimeout(r, 200));
+
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      logging: false,
+      windowWidth: 1200,
+    });
+
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+    if (imgH <= pageH) {
+      pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
+    } else {
+      let position = 0;
+      let remaining = imgH;
+      while (remaining > 0) {
+        pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
+        remaining -= pageH;
+        position -= pageH;
+        if (remaining > 0) pdf.addPage();
+      }
+    }
+
+    const blob = pdf.output("blob");
+    saveBlob(blob, filename);
+  } finally {
+    container.remove();
+  }
 }
 
 export function ExportReportDialog() {
