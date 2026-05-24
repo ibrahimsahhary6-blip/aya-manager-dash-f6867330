@@ -368,6 +368,10 @@ function StudentProfilePage() {
             <ArrowRight className="h-4 w-4" />
             <span>العودة</span>
           </Button>
+          <div className="hidden sm:flex items-center gap-2 min-w-0">
+            <BrandLogo size="sm" />
+            <span className="font-bold text-sm text-primary truncate">منصة البناء القرآني</span>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
