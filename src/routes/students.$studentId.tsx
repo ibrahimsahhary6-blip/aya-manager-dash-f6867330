@@ -266,8 +266,10 @@ function StudentProfilePage() {
     } finally {
       node.setAttribute("style", prevStyle);
       setExporting(false);
+      setExportRange(null);
     }
   };
+
 
   const battalionName =
     battalions.find((b) => b.id === student?.battalion_id)?.name ?? "—";
