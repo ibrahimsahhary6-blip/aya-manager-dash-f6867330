@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
@@ -299,6 +297,11 @@ async function downloadPdf(html: string, filename: string) {
     }
     await new Promise((r) => setTimeout(r, 350));
 
+    const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+
     const target = doc.body.firstElementChild as HTMLElement | null;
     if (!target) throw new Error("تعذر تجهيز محتوى PDF");
     const canvas = await html2canvas(target, {
@@ -310,7 +313,7 @@ async function downloadPdf(html: string, filename: string) {
       width: 1200,
     });
 
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pdf = new JsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
     const imgW = pageW;
