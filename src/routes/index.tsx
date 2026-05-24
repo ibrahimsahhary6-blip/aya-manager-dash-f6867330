@@ -51,6 +51,7 @@ import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useIsAdmin } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
@@ -224,15 +225,13 @@ function DashboardPage() {
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <BookOpen className="h-5 w-5" />
-            </div>
+            <BrandLogo size="md" />
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-bold leading-tight truncate">
-                منصة إدارة الطلاب القرآنية
+              <h1 className="text-sm sm:text-base font-bold leading-tight truncate text-primary">
+                منصة البناء القرآني
               </h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">
-                لوحة تحكم لإدارة الطلاب والمتابعة
+              <p className="text-[11px] sm:text-xs text-muted-foreground hidden sm:block truncate">
+                وشؤون المساجد — إدارة حلقات اللواء 642
               </p>
             </div>
           </div>
