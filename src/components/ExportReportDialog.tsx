@@ -49,33 +49,14 @@ function saveBlob(blob: Blob, filename: string) {
   a.href = url;
   a.download = filename;
   a.rel = "noopener";
-  a.target = "_blank";
+  // IMPORTANT: do NOT set target="_blank" — it makes some browsers open the
+  // blob in a new tab instead of downloading it.
   document.body.appendChild(a);
-
-  let downloaded = false;
-  try {
-    a.click();
-    downloaded = true;
-  } catch {
-    downloaded = false;
-  }
-
-  // Fallback for sandboxed iframes / mobile browsers that block <a download>:
-  // open in a new tab so the user can save manually.
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  const inIframe = window.self !== window.top;
-  if (!downloaded || isMobile || inIframe) {
-    const w = window.open(url, "_blank", "noopener,noreferrer");
-    if (!w) {
-      // Last resort: navigate current tab
-      window.location.href = url;
-    }
-  }
-
+  a.click();
   setTimeout(() => {
     a.remove();
     URL.revokeObjectURL(url);
-  }, 10000);
+  }, 4000);
 }
 
 async function downloadXlsx(
