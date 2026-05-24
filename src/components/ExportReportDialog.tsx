@@ -382,13 +382,11 @@ export function ExportReportDialog() {
         ratingByStudent.set(r.student_id, cur);
       });
 
-      const rows: (string | number | null)[][] = [];
-      rows.push([
+      const titleRows = [
         `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`,
-      ]);
-      rows.push([`الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`]);
-      rows.push([]);
-      rows.push([
+        `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
+      ];
+      const headers = [
         "الرقم التعريفي",
         "الاسم الكامل",
         "أيام الحضور",
@@ -399,7 +397,16 @@ export function ExportReportDialog() {
         "مرات الإعادة",
         "عدد التسميعات",
         "تفاصيل التسميعات",
-      ]);
+      ];
+      const dataRows: (string | number | null)[][] = [];
+
+      // For CSV we still need a flat rows array
+      const csvRows: (string | number | null)[][] = [
+        [titleRows[0]],
+        [titleRows[1]],
+        [],
+        headers,
+      ];
 
       const pdfRows: PdfRow[] = [];
       (students ?? []).forEach((s) => {
@@ -410,10 +417,8 @@ export function ExportReportDialog() {
         const pct = total ? Math.round((a.present / total) * 100) : 0;
         const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
         const recs = sortRecitationsByDateAsc(recByStudent.get(s.id) ?? []);
-        const recDetails = recs
-          .map((r) => buildRecitationDetail(r))
-          .join(" | ");
-        rows.push([
+        const recDetails = recs.map((r) => buildRecitationDetail(r)).join(" | ");
+        const row: (string | number | null)[] = [
           s.student_code,
           s.full_name,
           a.present,
@@ -424,7 +429,9 @@ export function ExportReportDialog() {
           rt.repeats,
           recs.length,
           recDetails,
-        ]);
+        ];
+        dataRows.push(row);
+        csvRows.push(row);
         pdfRows.push({
           code: s.student_code,
           name: s.full_name,
@@ -441,7 +448,7 @@ export function ExportReportDialog() {
 
       const stamp = `${company?.name ?? "company"}_${from}_${to}`.replace(/\s+/g, "_");
       if (format === "csv") {
-        downloadCsv(buildCsv(rows), `${stamp}.csv`);
+        downloadCsv(buildCsv(csvRows), `${stamp}.csv`);
         toast.success("تم تحميل التقرير");
         setOpen(false);
       } else if (format === "pdf") {
@@ -449,12 +456,14 @@ export function ExportReportDialog() {
         const title = `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`;
         const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
         const html = buildPdfHtml(title, subtitle, pdfRows);
+        setOpen(false);
         setPreview({ html, filename: `${stamp}.pdf`, title });
       } else {
-        downloadXlsx(company?.name ?? "Report", rows, `${stamp}.xlsx`);
+        await downloadXlsx(company?.name ?? "Report", titleRows, headers, dataRows, `${stamp}.xlsx`);
         toast.success("تم تحميل التقرير");
         setOpen(false);
       }
+
     } catch (e) {
       console.error("Comprehensive Export Error:", e);
       toast.error(getErrorMessage(e));
