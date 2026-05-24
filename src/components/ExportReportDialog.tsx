@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
@@ -164,97 +162,41 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
 }
 
 async function downloadPdf(html: string, filename: string) {
-  const container = document.createElement("div");
-  container.setAttribute("dir", "rtl");
-  container.id = "__pdf_export_container__";
-  container.style.cssText =
-    "position:fixed;top:0;left:-9999px;width:1400px;background:#ffffff;color:#111111;padding:24px;font-family:Tajawal,system-ui,sans-serif;";
-  container.innerHTML = html;
-  document.body.appendChild(container);
-  try {
-    if (!document.getElementById("__tajawal_pdf_font__")) {
-      const link = document.createElement("link");
-      link.id = "__tajawal_pdf_font__";
-      link.rel = "stylesheet";
-      link.href = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
-      document.head.appendChild(link);
-    }
-    try {
-      await (document as any).fonts?.load?.("700 16px Tajawal");
-      await (document as any).fonts?.load?.("400 14px Tajawal");
-      await (document as any).fonts?.ready;
-    } catch {}
-    await new Promise((r) => setTimeout(r, 100));
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      useCORS: true,
-      logging: false,
-      onclone: (doc) => {
-        doc.querySelectorAll("style, link[rel='stylesheet']").forEach((el) => el.remove());
-        const fontLink = doc.createElement("link");
-        fontLink.rel = "stylesheet";
-        fontLink.href = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
-        doc.head.appendChild(fontLink);
-        const fontStyle = doc.createElement("style");
-        fontStyle.textContent = `*, *::before, *::after { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif !important; }`;
-        doc.head.appendChild(fontStyle);
-        const safeVars: Record<string, string> = {
-          "--background": "#ffffff",
-          "--foreground": "#111111",
-          "--card": "#ffffff",
-          "--card-foreground": "#111111",
-          "--primary": "#0f5132",
-          "--primary-foreground": "#ffffff",
-          "--secondary": "#f3f4f6",
-          "--secondary-foreground": "#111111",
-          "--muted": "#f3f4f6",
-          "--muted-foreground": "#4b5563",
-          "--accent": "#f3f4f6",
-          "--accent-foreground": "#111111",
-          "--border": "#d1d5db",
-          "--input": "#d1d5db",
-          "--ring": "#111111",
-          "--color-border": "#d1d5db",
-        };
-        Object.entries(safeVars).forEach(([key, value]) => {
-          doc.documentElement.style.setProperty(key, value);
-        });
-        doc.documentElement.style.backgroundColor = "#ffffff";
-        doc.documentElement.style.color = "#111111";
-        doc.body.style.backgroundColor = "#ffffff";
-        doc.body.style.color = "#111111";
-        const cloned = doc.getElementById("__pdf_export_container__");
-        cloned?.querySelectorAll<HTMLElement>("*").forEach((el) => {
-          el.style.boxShadow = "none";
-          if (!el.style.borderColor) el.style.borderColor = "#d1d5db";
-        });
-      },
-    });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("l", "mm", "a4");
-    const pageW = 297;
-    const pageH = 210;
-    const imgH = (canvas.height * pageW) / canvas.width;
-    let heightLeft = imgH;
-    let position = 0;
-    pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
-    heightLeft -= pageH;
-    while (heightLeft > 0) {
-      position = heightLeft - imgH;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
-      heightLeft -= pageH;
-    }
-    pdf.save(filename);
-  } catch (err) {
-    console.error("PDF Export — html2canvas/jsPDF failed:", err);
-    throw err instanceof Error
-      ? new Error(`فشل توليد PDF: ${err.message}`)
-      : new Error("فشل توليد PDF");
-  } finally {
-    container.remove();
+  const doc = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>${filename.replace(/\.pdf$/i, "")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 landscape; margin: 12mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111;
+    font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; }
+  body { padding: 16px; direction: rtl; }
+  table { width: 100%; border-collapse: collapse; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>${html}
+<script>
+  window.addEventListener('load', function () {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function(){ setTimeout(function(){ window.print(); }, 200); });
+    } else { setTimeout(function(){ window.print(); }, 400); }
+  });
+  window.addEventListener('afterprint', function(){ window.close(); });
+<\/script>
+</body></html>`;
+  const w = window.open("", "_blank");
+  if (!w) {
+    throw new Error("فشل فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة.");
   }
+  w.document.open();
+  w.document.write(doc);
+  w.document.close();
 }
 
 export function ExportReportDialog() {
