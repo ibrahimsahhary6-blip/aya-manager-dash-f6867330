@@ -453,6 +453,7 @@ export function ExportReportDialog() {
       });
 
       const titleRows = [
+        `${BRAND_NAME} — وشؤون المساجد`,
         `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`,
         `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
       ];
