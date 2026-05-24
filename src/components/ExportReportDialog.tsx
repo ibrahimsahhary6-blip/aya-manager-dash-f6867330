@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
