@@ -490,10 +490,62 @@ function StudentProfilePage() {
           student={student}
           battalionName={battalionName}
           companyName={companyName}
-          recitations={recitations}
-          stats={ratingStats}
+          recitations={filteredForExport}
+          stats={exportRange ? filteredStats : ratingStats}
+          dateRange={exportRange}
         />
       </div>
+
+      {/* Export date-range dialog */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent dir="rtl" className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>تصدير تقرير الطالب</DialogTitle>
+            <DialogDescription>
+              حدّد الفترة الزمنية لتضمين سجلات التسميع ضمن التقرير.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="exp-from">من تاريخ</Label>
+              <Input
+                id="exp-from"
+                type="date"
+                value={exportFrom}
+                max={exportTo}
+                onChange={(e) => setExportFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="exp-to">إلى تاريخ</Label>
+              <Input
+                id="exp-to"
+                type="date"
+                value={exportTo}
+                min={exportFrom}
+                onChange={(e) => setExportTo(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>
+              إلغاء
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!exportFrom || !exportTo) return toast.error("حدد الفترة الزمنية");
+                if (exportFrom > exportTo) return toast.error("تاريخ البداية بعد تاريخ النهاية");
+                setExportOpen(false);
+                await handleExportPdf(exportFrom, exportTo);
+              }}
+              disabled={exporting}
+            >
+              {exporting ? "جارٍ التوليد..." : "تصدير PDF"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
 
 
