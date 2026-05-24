@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type Student = Tables<"students">;
 type Attendance = Tables<"attendance">;

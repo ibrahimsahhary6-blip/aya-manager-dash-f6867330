@@ -58,7 +58,10 @@ function SettingsMenuPage() {
               <span>العودة</span>
             </Link>
           </Button>
-          <h1 className="font-bold text-sm sm:text-base">الضبط</h1>
+          <div className="flex items-center gap-2">
+            <BrandLogo size="sm" />
+            <h1 className="font-bold text-sm sm:text-base text-primary">الضبط</h1>
+          </div>
         </div>
       </header>
 
