@@ -301,7 +301,20 @@ async function downloadPdf(html: string, filename: string) {
         /* ignore */
       }
     }
-    await new Promise((r) => setTimeout(r, 350));
+    // Wait for all images (logo) to finish loading inside the iframe
+    const imgs = Array.from(doc.images);
+    await Promise.all(
+      imgs.map(
+        (img) =>
+          img.complete && img.naturalWidth > 0
+            ? Promise.resolve()
+            : new Promise<void>((res) => {
+                img.addEventListener("load", () => res(), { once: true });
+                img.addEventListener("error", () => res(), { once: true });
+              }),
+      ),
+    );
+    await new Promise((r) => setTimeout(r, 200));
 
     const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
       import("html2canvas"),
