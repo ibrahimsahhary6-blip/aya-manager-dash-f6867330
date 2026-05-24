@@ -373,12 +373,13 @@ function StudentProfilePage() {
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={handleExportPdf}
+              onClick={() => setExportOpen(true)}
               disabled={exporting}
             >
               <Printer className="h-4 w-4" />
               <span>{exporting ? "جارٍ التوليد..." : "تصدير PDF"}</span>
             </Button>
+
             <span className="font-mono text-xs text-primary font-semibold">
               {student.student_code}
             </span>
