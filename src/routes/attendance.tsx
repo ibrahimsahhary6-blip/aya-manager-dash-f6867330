@@ -150,10 +150,8 @@ function AttendancePage() {
             </Link>
           </Button>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <ClipboardCheck className="h-4 w-4" />
-            </div>
-            <span className="font-bold text-sm sm:text-base">سجل الحضور والغياب</span>
+            <BrandLogo size="sm" />
+            <span className="font-bold text-sm sm:text-base text-primary">سجل الحضور والغياب</span>
           </div>
         </div>
       </header>
