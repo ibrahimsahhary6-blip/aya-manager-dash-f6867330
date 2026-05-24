@@ -77,8 +77,16 @@ async function downloadXlsx(
   });
 
   ws.columns = [
-    { width: 16 }, { width: 32 }, { width: 12 }, { width: 12 },
-    { width: 14 }, { width: 18 }, { width: 18 }, { width: 12 }, { width: 14 }, { width: 70 },
+    { width: 16 },
+    { width: 32 },
+    { width: 12 },
+    { width: 12 },
+    { width: 14 },
+    { width: 18 },
+    { width: 18 },
+    { width: 12 },
+    { width: 14 },
+    { width: 70 },
   ];
 
   const colCount = headers.length;
@@ -90,9 +98,23 @@ async function downloadXlsx(
     ws.mergeCells(`A${idx + 1}:${lastColLetter}${idx + 1}`);
     const cell = row.getCell(1);
     cell.value = t;
-    cell.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl", wrapText: true };
-    cell.font = { name: "Tajawal", size: idx === 0 ? 16 : 12, bold: idx === 0, color: { argb: "FF0F5132" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" } };
+    cell.alignment = {
+      horizontal: "right",
+      vertical: "middle",
+      readingOrder: "rtl",
+      wrapText: true,
+    };
+    cell.font = {
+      name: "Tajawal",
+      size: idx === 0 ? 16 : 12,
+      bold: idx === 0,
+      color: { argb: "FF0F5132" },
+    };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" },
+    };
     row.height = idx === 0 ? 28 : 20;
   });
 
@@ -105,7 +127,12 @@ async function downloadXlsx(
   headerRow.eachCell((cell) => {
     cell.font = { name: "Tajawal", bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F5132" } };
-    cell.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl", wrapText: true };
+    cell.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      readingOrder: "rtl",
+      wrapText: true,
+    };
     cell.border = {
       top: { style: "thin", color: { argb: "FF0F5132" } },
       bottom: { style: "thin", color: { argb: "FF0F5132" } },
@@ -244,7 +271,8 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
 
 async function downloadPdf(html: string, filename: string) {
   const frame = document.createElement("iframe");
-  frame.style.cssText = "position:fixed;top:0;left:-10000px;width:1240px;height:1800px;border:0;opacity:0;pointer-events:none;";
+  frame.style.cssText =
+    "position:fixed;top:0;left:-10000px;width:1240px;height:1800px;border:0;opacity:0;pointer-events:none;";
   document.body.appendChild(frame);
 
   try {
@@ -263,7 +291,11 @@ async function downloadPdf(html: string, filename: string) {
     doc.close();
 
     if (doc.fonts && doc.fonts.ready) {
-      try { await doc.fonts.ready; } catch { /* ignore */ }
+      try {
+        await doc.fonts.ready;
+      } catch {
+        /* ignore */
+      }
     }
     await new Promise((r) => setTimeout(r, 350));
 
@@ -315,7 +347,9 @@ export function ExportReportDialog() {
   const [companyId, setCompanyId] = useState<string>("");
   const [format, setFormat] = useState<Format>("xlsx");
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<{ html: string; filename: string; title: string } | null>(null);
+  const [preview, setPreview] = useState<{ html: string; filename: string; title: string } | null>(
+    null,
+  );
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -376,13 +410,9 @@ export function ExportReportDialog() {
         (recRes.data ?? []).filter((r) => studentIds.includes(r.student_id)),
       );
 
-      const attByStudent = new Map<
-        string,
-        { present: number; absent: number }
-      >();
+      const attByStudent = new Map<string, { present: number; absent: number }>();
       (attRes.data ?? []).forEach((a) => {
-        const cur =
-          attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
+        const cur = attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
         if (a.present) cur.present++;
         else cur.absent++;
         attByStudent.set(a.student_id, cur);
@@ -398,12 +428,11 @@ export function ExportReportDialog() {
         list.push(r);
         recByStudent.set(r.student_id, list);
 
-        const cur =
-          ratingByStudent.get(r.student_id) ?? {
-            ratedSum: 0,
-            ratedCount: 0,
-            repeats: 0,
-          };
+        const cur = ratingByStudent.get(r.student_id) ?? {
+          ratedSum: 0,
+          ratedCount: 0,
+          repeats: 0,
+        };
         const rr = (r as { rating?: string | null }).rating;
         if (rr === "8" || rr === "9" || rr === "10") {
           cur.ratedSum += Number(rr);
@@ -433,18 +462,12 @@ export function ExportReportDialog() {
       const dataRows: (string | number | null)[][] = [];
 
       // For CSV we still need a flat rows array
-      const csvRows: (string | number | null)[][] = [
-        [titleRows[0]],
-        [titleRows[1]],
-        [],
-        headers,
-      ];
+      const csvRows: (string | number | null)[][] = [[titleRows[0]], [titleRows[1]], [], headers];
 
       const pdfRows: PdfRow[] = [];
       (students ?? []).forEach((s) => {
         const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
-        const rt =
-          ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
+        const rt = ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
         const total = a.present + a.absent;
         const pct = total ? Math.round((a.present / total) * 100) : 0;
         const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
@@ -491,11 +514,16 @@ export function ExportReportDialog() {
         setOpen(false);
         setPreview({ html, filename: `${stamp}.pdf`, title });
       } else {
-        await downloadXlsx(company?.name ?? "Report", titleRows, headers, dataRows, `${stamp}.xlsx`);
+        await downloadXlsx(
+          company?.name ?? "Report",
+          titleRows,
+          headers,
+          dataRows,
+          `${stamp}.xlsx`,
+        );
         toast.success("تم تحميل التقرير");
         setOpen(false);
       }
-
     } catch (e) {
       console.error("Comprehensive Export Error:", e);
       toast.error(getErrorMessage(e));
