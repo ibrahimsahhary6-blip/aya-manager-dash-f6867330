@@ -119,6 +119,37 @@ function StudentProfilePage() {
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Export date-range dialog
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const monthAgoStr = (() => {
+    const d = new Date(Date.now() - 30 * 86400000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFrom, setExportFrom] = useState(monthAgoStr);
+  const [exportTo, setExportTo] = useState(todayStr);
+  const [exportRange, setExportRange] = useState<{ from: string; to: string } | null>(null);
+
+  const filteredForExport = exportRange
+    ? recitations.filter(
+        (r) => r.recited_on >= exportRange.from && r.recited_on <= exportRange.to,
+      )
+    : recitations;
+
+  const filteredStats = (() => {
+    const rows = filteredForExport as (Recitation & { rating?: string | null })[];
+    const scored = rows
+      .map((r) => (r.rating && /^(8|9|10)$/.test(r.rating) ? Number(r.rating) : null))
+      .filter((n): n is number => n !== null);
+    const repeats = rows.filter((r) => r.rating === "repeat").length;
+    const avg = scored.length ? scored.reduce((a, b) => a + b, 0) / scored.length : null;
+    return { avg, count: scored.length, repeats };
+  })();
+
+
   const handleExportPdf = async () => {
     const node = reportRef.current;
     if (!node) return;
