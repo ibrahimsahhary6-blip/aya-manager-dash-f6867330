@@ -27,6 +27,7 @@ import {
 import { SURAHS, getSurahByName } from "@/lib/quran";
 
 import { Button } from "@/components/ui/button";
+import { BrandLogo, BRAND_LOGO_URL, BRAND_NAME } from "@/components/BrandLogo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
