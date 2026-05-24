@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useBattalions } from "@/lib/orgs";
 import { useIsAdmin } from "@/lib/roles";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type Student = Tables<"students">;
 
@@ -110,10 +111,13 @@ function TrashPage() {
               <span>العودة</span>
             </Link>
           </Button>
-          <h1 className="font-bold text-sm sm:text-base flex items-center gap-2">
-            <Trash className="h-4 w-4" />
-            سلة المحذوفات
-          </h1>
+          <div className="flex items-center gap-2">
+            <BrandLogo size="sm" />
+            <h1 className="font-bold text-sm sm:text-base flex items-center gap-2 text-primary">
+              <Trash className="h-4 w-4" />
+              سلة المحذوفات
+            </h1>
+          </div>
           {isAdmin && deleted.length > 0 ? (
             <Button
               variant="destructive"

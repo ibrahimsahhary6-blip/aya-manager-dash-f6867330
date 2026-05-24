@@ -27,6 +27,7 @@ import {
 import { SURAHS, getSurahByName } from "@/lib/quran";
 
 import { Button } from "@/components/ui/button";
+import { BrandLogo, BRAND_LOGO_URL, BRAND_NAME } from "@/components/BrandLogo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -368,6 +369,10 @@ function StudentProfilePage() {
             <ArrowRight className="h-4 w-4" />
             <span>العودة</span>
           </Button>
+          <div className="hidden sm:flex items-center gap-2 min-w-0">
+            <BrandLogo size="sm" />
+            <span className="font-bold text-sm text-primary truncate">منصة البناء القرآني</span>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -837,27 +842,36 @@ function PrintableReport({
       dir="rtl"
       style={{ fontFamily: "Tajawal, system-ui, sans-serif", background: "#fff", color: "#000", padding: "16px" }}
     >
-      <div style={{ borderBottom: "2px solid #111", paddingBottom: "8px", marginBottom: "14px" }}>
-        <h1 style={{ margin: 0, fontSize: "20px", fontWeight: 700 }}>
-          التقرير الفردي للطالب
-        </h1>
-        <div style={{ fontSize: "11px", color: "#555", marginTop: "4px" }}>
-          منصة إدارة حلقات القرآن — اللواء 642 · تاريخ الطباعة: {printedAt}
-        </div>
-        {rangeText && (
-          <div style={{
-            marginTop: "6px",
-            display: "inline-block",
-            background: "#0f5132",
-            color: "#fff",
-            padding: "4px 10px",
-            borderRadius: "4px",
-            fontSize: "12px",
-            fontWeight: 700,
-          }}>
-            الفترة: {rangeText}
+      <div style={{ borderBottom: "2px solid #1f6b6b", paddingBottom: "10px", marginBottom: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <img
+          src={BRAND_LOGO_URL}
+          alt="شعار"
+          crossOrigin="anonymous"
+          style={{ height: "64px", width: "64px", objectFit: "cover", borderRadius: "8px", border: "1px solid #1f6b6b" }}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "18px", fontWeight: 700, color: "#1f6b6b" }}>{BRAND_NAME}</div>
+          <h1 style={{ margin: "2px 0 0", fontSize: "16px", fontWeight: 700, color: "#111" }}>
+            التقرير الفردي للطالب
+          </h1>
+          <div style={{ fontSize: "11px", color: "#555", marginTop: "4px" }}>
+            وشؤون المساجد — اللواء 642 · تاريخ الطباعة: {printedAt}
           </div>
-        )}
+          {rangeText && (
+            <div style={{
+              marginTop: "6px",
+              display: "inline-block",
+              background: "#1f6b6b",
+              color: "#fff",
+              padding: "4px 10px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              fontWeight: 700,
+            }}>
+              الفترة: {rangeText}
+            </div>
+          )}
+        </div>
       </div>
 
 

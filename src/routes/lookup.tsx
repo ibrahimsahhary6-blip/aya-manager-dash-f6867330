@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -81,11 +82,14 @@ function LookupPage() {
   return (
     <div dir="rtl" className="min-h-screen bg-background px-4 py-6">
       <div className="mx-auto max-w-3xl space-y-4 print:max-w-full">
-        <header className="text-center print:hidden">
-          <h1 className="text-2xl font-bold">بوابة الطالب — عرض السجل</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            ابحث بالاسم أو برقم الطالب ليظهر سجلك مباشرة
-          </p>
+        <header className="text-center print:hidden flex flex-col items-center gap-3">
+          <BrandLogo size="lg" />
+          <div>
+            <h1 className="text-2xl font-bold text-primary">منصة البناء القرآني</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              بوابة الطالب — ابحث بالاسم أو برقم الطالب ليظهر سجلك مباشرة
+            </p>
+          </div>
         </header>
 
         <Card className="print:hidden">
