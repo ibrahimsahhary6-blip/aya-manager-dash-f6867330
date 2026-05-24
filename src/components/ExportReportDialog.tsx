@@ -180,6 +180,7 @@ function escHtml(v: unknown): string {
 
 function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
   return `
+    <div style="box-sizing:border-box;width:1200px;max-width:1200px;background:#ffffff;color:#111111;padding:24px;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
     <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
       <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${escHtml(title)}</h1>
       <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
@@ -237,51 +238,44 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
     <div style="margin-top:12px;font-size:10px;color:#666666;text-align:left;">
       تاريخ التوليد: ${escHtml(new Date().toLocaleString("ar-EG"))}
     </div>
+    </div>
   `;
 }
 
 async function downloadPdf(html: string, filename: string) {
-  // Ensure Tajawal font is loaded in the parent document so html2canvas
-  // captures Arabic glyphs correctly (no character separation).
-  if (!document.getElementById("__tajawal_font__")) {
-    const link = document.createElement("link");
-    link.id = "__tajawal_font__";
-    link.rel = "stylesheet";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
-    document.head.appendChild(link);
-  }
-
-  // Render the report HTML into an off-screen container.
-  const container = document.createElement("div");
-  container.style.cssText = [
-    "position:fixed",
-    "top:0",
-    "left:-99999px",
-    "width:1200px",
-    "padding:24px",
-    "background:#ffffff",
-    "color:#111111",
-    "direction:rtl",
-    "font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif",
-    "z-index:-1",
-  ].join(";");
-  container.setAttribute("dir", "rtl");
-  container.innerHTML = html;
-  document.body.appendChild(container);
+  const frame = document.createElement("iframe");
+  frame.style.cssText = "position:fixed;top:0;left:-10000px;width:1240px;height:1800px;border:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(frame);
 
   try {
-    if (document.fonts && document.fonts.ready) {
-      try { await document.fonts.ready; } catch { /* ignore */ }
-    }
-    await new Promise((r) => setTimeout(r, 200));
+    const doc = frame.contentDocument;
+    if (!doc) throw new Error("تعذر تجهيز ملف PDF");
+    doc.open();
+    doc.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+      <style>
+        *{box-sizing:border-box;letter-spacing:0!important}
+        html,body{margin:0;padding:0;background:#fff;color:#111;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif}
+        body{width:1240px;min-height:100%;padding:0}
+      </style></head><body>${html}</body></html>`);
+    doc.close();
 
-    const canvas = await html2canvas(container, {
+    if (doc.fonts && doc.fonts.ready) {
+      try { await doc.fonts.ready; } catch { /* ignore */ }
+    }
+    await new Promise((r) => setTimeout(r, 350));
+
+    const target = doc.body.firstElementChild as HTMLElement | null;
+    if (!target) throw new Error("تعذر تجهيز محتوى PDF");
+    const canvas = await html2canvas(target, {
       scale: 2,
       backgroundColor: "#ffffff",
       useCORS: true,
       logging: false,
       windowWidth: 1200,
+      width: 1200,
     });
 
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -308,7 +302,7 @@ async function downloadPdf(html: string, filename: string) {
     const blob = pdf.output("blob");
     saveBlob(blob, filename);
   } finally {
-    container.remove();
+    frame.remove();
   }
 }
 
