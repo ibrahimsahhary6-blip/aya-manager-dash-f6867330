@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
@@ -57,15 +57,90 @@ function saveBlob(blob: Blob, filename: string) {
   }, 2000);
 }
 
-function downloadXlsx(sheetName: string, rows: (string | number | null)[][], filename: string) {
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"] = [
-    { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 12 },
-    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 60 },
+async function downloadXlsx(
+  sheetName: string,
+  titleRows: string[],
+  headers: string[],
+  dataRows: (string | number | null)[][],
+  filename: string,
+) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "نظام إدارة التسميع";
+  wb.created = new Date();
+  const ws = wb.addWorksheet(sheetName.slice(0, 31) || "Report", {
+    views: [{ rightToLeft: true, state: "frozen", ySplit: titleRows.length + 1 }],
+    pageSetup: { orientation: "landscape", paperSize: 9, fitToPage: true },
+  });
+
+  ws.columns = [
+    { width: 16 }, { width: 32 }, { width: 12 }, { width: 12 },
+    { width: 14 }, { width: 18 }, { width: 18 }, { width: 12 }, { width: 14 }, { width: 70 },
   ];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31) || "Report");
-  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+  const colCount = headers.length;
+  const lastColLetter = String.fromCharCode(64 + colCount); // A..Z
+
+  // Title rows (merged across all columns)
+  titleRows.forEach((t, idx) => {
+    const row = ws.addRow([t]);
+    ws.mergeCells(`A${idx + 1}:${lastColLetter}${idx + 1}`);
+    const cell = row.getCell(1);
+    cell.value = t;
+    cell.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl", wrapText: true };
+    cell.font = { name: "Tajawal", size: idx === 0 ? 16 : 12, bold: idx === 0, color: { argb: "FF0F5132" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" } };
+    row.height = idx === 0 ? 28 : 20;
+  });
+
+  // Spacer
+  ws.addRow([]);
+
+  // Header row
+  const headerRow = ws.addRow(headers);
+  headerRow.height = 26;
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Tajawal", bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F5132" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl", wrapText: true };
+    cell.border = {
+      top: { style: "thin", color: { argb: "FF0F5132" } },
+      bottom: { style: "thin", color: { argb: "FF0F5132" } },
+      left: { style: "thin", color: { argb: "FF0F5132" } },
+      right: { style: "thin", color: { argb: "FF0F5132" } },
+    };
+  });
+
+  // Data rows with alternating colors + per-column accents
+  dataRows.forEach((r, i) => {
+    const row = ws.addRow(r);
+    const zebra = i % 2 === 0 ? "FFFFFFFF" : "FFF5F7F6";
+    row.eachCell((cell, colNumber) => {
+      cell.font = { name: "Tajawal", size: 11, color: { argb: "FF111111" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebra } };
+      cell.alignment = {
+        horizontal: colNumber === 2 || colNumber === 10 ? "right" : "center",
+        vertical: "middle",
+        readingOrder: "rtl",
+        wrapText: true,
+      };
+      cell.border = {
+        top: { style: "hair", color: { argb: "FFCBD5D1" } },
+        bottom: { style: "hair", color: { argb: "FFCBD5D1" } },
+        left: { style: "hair", color: { argb: "FFCBD5D1" } },
+        right: { style: "hair", color: { argb: "FFCBD5D1" } },
+      };
+      // Accents: present (col 3) green, absent (col 4) red, repeats (col 8) amber, name (col 2) bold
+      if (colNumber === 2) cell.font = { ...cell.font, bold: true };
+      if (colNumber === 3) cell.font = { ...cell.font, color: { argb: "FF0F5132" }, bold: true };
+      if (colNumber === 4) cell.font = { ...cell.font, color: { argb: "FFB91C1C" }, bold: true };
+      if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
+      if (colNumber === 6) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
+      if (colNumber === 8) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
+    });
+    row.height = 22;
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
   saveBlob(
     new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
     filename,
@@ -307,13 +382,11 @@ export function ExportReportDialog() {
         ratingByStudent.set(r.student_id, cur);
       });
 
-      const rows: (string | number | null)[][] = [];
-      rows.push([
+      const titleRows = [
         `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`,
-      ]);
-      rows.push([`الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`]);
-      rows.push([]);
-      rows.push([
+        `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
+      ];
+      const headers = [
         "الرقم التعريفي",
         "الاسم الكامل",
         "أيام الحضور",
@@ -324,7 +397,16 @@ export function ExportReportDialog() {
         "مرات الإعادة",
         "عدد التسميعات",
         "تفاصيل التسميعات",
-      ]);
+      ];
+      const dataRows: (string | number | null)[][] = [];
+
+      // For CSV we still need a flat rows array
+      const csvRows: (string | number | null)[][] = [
+        [titleRows[0]],
+        [titleRows[1]],
+        [],
+        headers,
+      ];
 
       const pdfRows: PdfRow[] = [];
       (students ?? []).forEach((s) => {
@@ -335,10 +417,8 @@ export function ExportReportDialog() {
         const pct = total ? Math.round((a.present / total) * 100) : 0;
         const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
         const recs = sortRecitationsByDateAsc(recByStudent.get(s.id) ?? []);
-        const recDetails = recs
-          .map((r) => buildRecitationDetail(r))
-          .join(" | ");
-        rows.push([
+        const recDetails = recs.map((r) => buildRecitationDetail(r)).join(" | ");
+        const row: (string | number | null)[] = [
           s.student_code,
           s.full_name,
           a.present,
@@ -349,7 +429,9 @@ export function ExportReportDialog() {
           rt.repeats,
           recs.length,
           recDetails,
-        ]);
+        ];
+        dataRows.push(row);
+        csvRows.push(row);
         pdfRows.push({
           code: s.student_code,
           name: s.full_name,
@@ -366,7 +448,7 @@ export function ExportReportDialog() {
 
       const stamp = `${company?.name ?? "company"}_${from}_${to}`.replace(/\s+/g, "_");
       if (format === "csv") {
-        downloadCsv(buildCsv(rows), `${stamp}.csv`);
+        downloadCsv(buildCsv(csvRows), `${stamp}.csv`);
         toast.success("تم تحميل التقرير");
         setOpen(false);
       } else if (format === "pdf") {
@@ -374,12 +456,14 @@ export function ExportReportDialog() {
         const title = `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`;
         const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
         const html = buildPdfHtml(title, subtitle, pdfRows);
+        setOpen(false);
         setPreview({ html, filename: `${stamp}.pdf`, title });
       } else {
-        downloadXlsx(company?.name ?? "Report", rows, `${stamp}.xlsx`);
+        await downloadXlsx(company?.name ?? "Report", titleRows, headers, dataRows, `${stamp}.xlsx`);
         toast.success("تم تحميل التقرير");
         setOpen(false);
       }
+
     } catch (e) {
       console.error("Comprehensive Export Error:", e);
       toast.error(getErrorMessage(e));
