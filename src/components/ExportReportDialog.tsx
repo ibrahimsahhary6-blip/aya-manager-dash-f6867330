@@ -77,8 +77,16 @@ async function downloadXlsx(
   });
 
   ws.columns = [
-    { width: 16 }, { width: 32 }, { width: 12 }, { width: 12 },
-    { width: 14 }, { width: 18 }, { width: 18 }, { width: 12 }, { width: 14 }, { width: 70 },
+    { width: 16 },
+    { width: 32 },
+    { width: 12 },
+    { width: 12 },
+    { width: 14 },
+    { width: 18 },
+    { width: 18 },
+    { width: 12 },
+    { width: 14 },
+    { width: 70 },
   ];
 
   const colCount = headers.length;
@@ -90,9 +98,23 @@ async function downloadXlsx(
     ws.mergeCells(`A${idx + 1}:${lastColLetter}${idx + 1}`);
     const cell = row.getCell(1);
     cell.value = t;
-    cell.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl", wrapText: true };
-    cell.font = { name: "Tajawal", size: idx === 0 ? 16 : 12, bold: idx === 0, color: { argb: "FF0F5132" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" } };
+    cell.alignment = {
+      horizontal: "right",
+      vertical: "middle",
+      readingOrder: "rtl",
+      wrapText: true,
+    };
+    cell.font = {
+      name: "Tajawal",
+      size: idx === 0 ? 16 : 12,
+      bold: idx === 0,
+      color: { argb: "FF0F5132" },
+    };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" },
+    };
     row.height = idx === 0 ? 28 : 20;
   });
 
@@ -105,7 +127,12 @@ async function downloadXlsx(
   headerRow.eachCell((cell) => {
     cell.font = { name: "Tajawal", bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F5132" } };
-    cell.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl", wrapText: true };
+    cell.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      readingOrder: "rtl",
+      wrapText: true,
+    };
     cell.border = {
       top: { style: "thin", color: { argb: "FF0F5132" } },
       bottom: { style: "thin", color: { argb: "FF0F5132" } },
@@ -180,6 +207,7 @@ function escHtml(v: unknown): string {
 
 function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
   return `
+    <div style="box-sizing:border-box;width:1200px;max-width:1200px;background:#ffffff;color:#111111;padding:24px;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
     <div style="border-bottom:2px solid #0f5132;padding-bottom:8px;margin-bottom:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
       <h1 style="margin:0;font-size:20px;font-weight:700;color:#0f5132;">${escHtml(title)}</h1>
       <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
@@ -237,51 +265,49 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
     <div style="margin-top:12px;font-size:10px;color:#666666;text-align:left;">
       تاريخ التوليد: ${escHtml(new Date().toLocaleString("ar-EG"))}
     </div>
+    </div>
   `;
 }
 
 async function downloadPdf(html: string, filename: string) {
-  // Ensure Tajawal font is loaded in the parent document so html2canvas
-  // captures Arabic glyphs correctly (no character separation).
-  if (!document.getElementById("__tajawal_font__")) {
-    const link = document.createElement("link");
-    link.id = "__tajawal_font__";
-    link.rel = "stylesheet";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
-    document.head.appendChild(link);
-  }
-
-  // Render the report HTML into an off-screen container.
-  const container = document.createElement("div");
-  container.style.cssText = [
-    "position:fixed",
-    "top:0",
-    "left:-99999px",
-    "width:1200px",
-    "padding:24px",
-    "background:#ffffff",
-    "color:#111111",
-    "direction:rtl",
-    "font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif",
-    "z-index:-1",
-  ].join(";");
-  container.setAttribute("dir", "rtl");
-  container.innerHTML = html;
-  document.body.appendChild(container);
+  const frame = document.createElement("iframe");
+  frame.style.cssText =
+    "position:fixed;top:0;left:-10000px;width:1240px;height:1800px;border:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(frame);
 
   try {
-    if (document.fonts && document.fonts.ready) {
-      try { await document.fonts.ready; } catch { /* ignore */ }
-    }
-    await new Promise((r) => setTimeout(r, 200));
+    const doc = frame.contentDocument;
+    if (!doc) throw new Error("تعذر تجهيز ملف PDF");
+    doc.open();
+    doc.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+      <style>
+        *{box-sizing:border-box;letter-spacing:0!important}
+        html,body{margin:0;padding:0;background:#fff;color:#111;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif}
+        body{width:1240px;min-height:100%;padding:0}
+      </style></head><body>${html}</body></html>`);
+    doc.close();
 
-    const canvas = await html2canvas(container, {
+    if (doc.fonts && doc.fonts.ready) {
+      try {
+        await doc.fonts.ready;
+      } catch {
+        /* ignore */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 350));
+
+    const target = doc.body.firstElementChild as HTMLElement | null;
+    if (!target) throw new Error("تعذر تجهيز محتوى PDF");
+    const canvas = await html2canvas(target, {
       scale: 2,
       backgroundColor: "#ffffff",
       useCORS: true,
       logging: false,
       windowWidth: 1200,
+      width: 1200,
     });
 
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -308,7 +334,7 @@ async function downloadPdf(html: string, filename: string) {
     const blob = pdf.output("blob");
     saveBlob(blob, filename);
   } finally {
-    container.remove();
+    frame.remove();
   }
 }
 
@@ -321,7 +347,9 @@ export function ExportReportDialog() {
   const [companyId, setCompanyId] = useState<string>("");
   const [format, setFormat] = useState<Format>("xlsx");
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<{ html: string; filename: string; title: string } | null>(null);
+  const [preview, setPreview] = useState<{ html: string; filename: string; title: string } | null>(
+    null,
+  );
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -382,13 +410,9 @@ export function ExportReportDialog() {
         (recRes.data ?? []).filter((r) => studentIds.includes(r.student_id)),
       );
 
-      const attByStudent = new Map<
-        string,
-        { present: number; absent: number }
-      >();
+      const attByStudent = new Map<string, { present: number; absent: number }>();
       (attRes.data ?? []).forEach((a) => {
-        const cur =
-          attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
+        const cur = attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
         if (a.present) cur.present++;
         else cur.absent++;
         attByStudent.set(a.student_id, cur);
@@ -404,12 +428,11 @@ export function ExportReportDialog() {
         list.push(r);
         recByStudent.set(r.student_id, list);
 
-        const cur =
-          ratingByStudent.get(r.student_id) ?? {
-            ratedSum: 0,
-            ratedCount: 0,
-            repeats: 0,
-          };
+        const cur = ratingByStudent.get(r.student_id) ?? {
+          ratedSum: 0,
+          ratedCount: 0,
+          repeats: 0,
+        };
         const rr = (r as { rating?: string | null }).rating;
         if (rr === "8" || rr === "9" || rr === "10") {
           cur.ratedSum += Number(rr);
@@ -439,18 +462,12 @@ export function ExportReportDialog() {
       const dataRows: (string | number | null)[][] = [];
 
       // For CSV we still need a flat rows array
-      const csvRows: (string | number | null)[][] = [
-        [titleRows[0]],
-        [titleRows[1]],
-        [],
-        headers,
-      ];
+      const csvRows: (string | number | null)[][] = [[titleRows[0]], [titleRows[1]], [], headers];
 
       const pdfRows: PdfRow[] = [];
       (students ?? []).forEach((s) => {
         const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
-        const rt =
-          ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
+        const rt = ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
         const total = a.present + a.absent;
         const pct = total ? Math.round((a.present / total) * 100) : 0;
         const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
@@ -497,11 +514,16 @@ export function ExportReportDialog() {
         setOpen(false);
         setPreview({ html, filename: `${stamp}.pdf`, title });
       } else {
-        await downloadXlsx(company?.name ?? "Report", titleRows, headers, dataRows, `${stamp}.xlsx`);
+        await downloadXlsx(
+          company?.name ?? "Report",
+          titleRows,
+          headers,
+          dataRows,
+          `${stamp}.xlsx`,
+        );
         toast.success("تم تحميل التقرير");
         setOpen(false);
       }
-
     } catch (e) {
       console.error("Comprehensive Export Error:", e);
       toast.error(getErrorMessage(e));
