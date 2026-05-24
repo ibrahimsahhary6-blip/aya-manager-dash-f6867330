@@ -811,12 +811,14 @@ function PrintableReport({
   companyName,
   recitations,
   stats,
+  dateRange,
 }: {
   student: Student;
   battalionName: string;
   companyName: string;
   recitations: Recitation[];
   stats: { avg: number | null; count: number; repeats: number };
+  dateRange?: { from: string; to: string } | null;
 }) {
   const groups = groupByDate(recitations);
   const uniqueSurahs = new Set(recitations.map((r) => r.surah)).size;
@@ -825,6 +827,9 @@ function PrintableReport({
     month: "long",
     day: "numeric",
   });
+  const rangeText = dateRange
+    ? `من ${formatArabicReportDate(dateRange.from)} إلى ${formatArabicReportDate(dateRange.to)}`
+    : null;
 
   return (
     <div
@@ -839,7 +844,22 @@ function PrintableReport({
         <div style={{ fontSize: "11px", color: "#555", marginTop: "4px" }}>
           منصة إدارة حلقات القرآن — اللواء 642 · تاريخ الطباعة: {printedAt}
         </div>
+        {rangeText && (
+          <div style={{
+            marginTop: "6px",
+            display: "inline-block",
+            background: "#0f5132",
+            color: "#fff",
+            padding: "4px 10px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            fontWeight: 700,
+          }}>
+            الفترة: {rangeText}
+          </div>
+        )}
       </div>
+
 
       <table style={{ width: "100%", fontSize: "12px", marginBottom: "14px", borderCollapse: "collapse" }}>
         <tbody>
