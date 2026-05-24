@@ -119,17 +119,59 @@ function StudentProfilePage() {
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const handleExportPdf = async () => {
+  // Export date-range dialog
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const monthAgoStr = (() => {
+    const d = new Date(Date.now() - 30 * 86400000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFrom, setExportFrom] = useState(monthAgoStr);
+  const [exportTo, setExportTo] = useState(todayStr);
+  const [exportRange, setExportRange] = useState<{ from: string; to: string } | null>(null);
+
+  const filteredForExport = exportRange
+    ? recitations.filter(
+        (r) => r.recited_on >= exportRange.from && r.recited_on <= exportRange.to,
+      )
+    : recitations;
+
+  const filteredStats = (() => {
+    const rows = filteredForExport as (Recitation & { rating?: string | null })[];
+    const scored = rows
+      .map((r) => (r.rating && /^(8|9|10)$/.test(r.rating) ? Number(r.rating) : null))
+      .filter((n): n is number => n !== null);
+    const repeats = rows.filter((r) => r.rating === "repeat").length;
+    const avg = scored.length ? scored.reduce((a, b) => a + b, 0) / scored.length : null;
+    return { avg, count: scored.length, repeats };
+  })();
+
+
+  const handleExportPdf = async (from: string, to: string) => {
+    setExportRange({ from, to });
+    // Wait two frames so the off-screen report re-renders with filtered data
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
     const node = reportRef.current;
-    if (!node) return;
-    const validationErrors = validateStudentReportData(student, recitations);
+    if (!node) {
+      setExportRange(null);
+      return;
+    }
+    const filtered = recitations.filter(
+      (r) => r.recited_on >= from && r.recited_on <= to,
+    );
+    const validationErrors = validateStudentReportData(student, filtered);
     if (validationErrors.length > 0) {
       console.error("PDF Validation Error:", validationErrors);
       toast.error(validationErrors[0]);
+      setExportRange(null);
       return;
     }
     setExporting(true);
     const prevStyle = node.getAttribute("style") ?? "";
+
     try {
       // Preload Tajawal in the main document so html2canvas's clone can use it
       if (!document.getElementById("__tajawal_pdf_font__")) {
@@ -224,8 +266,10 @@ function StudentProfilePage() {
     } finally {
       node.setAttribute("style", prevStyle);
       setExporting(false);
+      setExportRange(null);
     }
   };
+
 
   const battalionName =
     battalions.find((b) => b.id === student?.battalion_id)?.name ?? "—";
@@ -329,12 +373,13 @@ function StudentProfilePage() {
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={handleExportPdf}
+              onClick={() => setExportOpen(true)}
               disabled={exporting}
             >
               <Printer className="h-4 w-4" />
               <span>{exporting ? "جارٍ التوليد..." : "تصدير PDF"}</span>
             </Button>
+
             <span className="font-mono text-xs text-primary font-semibold">
               {student.student_code}
             </span>
@@ -445,10 +490,62 @@ function StudentProfilePage() {
           student={student}
           battalionName={battalionName}
           companyName={companyName}
-          recitations={recitations}
-          stats={ratingStats}
+          recitations={filteredForExport}
+          stats={exportRange ? filteredStats : ratingStats}
+          dateRange={exportRange}
         />
       </div>
+
+      {/* Export date-range dialog */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent dir="rtl" className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>تصدير تقرير الطالب</DialogTitle>
+            <DialogDescription>
+              حدّد الفترة الزمنية لتضمين سجلات التسميع ضمن التقرير.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="exp-from">من تاريخ</Label>
+              <Input
+                id="exp-from"
+                type="date"
+                value={exportFrom}
+                max={exportTo}
+                onChange={(e) => setExportFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="exp-to">إلى تاريخ</Label>
+              <Input
+                id="exp-to"
+                type="date"
+                value={exportTo}
+                min={exportFrom}
+                onChange={(e) => setExportTo(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>
+              إلغاء
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!exportFrom || !exportTo) return toast.error("حدد الفترة الزمنية");
+                if (exportFrom > exportTo) return toast.error("تاريخ البداية بعد تاريخ النهاية");
+                setExportOpen(false);
+                await handleExportPdf(exportFrom, exportTo);
+              }}
+              disabled={exporting}
+            >
+              {exporting ? "جارٍ التوليد..." : "تصدير PDF"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
 
 
@@ -714,12 +811,14 @@ function PrintableReport({
   companyName,
   recitations,
   stats,
+  dateRange,
 }: {
   student: Student;
   battalionName: string;
   companyName: string;
   recitations: Recitation[];
   stats: { avg: number | null; count: number; repeats: number };
+  dateRange?: { from: string; to: string } | null;
 }) {
   const groups = groupByDate(recitations);
   const uniqueSurahs = new Set(recitations.map((r) => r.surah)).size;
@@ -728,6 +827,9 @@ function PrintableReport({
     month: "long",
     day: "numeric",
   });
+  const rangeText = dateRange
+    ? `من ${formatArabicReportDate(dateRange.from)} إلى ${formatArabicReportDate(dateRange.to)}`
+    : null;
 
   return (
     <div
@@ -742,7 +844,22 @@ function PrintableReport({
         <div style={{ fontSize: "11px", color: "#555", marginTop: "4px" }}>
           منصة إدارة حلقات القرآن — اللواء 642 · تاريخ الطباعة: {printedAt}
         </div>
+        {rangeText && (
+          <div style={{
+            marginTop: "6px",
+            display: "inline-block",
+            background: "#0f5132",
+            color: "#fff",
+            padding: "4px 10px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            fontWeight: 700,
+          }}>
+            الفترة: {rangeText}
+          </div>
+        )}
       </div>
+
 
       <table style={{ width: "100%", fontSize: "12px", marginBottom: "14px", borderCollapse: "collapse" }}>
         <tbody>
