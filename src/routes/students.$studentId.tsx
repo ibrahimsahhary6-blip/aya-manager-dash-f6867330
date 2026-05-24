@@ -150,17 +150,28 @@ function StudentProfilePage() {
   })();
 
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (from: string, to: string) => {
+    setExportRange({ from, to });
+    // Wait two frames so the off-screen report re-renders with filtered data
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
     const node = reportRef.current;
-    if (!node) return;
-    const validationErrors = validateStudentReportData(student, recitations);
+    if (!node) {
+      setExportRange(null);
+      return;
+    }
+    const filtered = recitations.filter(
+      (r) => r.recited_on >= from && r.recited_on <= to,
+    );
+    const validationErrors = validateStudentReportData(student, filtered);
     if (validationErrors.length > 0) {
       console.error("PDF Validation Error:", validationErrors);
       toast.error(validationErrors[0]);
+      setExportRange(null);
       return;
     }
     setExporting(true);
     const prevStyle = node.getAttribute("style") ?? "";
+
     try {
       // Preload Tajawal in the main document so html2canvas's clone can use it
       if (!document.getElementById("__tajawal_pdf_font__")) {
