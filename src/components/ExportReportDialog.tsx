@@ -49,12 +49,33 @@ function saveBlob(blob: Blob, filename: string) {
   a.href = url;
   a.download = filename;
   a.rel = "noopener";
+  a.target = "_blank";
   document.body.appendChild(a);
-  a.click();
+
+  let downloaded = false;
+  try {
+    a.click();
+    downloaded = true;
+  } catch {
+    downloaded = false;
+  }
+
+  // Fallback for sandboxed iframes / mobile browsers that block <a download>:
+  // open in a new tab so the user can save manually.
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const inIframe = window.self !== window.top;
+  if (!downloaded || isMobile || inIframe) {
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (!w) {
+      // Last resort: navigate current tab
+      window.location.href = url;
+    }
+  }
+
   setTimeout(() => {
     a.remove();
     URL.revokeObjectURL(url);
-  }, 2000);
+  }, 10000);
 }
 
 async function downloadXlsx(
