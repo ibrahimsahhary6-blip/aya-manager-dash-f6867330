@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyFirstLogin } from "@/lib/admin-users.functions";
@@ -13,10 +14,8 @@ import { getErrorMessage } from "@/lib/errors";
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const isPublicRoute =
-    typeof window !== "undefined" &&
-    (window.location.pathname.startsWith("/reset-password") ||
-      window.location.pathname.startsWith("/lookup"));
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isPublicRoute = pathname.startsWith("/reset-password") || pathname.startsWith("/lookup");
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState<ApprovalStatus>("checking");
