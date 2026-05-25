@@ -32,9 +32,14 @@ export const publicSearchStudents = createServerFn({ method: "POST" })
       .from("students")
       .select("id, full_name, student_code")
       .is("deleted_at", null)
-      .limit(30);
+      .limit(200);
 
     if (code) query = query.ilike("student_code", `%${code}%`);
+    if (name) {
+      // Try DB-level fuzzy match on first token to narrow results before JS normalization
+      const firstToken = name.split(/\s+/)[0] ?? name;
+      if (firstToken) query = query.ilike("full_name", `%${firstToken}%`);
+    }
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
