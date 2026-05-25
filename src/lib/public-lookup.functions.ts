@@ -32,13 +32,23 @@ export const publicSearchStudents = createServerFn({ method: "POST" })
       .from("students")
       .select("id, full_name, student_code")
       .is("deleted_at", null)
-      .limit(200);
+      .limit(2000);
 
     if (code) query = query.ilike("student_code", `%${code}%`);
-    if (name) {
-      // Try DB-level fuzzy match on first token to narrow results before JS normalization
+    if (name && !code) {
+      // Build variants of first token to handle Arabic letter variations (أ/إ/آ/ا, ى/ي, ة/ه)
       const firstToken = name.split(/\s+/)[0] ?? name;
-      if (firstToken) query = query.ilike("full_name", `%${firstToken}%`);
+      if (firstToken) {
+        const variants = new Set<string>();
+        variants.add(firstToken);
+        variants.add(firstToken.replace(/[أإآٱ]/g, "ا"));
+        variants.add(firstToken.replace(/ى/g, "ي"));
+        variants.add(firstToken.replace(/ة/g, "ه"));
+        const orExpr = Array.from(variants)
+          .map((v) => `full_name.ilike.%${v.replace(/[,()]/g, "")}%`)
+          .join(",");
+        query = query.or(orExpr);
+      }
     }
 
     const { data: rows, error } = await query;
