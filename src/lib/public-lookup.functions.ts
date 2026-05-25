@@ -32,36 +32,25 @@ export const publicSearchStudents = createServerFn({ method: "POST" })
       .from("students")
       .select("id, full_name, student_code")
       .is("deleted_at", null)
-      .limit(2000);
+      .limit(5000);
 
     if (code) query = query.ilike("student_code", `%${code}%`);
-    if (name && !code) {
-      // Build variants of first token to handle Arabic letter variations (أ/إ/آ/ا, ى/ي, ة/ه)
-      const firstToken = name.split(/\s+/)[0] ?? name;
-      if (firstToken) {
-        const variants = new Set<string>();
-        variants.add(firstToken);
-        variants.add(firstToken.replace(/[أإآٱ]/g, "ا"));
-        variants.add(firstToken.replace(/ى/g, "ي"));
-        variants.add(firstToken.replace(/ة/g, "ه"));
-        const orExpr = Array.from(variants)
-          .map((v) => `full_name.ilike.%${v.replace(/[,()]/g, "")}%`)
-          .join(",");
-        query = query.or(orExpr);
-      }
-    }
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
     const nNeedle = normalizeAr(name);
+    const needleTokens = nNeedle ? nNeedle.split(/\s+/).filter(Boolean) : [];
+
     const filtered = (rows ?? []).filter((r) => {
       if (!name) return true;
-      return normalizeAr(r.full_name).includes(nNeedle);
+      const hay = normalizeAr(r.full_name);
+      // Match if all tokens appear anywhere in normalized name
+      return needleTokens.every((t) => hay.includes(t));
     });
 
     return {
-      results: filtered.slice(0, 20).map((r) => ({
+      results: filtered.slice(0, 30).map((r) => ({
         id: r.id,
         full_name: r.full_name,
         student_code: r.student_code,
