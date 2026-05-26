@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck } from "lucide-react";
 import {
-  useIsAdmin,
+  useIsSuperAdmin,
   useAdminsCanManageStudentsSetting,
   useUsersCanManageStudentsSetting,
 } from "@/lib/roles";
