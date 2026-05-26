@@ -34,6 +34,7 @@ export const Route = createFileRoute("/settings/groups")({
 
 function GroupsPage() {
   const qc = useQueryClient();
+  const canManage = useCanManageStudents();
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
 
