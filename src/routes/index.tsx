@@ -52,7 +52,7 @@ import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
-import { useIsAdmin } from "@/lib/roles";
+import { useIsAdmin, useCanManageStudents } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
 
@@ -66,6 +66,7 @@ function DashboardPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const isAdmin = useIsAdmin();
+  const canManage = useCanManageStudents();
   // Persist filters so returning from a student profile preserves context
   const FILTERS_KEY = "dashboard-filters-v1";
   const initialFilters = (() => {
@@ -249,11 +250,13 @@ function DashboardPage() {
                 <span className="hidden sm:inline">الإعدادات</span>
               </Link>
             </Button>
-            <Button onClick={() => setAddOpen(true)} className="gap-2" size="sm">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">إضافة طالب جديد</span>
-              <span className="sm:hidden">إضافة</span>
-            </Button>
+            {canManage && (
+              <Button onClick={() => setAddOpen(true)} className="gap-2" size="sm">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">إضافة طالب جديد</span>
+                <span className="sm:hidden">إضافة</span>
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -453,14 +456,16 @@ function DashboardPage() {
                       <div className="flex flex-col items-center gap-2">
                         <Users className="h-10 w-10 opacity-40" />
                         <p>لا يوجد طلاب لعرضهم</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setAddOpen(true)}
-                          className="gap-1"
-                        >
-                          <Plus className="h-4 w-4" /> أضف أول طالب
-                        </Button>
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAddOpen(true)}
+                            className="gap-1"
+                          >
+                            <Plus className="h-4 w-4" /> أضف أول طالب
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -503,16 +508,18 @@ function DashboardPage() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleting(s);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canManage && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleting(s);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

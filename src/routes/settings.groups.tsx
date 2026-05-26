@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies, type Battalion, type Company } from "@/lib/orgs";
+import { useCanManageStudents } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/groups")({
   component: GroupsPage,
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/settings/groups")({
 
 function GroupsPage() {
   const qc = useQueryClient();
+  const canManage = useCanManageStudents();
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
 
@@ -367,9 +369,11 @@ function GroupsPage() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {canManage && (
+                              <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </>
                         )}
                       </li>

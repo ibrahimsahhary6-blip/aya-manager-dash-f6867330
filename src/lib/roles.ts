@@ -59,3 +59,28 @@ export function useIsSuperAdmin() {
   });
   return q.data === true;
 }
+
+export function useAdminsCanManageStudentsSetting() {
+  return useQuery({
+    queryKey: ["setting", "admins_can_manage_students"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "admins_can_manage_students")
+        .maybeSingle();
+      if (error) {
+        console.error("[setting admins_can_manage_students]", error);
+        return false;
+      }
+      return data?.value === "true";
+    },
+  });
+}
+
+export function useCanManageStudents() {
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  const { data: flag } = useAdminsCanManageStudentsSetting();
+  return isSuper || (isAdmin && flag === true);
+}
