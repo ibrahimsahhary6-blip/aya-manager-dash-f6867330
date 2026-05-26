@@ -52,7 +52,7 @@ import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
-import { useIsAdmin } from "@/lib/roles";
+import { useIsAdmin, useCanManageStudents } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
 
