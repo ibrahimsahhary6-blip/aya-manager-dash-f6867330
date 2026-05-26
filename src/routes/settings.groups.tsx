@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies, type Battalion, type Company } from "@/lib/orgs";
+import { useCanManageStudents } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/groups")({
   component: GroupsPage,
