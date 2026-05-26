@@ -250,11 +250,13 @@ function DashboardPage() {
                 <span className="hidden sm:inline">الإعدادات</span>
               </Link>
             </Button>
-            <Button onClick={() => setAddOpen(true)} className="gap-2" size="sm">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">إضافة طالب جديد</span>
-              <span className="sm:hidden">إضافة</span>
-            </Button>
+            {canManage && (
+              <Button onClick={() => setAddOpen(true)} className="gap-2" size="sm">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">إضافة طالب جديد</span>
+                <span className="sm:hidden">إضافة</span>
+              </Button>
+            )}
           </div>
         </div>
       </header>
