@@ -29,13 +29,13 @@ function useFlagMutation(key: "admins_can_manage_students" | "users_can_manage_s
 }
 
 export function ManageStudentsPermissionCard() {
-  const isAdmin = useIsAdmin();
+  const isSuperAdmin = useIsSuperAdmin();
   const { data: adminsEnabled = false, isLoading: l1 } = useAdminsCanManageStudentsSetting();
   const { data: usersEnabled = false, isLoading: l2 } = useUsersCanManageStudentsSetting();
   const updAdmins = useFlagMutation("admins_can_manage_students");
   const updUsers = useFlagMutation("users_can_manage_students");
 
-  if (!isAdmin) return null;
+  if (!isSuperAdmin) return null;
 
   return (
     <section className="rounded-2xl border bg-card p-5 shadow-soft" dir="rtl">
