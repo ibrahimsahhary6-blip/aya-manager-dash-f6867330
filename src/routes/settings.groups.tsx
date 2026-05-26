@@ -369,9 +369,11 @@ function GroupsPage() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {canManage && (
+                              <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </>
                         )}
                       </li>
