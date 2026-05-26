@@ -394,6 +394,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_admin_manage_students: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       current_actor_email: { Args: never; Returns: string }
       has_role: {
         Args: {
