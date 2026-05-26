@@ -60,17 +60,17 @@ export function useIsSuperAdmin() {
   return q.data === true;
 }
 
-export function useAdminsCanManageStudentsSetting() {
+export function usePermissionFlag(key: "admins_can_manage_students" | "users_can_manage_students") {
   return useQuery({
-    queryKey: ["setting", "admins_can_manage_students"],
+    queryKey: ["setting", key],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("app_settings")
         .select("value")
-        .eq("key", "admins_can_manage_students")
+        .eq("key", key)
         .maybeSingle();
       if (error) {
-        console.error("[setting admins_can_manage_students]", error);
+        console.error(`[setting ${key}]`, error);
         return false;
       }
       return data?.value === "true";
@@ -78,9 +78,21 @@ export function useAdminsCanManageStudentsSetting() {
   });
 }
 
+export function useAdminsCanManageStudentsSetting() {
+  return usePermissionFlag("admins_can_manage_students");
+}
+
+export function useUsersCanManageStudentsSetting() {
+  return usePermissionFlag("users_can_manage_students");
+}
+
 export function useCanManageStudents() {
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
-  const { data: flag } = useAdminsCanManageStudentsSetting();
-  return isSuper || (isAdmin && flag === true);
+  const { data: adminFlag } = useAdminsCanManageStudentsSetting();
+  const { data: userFlag } = useUsersCanManageStudentsSetting();
+  if (isSuper) return true;
+  if (isAdmin && adminFlag) return true;
+  if (userFlag) return true;
+  return false;
 }
