@@ -456,14 +456,16 @@ function DashboardPage() {
                       <div className="flex flex-col items-center gap-2">
                         <Users className="h-10 w-10 opacity-40" />
                         <p>لا يوجد طلاب لعرضهم</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setAddOpen(true)}
-                          className="gap-1"
-                        >
-                          <Plus className="h-4 w-4" /> أضف أول طالب
-                        </Button>
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAddOpen(true)}
+                            className="gap-1"
+                          >
+                            <Plus className="h-4 w-4" /> أضف أول طالب
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
