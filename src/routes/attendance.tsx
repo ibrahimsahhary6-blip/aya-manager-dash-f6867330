@@ -111,14 +111,17 @@ function AttendancePage() {
     [dayRecitations],
   );
 
-  type AttStatus = "present" | "absent" | "excused";
+  type AttStatus = "present" | "absent" | "excused" | "none";
   const getStudentStatus = (studentId: string): AttStatus => {
     const rec = attendanceMap.get(studentId);
     if (rec) {
       if (rec.excused) return "excused";
       return rec.present ? "present" : "absent";
     }
-    return recitedSet.has(studentId) ? "present" : "absent";
+    // Auto-present if a recitation was logged today
+    if (recitedSet.has(studentId)) return "present";
+    // Otherwise no status until user sets it manually
+    return "none";
   };
 
   const isStudentPresent = (studentId: string) => getStudentStatus(studentId) === "present";
@@ -127,18 +130,24 @@ function AttendancePage() {
     mutationFn: async ({
       studentId,
       status,
-      rating,
     }: {
       studentId: string;
       status: AttStatus;
-      rating?: string | null;
     }) => {
+      if (status === "none") {
+        const { error } = await supabase
+          .from("attendance")
+          .delete()
+          .eq("student_id", studentId)
+          .eq("attended_on", date);
+        if (error) throw error;
+        return;
+      }
       const payload = {
         student_id: studentId,
         attended_on: date,
         present: status === "present",
         excused: status === "excused",
-        ...(rating !== undefined ? { rating } : {}),
       };
       const { error } = await supabase
         .from("attendance")
