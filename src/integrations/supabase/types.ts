@@ -93,6 +93,7 @@ export type Database = {
         Row: {
           attended_on: string
           created_at: string
+          excused: boolean
           id: string
           present: boolean
           rating: string | null
@@ -102,6 +103,7 @@ export type Database = {
         Insert: {
           attended_on?: string
           created_at?: string
+          excused?: boolean
           id?: string
           present?: boolean
           rating?: string | null
@@ -111,6 +113,7 @@ export type Database = {
         Update: {
           attended_on?: string
           created_at?: string
+          excused?: boolean
           id?: string
           present?: boolean
           rating?: string | null
