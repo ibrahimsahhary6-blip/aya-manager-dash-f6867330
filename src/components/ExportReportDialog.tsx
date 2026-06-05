@@ -92,16 +92,18 @@ async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
     });
 
     ws.columns = [
-      { width: 16 },
-      { width: 32 },
+      { width: 14 },
+      { width: 28 },
+      { width: 10 },
+      { width: 12 },
+      { width: 10 },
       { width: 12 },
       { width: 12 },
       { width: 14 },
-      { width: 18 },
-      { width: 18 },
-      { width: 12 },
       { width: 14 },
-      { width: 70 },
+      { width: 10 },
+      { width: 12 },
+      { width: 60 },
     ];
 
     const colCount = headers.length;
