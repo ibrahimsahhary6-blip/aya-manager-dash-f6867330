@@ -409,6 +409,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved_user: { Args: never; Returns: boolean }
       normalize_arabic: { Args: { input: string }; Returns: string }
     }
     Enums: {
