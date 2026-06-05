@@ -162,7 +162,7 @@ async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
         cell.font = { name: "Tajawal", size: 11, color: { argb: "FF111111" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebra } };
         cell.alignment = {
-          horizontal: colNumber === 2 || colNumber === 10 ? "right" : "center",
+          horizontal: colNumber === 2 || colNumber === 12 ? "right" : "center",
           vertical: "middle",
           readingOrder: "rtl",
           wrapText: true,
@@ -173,12 +173,16 @@ async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
           left: { style: "hair", color: { argb: "FFCBD5D1" } },
           right: { style: "hair", color: { argb: "FFCBD5D1" } },
         };
+        // 1:code 2:name 3:present 4:absentTotal 5:absentExcused 6:absentUnexcused
+        // 7:pct 8:avg 9:rated 10:repeats 11:total 12:details
         if (colNumber === 2) cell.font = { ...cell.font, bold: true };
         if (colNumber === 3) cell.font = { ...cell.font, color: { argb: "FF0F5132" }, bold: true };
         if (colNumber === 4) cell.font = { ...cell.font, color: { argb: "FFB91C1C" }, bold: true };
-        if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
-        if (colNumber === 6) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
-        if (colNumber === 8) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
+        if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
+        if (colNumber === 6) cell.font = { ...cell.font, color: { argb: "FF991B1B" }, bold: true };
+        if (colNumber === 7) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
+        if (colNumber === 8) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
+        if (colNumber === 10) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
       });
       row.height = 22;
     });
