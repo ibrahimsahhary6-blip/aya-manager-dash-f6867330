@@ -549,10 +549,11 @@ export function ExportReportDialog() {
         });
 
         const battalionLabel = battalion ? `الكتيبة: ${battalion.name}` : "بدون كتيبة";
-        const companyLabel = `${company?.name ?? ""}${battalion ? ` — ${battalion.name}` : ""}`;
+        const companyOnlyLabel = `السرية: ${company?.name ?? ""}`;
         const titleRows = [
           `${BRAND_NAME} — وشؤون المساجد`,
-          `${battalionLabel} ← سرية: ${company?.name ?? ""}`,
+          battalionLabel,
+          companyOnlyLabel,
           `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
         ];
         const headers = [
