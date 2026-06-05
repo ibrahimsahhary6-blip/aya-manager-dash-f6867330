@@ -279,10 +279,9 @@ function StudentProfilePage() {
 
   const addMutation = useMutation({
     mutationFn: async (values: RecitationFormValues) => {
-      const { attendance_status, ...recValues } = values;
       const { error } = await supabase.from("recitations").insert({
         student_id: studentId,
-        ...recValues,
+        ...values,
       });
       if (error) throw error;
       const { error: attErr } = await supabase
@@ -291,15 +290,15 @@ function StudentProfilePage() {
           {
             student_id: studentId,
             attended_on: values.recited_on,
-            present: attendance_status === "present",
-            excused: attendance_status === "excused",
+            present: true,
+            excused: false,
           },
           { onConflict: "student_id,attended_on" },
         );
       if (attErr) throw attErr;
     },
     onSuccess: () => {
-      toast.success("تم حفظ التسميع وتسجيل الحضور");
+      toast.success("تم حفظ التسميع وتسجيل الحضور تلقائياً");
       qc.invalidateQueries({ queryKey: ["recitations", studentId] });
       qc.invalidateQueries({ queryKey: ["attendance"] });
       setAddOpen(false);
@@ -309,10 +308,9 @@ function StudentProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: RecitationFormValues }) => {
-      const { attendance_status, ...recValues } = values;
       const { error } = await supabase
         .from("recitations")
-        .update(recValues)
+        .update(values)
         .eq("id", id);
       if (error) throw error;
       const { error: attErr } = await supabase
@@ -321,8 +319,8 @@ function StudentProfilePage() {
           {
             student_id: studentId,
             attended_on: values.recited_on,
-            present: attendance_status === "present",
-            excused: attendance_status === "excused",
+            present: true,
+            excused: false,
           },
           { onConflict: "student_id,attended_on" },
         );
@@ -648,7 +646,6 @@ type RecitationFormValues = {
   notes: string;
   rating: string | null;
   is_review: boolean;
-  attendance_status: "present" | "absent" | "excused";
 };
 
 const RATING_BUTTONS: {
@@ -1051,9 +1048,8 @@ function RecitationForm({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [rating, setRating] = useState<string>(initial?.rating ?? "");
   const [isReview, setIsReview] = useState<boolean>(initial?.is_review ?? false);
-  const [attendanceStatus, setAttendanceStatus] = useState<"present" | "absent" | "excused">(
-    initial?.attendance_status ?? "present",
-  );
+
+
 
 
   const selectedSurah = getSurahByName(fromSurah);
@@ -1094,7 +1090,6 @@ function RecitationForm({
           notes: notes.trim().slice(0, 2000),
           rating: isReview ? null : (rating || null),
           is_review: isReview,
-          attendance_status: attendanceStatus,
         });
       }}
       className="space-y-4"
@@ -1110,30 +1105,10 @@ function RecitationForm({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>حالة الحضور</Label>
-        <div className="flex gap-2 flex-wrap">
-          {([
-            { v: "present", label: "حاضر", activeClass: "bg-emerald-600 text-white border-emerald-600" },
-            { v: "absent", label: "غائب", activeClass: "bg-destructive text-destructive-foreground border-destructive" },
-            { v: "excused", label: "بعذر", activeClass: "bg-amber-500 text-white border-amber-500" },
-          ] as const).map((opt) => {
-            const active = attendanceStatus === opt.v;
-            return (
-              <button
-                key={opt.v}
-                type="button"
-                onClick={() => setAttendanceStatus(opt.v)}
-                className={`h-9 px-4 text-sm font-semibold rounded-md border transition-colors ${
-                  active ? opt.activeClass : "bg-background text-foreground border-border hover:bg-muted"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
+        ✓ سيتم تسجيل الطالب <span className="font-bold">حاضراً</span> تلقائياً عند حفظ التسميع. يمكنك تعديل حالة الحضور لاحقاً من صفحة الحضور.
       </div>
+
 
 
       <div className="grid grid-cols-2 gap-4">
