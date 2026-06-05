@@ -228,13 +228,15 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[], battalion
   const logoSrc = new URL(BRAND_LOGO_URL, window.location.origin).toString();
   return `
     <div style="box-sizing:border-box;width:1200px;max-width:1200px;background:#ffffff;color:#111111;padding:24px;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-    <div style="border-bottom:2px solid #1f6b6b;padding-bottom:10px;margin-bottom:14px;display:flex;align-items:center;gap:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:68px;width:68px;object-fit:cover;border-radius:8px;border:2px solid #c9a84c;flex-shrink:0;" />
-      <div style="flex:1;">
-        <div style="font-size:18px;font-weight:700;color:#1f6b6b;">${escHtml(BRAND_NAME)}</div>
-        ${battalionLabel ? `<div style="display:inline-block;margin-top:4px;background:linear-gradient(90deg,#0f5132,#1f6b6b);color:#fff;padding:4px 12px;border-radius:4px;font-size:13px;font-weight:700;border-right:4px solid #c9a84c;">${escHtml(battalionLabel)}</div>` : ""}
-        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#111;">${escHtml(title)}</h1>
-        <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
+    <div style="border-bottom:2px solid #1f6b6b;padding-bottom:12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
+      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:72px;width:72px;object-fit:cover;border-radius:8px;border:2px solid #c9a84c;flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="display:inline-block;background:linear-gradient(90deg,#0f5132,#1f6b6b);color:#fff;padding:6px 14px 8px;border-radius:4px;border-right:5px solid #c9a84c;">
+          <div style="font-size:18px;font-weight:800;line-height:1.2;">${escHtml(BRAND_NAME)}</div>
+          ${battalionLabel ? `<div style="font-size:13px;font-weight:700;line-height:1.3;margin-top:2px;opacity:0.95;">${escHtml(battalionLabel)}</div>` : ""}
+        </div>
+        <h1 style="margin:8px 0 0;font-size:17px;font-weight:700;color:#0f5132;">${escHtml(title)}</h1>
+        <div style="font-size:12px;color:#555555;margin-top:2px;">${escHtml(subtitle)}</div>
       </div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;direction:rtl;unicode-bidi:plaintext;">
@@ -274,7 +276,7 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[], battalion
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;font-family:monospace;line-height:1.6;white-space:nowrap;">${escHtml(r.code)}</td>
-            <td style="border:1px solid #999;padding:8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:1.8;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
+            <td style="border:1px solid #999;padding:9px 8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-size:13px;font-weight:700;line-height:1.8;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#0f5132;font-weight:700;line-height:1.6;">${r.present}</td>
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b91c1c;font-weight:700;line-height:1.6;">${r.absentTotal}</td>
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b45309;line-height:1.6;">${r.absentExcused}</td>
