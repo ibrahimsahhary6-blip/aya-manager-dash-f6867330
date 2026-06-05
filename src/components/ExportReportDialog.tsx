@@ -276,7 +276,7 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[], battalion
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;font-family:monospace;line-height:1.6;white-space:nowrap;">${escHtml(r.code)}</td>
-            <td style="border:1px solid #999;padding:8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:1.8;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
+            <td style="border:1px solid #999;padding:9px 8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-size:13px;font-weight:700;line-height:1.8;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#0f5132;font-weight:700;line-height:1.6;">${r.present}</td>
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b91c1c;font-weight:700;line-height:1.6;">${r.absentTotal}</td>
             <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b45309;line-height:1.6;">${r.absentExcused}</td>
