@@ -60,114 +60,126 @@ function saveBlob(blob: Blob, filename: string) {
   }, 4000);
 }
 
-async function downloadXlsx(
-  sheetName: string,
-  titleRows: string[],
-  headers: string[],
-  dataRows: (string | number | null)[][],
-  filename: string,
-) {
+type XlsxSheet = {
+  sheetName: string;
+  titleRows: string[];
+  headers: string[];
+  dataRows: (string | number | null)[][];
+};
+
+async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "نظام إدارة التسميع";
   wb.created = new Date();
-  const ws = wb.addWorksheet(sheetName.slice(0, 31) || "Report", {
-    views: [{ rightToLeft: true, state: "frozen", ySplit: titleRows.length + 1 }],
-    pageSetup: { orientation: "landscape", paperSize: 9, fitToPage: true },
-  });
 
-  ws.columns = [
-    { width: 16 },
-    { width: 32 },
-    { width: 12 },
-    { width: 12 },
-    { width: 14 },
-    { width: 18 },
-    { width: 18 },
-    { width: 12 },
-    { width: 14 },
-    { width: 70 },
-  ];
+  const usedNames = new Set<string>();
+  const safeName = (n: string, i: number) => {
+    let base = (n || `Report ${i + 1}`).replace(/[\\/?*\[\]:]/g, "").slice(0, 31) || `Sheet ${i + 1}`;
+    let candidate = base;
+    let suffix = 2;
+    while (usedNames.has(candidate)) {
+      const tail = `_${suffix++}`;
+      candidate = base.slice(0, 31 - tail.length) + tail;
+    }
+    usedNames.add(candidate);
+    return candidate;
+  };
 
-  const colCount = headers.length;
-  const lastColLetter = String.fromCharCode(64 + colCount); // A..Z
+  sheets.forEach(({ sheetName, titleRows, headers, dataRows }, sheetIdx) => {
+    const ws = wb.addWorksheet(safeName(sheetName, sheetIdx), {
+      views: [{ rightToLeft: true, state: "frozen", ySplit: titleRows.length + 1 }],
+      pageSetup: { orientation: "landscape", paperSize: 9, fitToPage: true },
+    });
 
-  // Title rows (merged across all columns)
-  titleRows.forEach((t, idx) => {
-    const row = ws.addRow([t]);
-    ws.mergeCells(`A${idx + 1}:${lastColLetter}${idx + 1}`);
-    const cell = row.getCell(1);
-    cell.value = t;
-    cell.alignment = {
-      horizontal: "right",
-      vertical: "middle",
-      readingOrder: "rtl",
-      wrapText: true,
-    };
-    cell.font = {
-      name: "Tajawal",
-      size: idx === 0 ? 16 : 12,
-      bold: idx === 0,
-      color: { argb: "FF0F5132" },
-    };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" },
-    };
-    row.height = idx === 0 ? 28 : 20;
-  });
+    ws.columns = [
+      { width: 16 },
+      { width: 32 },
+      { width: 12 },
+      { width: 12 },
+      { width: 14 },
+      { width: 18 },
+      { width: 18 },
+      { width: 12 },
+      { width: 14 },
+      { width: 70 },
+    ];
 
-  // Spacer
-  ws.addRow([]);
+    const colCount = headers.length;
+    const lastColLetter = String.fromCharCode(64 + colCount);
 
-  // Header row
-  const headerRow = ws.addRow(headers);
-  headerRow.height = 26;
-  headerRow.eachCell((cell) => {
-    cell.font = { name: "Tajawal", bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F5132" } };
-    cell.alignment = {
-      horizontal: "center",
-      vertical: "middle",
-      readingOrder: "rtl",
-      wrapText: true,
-    };
-    cell.border = {
-      top: { style: "thin", color: { argb: "FF0F5132" } },
-      bottom: { style: "thin", color: { argb: "FF0F5132" } },
-      left: { style: "thin", color: { argb: "FF0F5132" } },
-      right: { style: "thin", color: { argb: "FF0F5132" } },
-    };
-  });
-
-  // Data rows with alternating colors + per-column accents
-  dataRows.forEach((r, i) => {
-    const row = ws.addRow(r);
-    const zebra = i % 2 === 0 ? "FFFFFFFF" : "FFF5F7F6";
-    row.eachCell((cell, colNumber) => {
-      cell.font = { name: "Tajawal", size: 11, color: { argb: "FF111111" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebra } };
+    titleRows.forEach((t, idx) => {
+      const row = ws.addRow([t]);
+      ws.mergeCells(`A${idx + 1}:${lastColLetter}${idx + 1}`);
+      const cell = row.getCell(1);
+      cell.value = t;
       cell.alignment = {
-        horizontal: colNumber === 2 || colNumber === 10 ? "right" : "center",
+        horizontal: "right",
+        vertical: "middle",
+        readingOrder: "rtl",
+        wrapText: true,
+      };
+      cell.font = {
+        name: "Tajawal",
+        size: idx === 0 ? 16 : 12,
+        bold: idx === 0,
+        color: { argb: "FF0F5132" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" },
+      };
+      row.height = idx === 0 ? 28 : 20;
+    });
+
+    ws.addRow([]);
+
+    const headerRow = ws.addRow(headers);
+    headerRow.height = 26;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: "Tajawal", bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F5132" } };
+      cell.alignment = {
+        horizontal: "center",
         vertical: "middle",
         readingOrder: "rtl",
         wrapText: true,
       };
       cell.border = {
-        top: { style: "hair", color: { argb: "FFCBD5D1" } },
-        bottom: { style: "hair", color: { argb: "FFCBD5D1" } },
-        left: { style: "hair", color: { argb: "FFCBD5D1" } },
-        right: { style: "hair", color: { argb: "FFCBD5D1" } },
+        top: { style: "thin", color: { argb: "FF0F5132" } },
+        bottom: { style: "thin", color: { argb: "FF0F5132" } },
+        left: { style: "thin", color: { argb: "FF0F5132" } },
+        right: { style: "thin", color: { argb: "FF0F5132" } },
       };
-      // Accents: present (col 3) green, absent (col 4) red, repeats (col 8) amber, name (col 2) bold
-      if (colNumber === 2) cell.font = { ...cell.font, bold: true };
-      if (colNumber === 3) cell.font = { ...cell.font, color: { argb: "FF0F5132" }, bold: true };
-      if (colNumber === 4) cell.font = { ...cell.font, color: { argb: "FFB91C1C" }, bold: true };
-      if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
-      if (colNumber === 6) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
-      if (colNumber === 8) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
     });
-    row.height = 22;
+
+    dataRows.forEach((r, i) => {
+      const row = ws.addRow(r);
+      const zebra = i % 2 === 0 ? "FFFFFFFF" : "FFF5F7F6";
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: "Tajawal", size: 11, color: { argb: "FF111111" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebra } };
+        cell.alignment = {
+          horizontal: colNumber === 2 || colNumber === 10 ? "right" : "center",
+          vertical: "middle",
+          readingOrder: "rtl",
+          wrapText: true,
+        };
+        cell.border = {
+          top: { style: "hair", color: { argb: "FFCBD5D1" } },
+          bottom: { style: "hair", color: { argb: "FFCBD5D1" } },
+          left: { style: "hair", color: { argb: "FFCBD5D1" } },
+          right: { style: "hair", color: { argb: "FFCBD5D1" } },
+        };
+        if (colNumber === 2) cell.font = { ...cell.font, bold: true };
+        if (colNumber === 3) cell.font = { ...cell.font, color: { argb: "FF0F5132" }, bold: true };
+        if (colNumber === 4) cell.font = { ...cell.font, color: { argb: "FFB91C1C" }, bold: true };
+        if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
+        if (colNumber === 6) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
+        if (colNumber === 8) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
+      });
+      row.height = 22;
+    });
   });
 
   const buf = await wb.xlsx.writeBuffer();
@@ -273,83 +285,89 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
   `;
 }
 
-async function downloadPdf(html: string, filename: string) {
+async function downloadPdf(sections: { html: string }[], filename: string) {
   const frame = document.createElement("iframe");
   frame.style.cssText =
     "position:fixed;top:0;left:-10000px;width:1240px;height:1800px;border:0;opacity:0;pointer-events:none;";
   document.body.appendChild(frame);
 
   try {
-    const doc = frame.contentDocument;
-    if (!doc) throw new Error("تعذر تجهيز ملف PDF");
-    doc.open();
-    doc.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8" />
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-      <style>
-        *{box-sizing:border-box;letter-spacing:0!important}
-        html,body{margin:0;padding:0;background:#fff;color:#111;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif}
-        body{width:1240px;min-height:100%;padding:0}
-      </style></head><body>${html}</body></html>`);
-    doc.close();
-
-    if (doc.fonts && doc.fonts.ready) {
-      try {
-        await doc.fonts.ready;
-      } catch {
-        /* ignore */
-      }
-    }
-    // Wait for all images (logo) to finish loading inside the iframe
-    const imgs = Array.from(doc.images);
-    await Promise.all(
-      imgs.map(
-        (img) =>
-          img.complete && img.naturalWidth > 0
-            ? Promise.resolve()
-            : new Promise<void>((res) => {
-                img.addEventListener("load", () => res(), { once: true });
-                img.addEventListener("error", () => res(), { once: true });
-              }),
-      ),
-    );
-    await new Promise((r) => setTimeout(r, 200));
-
     const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
       import("html2canvas"),
       import("jspdf"),
     ]);
 
-    const target = doc.body.firstElementChild as HTMLElement | null;
-    if (!target) throw new Error("تعذر تجهيز محتوى PDF");
-    const canvas = await html2canvas(target, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      useCORS: true,
-      logging: false,
-      windowWidth: 1200,
-      width: 1200,
-    });
-
     const pdf = new JsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    const imgW = pageW;
-    const imgH = (canvas.height * imgW) / canvas.width;
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    for (let s = 0; s < sections.length; s++) {
+      const section = sections[s];
+      const doc = frame.contentDocument;
+      if (!doc) throw new Error("تعذر تجهيز ملف PDF");
+      doc.open();
+      doc.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+        <style>
+          *{box-sizing:border-box;letter-spacing:0!important}
+          html,body{margin:0;padding:0;background:#fff;color:#111;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif}
+          body{width:1240px;min-height:100%;padding:0}
+        </style></head><body>${section.html}</body></html>`);
+      doc.close();
 
-    if (imgH <= pageH) {
-      pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
-    } else {
-      let position = 0;
-      let remaining = imgH;
-      while (remaining > 0) {
-        pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
-        remaining -= pageH;
-        position -= pageH;
-        if (remaining > 0) pdf.addPage();
+      if (doc.fonts && doc.fonts.ready) {
+        try {
+          await doc.fonts.ready;
+        } catch {
+          /* ignore */
+        }
+      }
+      const imgs = Array.from(doc.images);
+      await Promise.all(
+        imgs.map(
+          (img) =>
+            img.complete && img.naturalWidth > 0
+              ? Promise.resolve()
+              : new Promise<void>((res) => {
+                  img.addEventListener("load", () => res(), { once: true });
+                  img.addEventListener("error", () => res(), { once: true });
+                }),
+        ),
+      );
+      await new Promise((r) => setTimeout(r, 150));
+
+      const target = doc.body.firstElementChild as HTMLElement | null;
+      if (!target) throw new Error("تعذر تجهيز محتوى PDF");
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false,
+        windowWidth: 1200,
+        width: 1200,
+      });
+
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+      if (s > 0) pdf.addPage();
+
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
+      } else {
+        let position = 0;
+        let remaining = imgH;
+        let isFirst = true;
+        while (remaining > 0) {
+          if (!isFirst) pdf.addPage();
+          pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
+          remaining -= pageH;
+          position -= pageH;
+          isFirst = false;
+        }
       }
     }
 
@@ -366,12 +384,13 @@ export function ExportReportDialog() {
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);
-  const [companyId, setCompanyId] = useState<string>("");
+  const [companyIds, setCompanyIds] = useState<string[]>([]);
   const [format, setFormat] = useState<Format>("xlsx");
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<{ html: string; filename: string; title: string } | null>(
-    null,
-  );
+  const [preview, setPreview] = useState<{
+    sections: { html: string; title: string }[];
+    filename: string;
+  } | null>(null);
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -385,165 +404,191 @@ export function ExportReportDialog() {
     [companies, battalions],
   );
 
+  const toggleCompany = (id: string) => {
+    setCompanyIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+  const allSelected = companyOptions.length > 0 && companyIds.length === companyOptions.length;
+  const toggleAll = () => {
+    setCompanyIds(allSelected ? [] : companyOptions.map((c) => c.id));
+  };
+
   const handleExport = async () => {
-    if (!companyId) return toast.error("اختر سرية");
+    if (companyIds.length === 0) return toast.error("اختر سرية واحدة على الأقل");
     if (!from || !to) return toast.error("حدد الفترة الزمنية");
     if (from > to) return toast.error("تاريخ البداية بعد تاريخ النهاية");
 
     setLoading(true);
     try {
-      const company = companies.find((c) => c.id === companyId);
-      const battalion = battalions.find((b) => b.id === company?.battalion_id);
+      const xlsxSheets: XlsxSheet[] = [];
+      const csvBlocks: string[] = [];
+      const pdfSections: { html: string; title: string }[] = [];
+      let totalStudents = 0;
 
-      const { data: students, error: sErr } = await supabase
-        .from("students")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("full_name");
-      if (sErr) throw sErr;
-      const studentIds = (students ?? []).map((s) => s.id);
+      for (const cid of companyIds) {
+        const company = companies.find((c) => c.id === cid);
+        const battalion = battalions.find((b) => b.id === company?.battalion_id);
 
-      if (studentIds.length === 0) {
-        toast.warning("لا يوجد طلاب في هذه السرية");
-        setLoading(false);
-        return;
-      }
-
-      const [attRes, recRes] = await Promise.all([
-        supabase
-          .from("attendance")
+        const { data: students, error: sErr } = await supabase
+          .from("students")
           .select("*")
-          .in("student_id", studentIds)
-          .gte("attended_on", from)
-          .lte("attended_on", to)
-          .order("attended_on", { ascending: true }),
-        supabase
-          .from("recitations")
-          .select("*")
-          .in("student_id", studentIds)
-          .gte("recited_on", from)
-          .lte("recited_on", to)
-          .order("recited_on", { ascending: true })
-          .order("created_at", { ascending: true }),
-      ]);
-      if (attRes.error) throw attRes.error;
-      if (recRes.error) throw recRes.error;
-      const filteredRecitations = sortRecitationsByDateAsc(
-        (recRes.data ?? []).filter((r) => studentIds.includes(r.student_id)),
-      );
+          .eq("company_id", cid)
+          .order("full_name");
+        if (sErr) throw sErr;
+        const studentIds = (students ?? []).map((s) => s.id);
+        if (studentIds.length === 0) continue;
+        totalStudents += studentIds.length;
 
-      const attByStudent = new Map<string, { present: number; absent: number }>();
-      (attRes.data ?? []).forEach((a) => {
-        const cur = attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
-        if (a.present) cur.present++;
-        else cur.absent++;
-        attByStudent.set(a.student_id, cur);
-      });
+        const [attRes, recRes] = await Promise.all([
+          supabase
+            .from("attendance")
+            .select("*")
+            .in("student_id", studentIds)
+            .gte("attended_on", from)
+            .lte("attended_on", to)
+            .order("attended_on", { ascending: true }),
+          supabase
+            .from("recitations")
+            .select("*")
+            .in("student_id", studentIds)
+            .gte("recited_on", from)
+            .lte("recited_on", to)
+            .order("recited_on", { ascending: true })
+            .order("created_at", { ascending: true }),
+        ]);
+        if (attRes.error) throw attRes.error;
+        if (recRes.error) throw recRes.error;
+        const filteredRecitations = sortRecitationsByDateAsc(
+          (recRes.data ?? []).filter((r) => studentIds.includes(r.student_id)),
+        );
 
-      const recByStudent = new Map<string, typeof recRes.data>();
-      const ratingByStudent = new Map<
-        string,
-        { ratedSum: number; ratedCount: number; repeats: number }
-      >();
-      filteredRecitations.forEach((r) => {
-        const list = recByStudent.get(r.student_id) ?? [];
-        list.push(r);
-        recByStudent.set(r.student_id, list);
-
-        const cur = ratingByStudent.get(r.student_id) ?? {
-          ratedSum: 0,
-          ratedCount: 0,
-          repeats: 0,
-        };
-        const rr = (r as { rating?: string | null }).rating;
-        if (rr === "8" || rr === "9" || rr === "10") {
-          cur.ratedSum += Number(rr);
-          cur.ratedCount++;
-        } else if (rr === "repeat") {
-          cur.repeats++;
-        }
-        ratingByStudent.set(r.student_id, cur);
-      });
-
-      const titleRows = [
-        `${BRAND_NAME} — وشؤون المساجد`,
-        `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`,
-        `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
-      ];
-      const headers = [
-        "الرقم التعريفي",
-        "الاسم الكامل",
-        "أيام الحضور",
-        "أيام الغياب",
-        "نسبة الحضور %",
-        "معدل التسميع التراكمي",
-        "عدد التسميعات المُقيَّمة",
-        "مرات الإعادة",
-        "عدد التسميعات",
-        "تفاصيل التسميعات",
-      ];
-      const dataRows: (string | number | null)[][] = [];
-
-      // For CSV we still need a flat rows array
-      const csvRows: (string | number | null)[][] = [[titleRows[0]], [titleRows[1]], [], headers];
-
-      const pdfRows: PdfRow[] = [];
-      (students ?? []).forEach((s) => {
-        const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
-        const rt = ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
-        const total = a.present + a.absent;
-        const pct = total ? Math.round((a.present / total) * 100) : 0;
-        const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
-        const recs = sortRecitationsByDateAsc(recByStudent.get(s.id) ?? []);
-        const recDetails = recs.map((r) => buildRecitationDetail(r)).join(" | ");
-        const row: (string | number | null)[] = [
-          s.student_code,
-          s.full_name,
-          a.present,
-          a.absent,
-          pct,
-          avg,
-          rt.ratedCount,
-          rt.repeats,
-          recs.length,
-          recDetails,
-        ];
-        dataRows.push(row);
-        csvRows.push(row);
-        pdfRows.push({
-          code: s.student_code,
-          name: s.full_name,
-          present: a.present,
-          absent: a.absent,
-          pct,
-          avg: avg === "" ? "" : String(avg),
-          rated: rt.ratedCount,
-          repeats: rt.repeats,
-          total: recs.length,
-          details: recDetails,
+        const attByStudent = new Map<string, { present: number; absent: number }>();
+        (attRes.data ?? []).forEach((a) => {
+          const cur = attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
+          if (a.present) cur.present++;
+          else cur.absent++;
+          attByStudent.set(a.student_id, cur);
         });
-      });
 
-      const stamp = `${company?.name ?? "company"}_${from}_${to}`.replace(/\s+/g, "_");
-      if (format === "csv") {
-        downloadCsv(buildCsv(csvRows), `${stamp}.csv`);
-        toast.success("تم تحميل التقرير");
-        setOpen(false);
-      } else if (format === "pdf") {
-        if (pdfRows.length === 0) throw new Error("لا توجد بيانات لتصديرها");
-        const title = `تقرير سرية: ${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`;
-        const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
-        const html = buildPdfHtml(title, subtitle, pdfRows);
-        setOpen(false);
-        setPreview({ html, filename: `${stamp}.pdf`, title });
-      } else {
-        await downloadXlsx(
-          company?.name ?? "Report",
+        const recByStudent = new Map<string, typeof recRes.data>();
+        const ratingByStudent = new Map<
+          string,
+          { ratedSum: number; ratedCount: number; repeats: number }
+        >();
+        filteredRecitations.forEach((r) => {
+          const list = recByStudent.get(r.student_id) ?? [];
+          list.push(r);
+          recByStudent.set(r.student_id, list);
+          const cur = ratingByStudent.get(r.student_id) ?? {
+            ratedSum: 0,
+            ratedCount: 0,
+            repeats: 0,
+          };
+          const rr = (r as { rating?: string | null }).rating;
+          if (rr === "8" || rr === "9" || rr === "10") {
+            cur.ratedSum += Number(rr);
+            cur.ratedCount++;
+          } else if (rr === "repeat") {
+            cur.repeats++;
+          }
+          ratingByStudent.set(r.student_id, cur);
+        });
+
+        const companyLabel = `${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`;
+        const titleRows = [
+          `${BRAND_NAME} — وشؤون المساجد`,
+          `تقرير سرية: ${companyLabel}`,
+          `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
+        ];
+        const headers = [
+          "الرقم التعريفي",
+          "الاسم الكامل",
+          "أيام الحضور",
+          "أيام الغياب",
+          "نسبة الحضور %",
+          "معدل التسميع التراكمي",
+          "عدد التسميعات المُقيَّمة",
+          "مرات الإعادة",
+          "عدد التسميعات",
+          "تفاصيل التسميعات",
+        ];
+        const dataRows: (string | number | null)[][] = [];
+        const pdfRows: PdfRow[] = [];
+
+        (students ?? []).forEach((s) => {
+          const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
+          const rt = ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
+          const total = a.present + a.absent;
+          const pct = total ? Math.round((a.present / total) * 100) : 0;
+          const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
+          const recs = sortRecitationsByDateAsc(recByStudent.get(s.id) ?? []);
+          const recDetails = recs.map((r) => buildRecitationDetail(r)).join(" | ");
+          const row: (string | number | null)[] = [
+            s.student_code,
+            s.full_name,
+            a.present,
+            a.absent,
+            pct,
+            avg,
+            rt.ratedCount,
+            rt.repeats,
+            recs.length,
+            recDetails,
+          ];
+          dataRows.push(row);
+          pdfRows.push({
+            code: s.student_code,
+            name: s.full_name,
+            present: a.present,
+            absent: a.absent,
+            pct,
+            avg: avg === "" ? "" : String(avg),
+            rated: rt.ratedCount,
+            repeats: rt.repeats,
+            total: recs.length,
+            details: recDetails,
+          });
+        });
+
+        xlsxSheets.push({
+          sheetName: company?.name ?? "Report",
           titleRows,
           headers,
           dataRows,
-          `${stamp}.xlsx`,
-        );
+        });
+
+        const csvHead: (string | number | null)[][] = [
+          [titleRows[0]],
+          [titleRows[1]],
+          [titleRows[2]],
+          [],
+          headers,
+        ];
+        csvBlocks.push(buildCsv([...csvHead, ...dataRows]));
+
+        const title = `تقرير سرية: ${companyLabel}`;
+        const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
+        pdfSections.push({ html: buildPdfHtml(title, subtitle, pdfRows), title });
+      }
+
+      if (totalStudents === 0) {
+        toast.warning("لا يوجد طلاب في السرايا المختارة");
+        return;
+      }
+
+      const stamp = `companies_${companyIds.length}_${from}_${to}`.replace(/\s+/g, "_");
+
+      if (format === "csv") {
+        downloadCsv(csvBlocks.join("\r\n\r\n"), `${stamp}.csv`);
+        toast.success("تم تحميل التقرير");
+        setOpen(false);
+      } else if (format === "pdf") {
+        if (pdfSections.length === 0) throw new Error("لا توجد بيانات لتصديرها");
+        setOpen(false);
+        setPreview({ sections: pdfSections, filename: `${stamp}.pdf` });
+      } else {
+        await downloadXlsxMulti(xlsxSheets, `${stamp}.xlsx`);
         toast.success("تم تحميل التقرير");
         setOpen(false);
       }
@@ -564,29 +609,54 @@ export function ExportReportDialog() {
             <span className="hidden sm:inline">تصدير التقارير</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle>تصدير تقرير سرية</DialogTitle>
             <DialogDescription>
-              اختر السرية والفترة الزمنية لتحميل بيانات الحضور والتسميعات.
+              اختر السرايا والفترة الزمنية لتحميل بيانات الحضور والتسميعات.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>السرية</Label>
-              <Select value={companyId} onValueChange={setCompanyId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر سرية" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companyOptions.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label>السرايا (يمكن اختيار أكثر من سرية)</Label>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={toggleAll}
+                >
+                  {allSelected ? "إلغاء تحديد الكل" : "تحديد الكل"}
+                </button>
+              </div>
+              <div className="max-h-52 overflow-auto rounded-md border p-2 space-y-1 bg-background">
+                {companyOptions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2 text-center">لا توجد سرايا</p>
+                ) : (
+                  companyOptions.map((c) => {
+                    const checked = companyIds.includes(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent/40 cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleCompany(c.id)}
+                          className="h-4 w-4 accent-primary cursor-pointer"
+                        />
+                        <span className="flex-1">{c.label}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              {companyIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  تم اختيار {companyIds.length} سرية
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -607,8 +677,8 @@ export function ExportReportDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
-                  <SelectItem value="pdf">PDF (.pdf) — مع معاينة</SelectItem>
+                  <SelectItem value="xlsx">Excel (.xlsx) — ورقة لكل سرية</SelectItem>
+                  <SelectItem value="pdf">PDF (.pdf) — صفحة لكل سرية</SelectItem>
                   <SelectItem value="csv">CSV (.csv)</SelectItem>
                 </SelectContent>
               </Select>
@@ -631,16 +701,26 @@ export function ExportReportDialog() {
         <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-6 pt-6 pb-3 border-b">
             <DialogTitle>معاينة قبل التحميل</DialogTitle>
-            <DialogDescription>راجع التقرير قبل تنزيله كملف PDF.</DialogDescription>
+            <DialogDescription>
+              {preview ? `راجع ${preview.sections.length} تقرير قبل التنزيل (صفحة لكل سرية).` : ""}
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto bg-white p-4" dir="rtl">
-            {preview && (
-              <div
-                className="bg-white text-black mx-auto"
-                style={{ width: "100%", maxWidth: 1280 }}
-                dangerouslySetInnerHTML={{ __html: preview.html }}
-              />
-            )}
+            {preview &&
+              preview.sections.map((sec, i) => (
+                <div key={i} className="mb-8 last:mb-0">
+                  {i > 0 && (
+                    <div className="text-xs text-center text-muted-foreground my-3 border-t pt-3">
+                      — فاصل صفحة —
+                    </div>
+                  )}
+                  <div
+                    className="bg-white text-black mx-auto"
+                    style={{ width: "100%", maxWidth: 1280 }}
+                    dangerouslySetInnerHTML={{ __html: sec.html }}
+                  />
+                </div>
+              ))}
           </div>
           <DialogFooter className="px-6 py-4 border-t bg-muted/20">
             <Button variant="outline" onClick={() => setPreview(null)} disabled={loading}>
@@ -651,7 +731,7 @@ export function ExportReportDialog() {
                 if (!preview) return;
                 setLoading(true);
                 try {
-                  await downloadPdf(preview.html, preview.filename);
+                  await downloadPdf(preview.sections, preview.filename);
                   toast.success("تم تحميل التقرير");
                   setPreview(null);
                   setOpen(false);

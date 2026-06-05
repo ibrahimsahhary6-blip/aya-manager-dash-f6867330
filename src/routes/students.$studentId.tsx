@@ -279,16 +279,21 @@ function StudentProfilePage() {
 
   const addMutation = useMutation({
     mutationFn: async (values: RecitationFormValues) => {
+      const { attendance_status, ...recValues } = values;
       const { error } = await supabase.from("recitations").insert({
         student_id: studentId,
-        ...values,
+        ...recValues,
       });
       if (error) throw error;
-      // Auto-mark attendance as present for that day
       const { error: attErr } = await supabase
         .from("attendance")
         .upsert(
-          { student_id: studentId, attended_on: values.recited_on, present: true },
+          {
+            student_id: studentId,
+            attended_on: values.recited_on,
+            present: attendance_status === "present",
+            excused: attendance_status === "excused",
+          },
           { onConflict: "student_id,attended_on" },
         );
       if (attErr) throw attErr;
@@ -304,15 +309,29 @@ function StudentProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: RecitationFormValues }) => {
+      const { attendance_status, ...recValues } = values;
       const { error } = await supabase
         .from("recitations")
-        .update(values)
+        .update(recValues)
         .eq("id", id);
       if (error) throw error;
+      const { error: attErr } = await supabase
+        .from("attendance")
+        .upsert(
+          {
+            student_id: studentId,
+            attended_on: values.recited_on,
+            present: attendance_status === "present",
+            excused: attendance_status === "excused",
+          },
+          { onConflict: "student_id,attended_on" },
+        );
+      if (attErr) throw attErr;
     },
     onSuccess: () => {
       toast.success("تم تحديث التسميع");
       qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+      qc.invalidateQueries({ queryKey: ["attendance"] });
       setEditing(null);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
@@ -629,6 +648,7 @@ type RecitationFormValues = {
   notes: string;
   rating: string | null;
   is_review: boolean;
+  attendance_status: "present" | "absent" | "excused";
 };
 
 const RATING_BUTTONS: {
@@ -1031,6 +1051,9 @@ function RecitationForm({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [rating, setRating] = useState<string>(initial?.rating ?? "");
   const [isReview, setIsReview] = useState<boolean>(initial?.is_review ?? false);
+  const [attendanceStatus, setAttendanceStatus] = useState<"present" | "absent" | "excused">(
+    initial?.attendance_status ?? "present",
+  );
 
 
   const selectedSurah = getSurahByName(fromSurah);
@@ -1071,6 +1094,7 @@ function RecitationForm({
           notes: notes.trim().slice(0, 2000),
           rating: isReview ? null : (rating || null),
           is_review: isReview,
+          attendance_status: attendanceStatus,
         });
       }}
       className="space-y-4"
@@ -1085,6 +1109,32 @@ function RecitationForm({
           required
         />
       </div>
+
+      <div className="space-y-2">
+        <Label>حالة الحضور</Label>
+        <div className="flex gap-2 flex-wrap">
+          {([
+            { v: "present", label: "حاضر", activeClass: "bg-emerald-600 text-white border-emerald-600" },
+            { v: "absent", label: "غائب", activeClass: "bg-destructive text-destructive-foreground border-destructive" },
+            { v: "excused", label: "بعذر", activeClass: "bg-amber-500 text-white border-amber-500" },
+          ] as const).map((opt) => {
+            const active = attendanceStatus === opt.v;
+            return (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setAttendanceStatus(opt.v)}
+                className={`h-9 px-4 text-sm font-semibold rounded-md border transition-colors ${
+                  active ? opt.activeClass : "bg-background text-foreground border-border hover:bg-muted"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">

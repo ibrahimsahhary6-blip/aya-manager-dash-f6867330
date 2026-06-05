@@ -5,12 +5,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { ArrowRight, Users, UserCheck, UserX, Percent, ClipboardCheck } from "lucide-react";
+import { ArrowRight, Users, UserCheck, UserX, Percent, FileWarning, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+
 import {
   Select,
   SelectContent,
@@ -35,6 +35,7 @@ function AttendancePage() {
   const [date, setDate] = useState(today);
   const [battalionId, setBattalionId] = useState<string>("all");
   const [companyId, setCompanyId] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -59,13 +60,21 @@ function AttendancePage() {
     },
   });
 
+  const normalizedSearch = search.trim().toLowerCase();
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
       if (battalionId !== "all" && s.battalion_id !== battalionId) return false;
       if (companyId !== "all" && s.company_id !== companyId) return false;
+      if (
+        normalizedSearch &&
+        !s.full_name.toLowerCase().includes(normalizedSearch) &&
+        !s.student_code.toLowerCase().includes(normalizedSearch)
+      ) {
+        return false;
+      }
       return true;
     });
-  }, [students, battalionId, companyId]);
+  }, [students, battalionId, companyId, normalizedSearch]);
 
   const { data: attendance = [] } = useQuery({
     queryKey: ["attendance", date],
@@ -102,26 +111,33 @@ function AttendancePage() {
     [dayRecitations],
   );
 
-  const isStudentPresent = (studentId: string) => {
+  type AttStatus = "present" | "absent" | "excused";
+  const getStudentStatus = (studentId: string): AttStatus => {
     const rec = attendanceMap.get(studentId);
-    if (rec) return rec.present;
-    return recitedSet.has(studentId);
+    if (rec) {
+      if (rec.excused) return "excused";
+      return rec.present ? "present" : "absent";
+    }
+    return recitedSet.has(studentId) ? "present" : "absent";
   };
 
-  const toggleMutation = useMutation({
+  const isStudentPresent = (studentId: string) => getStudentStatus(studentId) === "present";
+
+  const setStatusMutation = useMutation({
     mutationFn: async ({
       studentId,
-      present,
+      status,
       rating,
     }: {
       studentId: string;
-      present: boolean;
+      status: AttStatus;
       rating?: string | null;
     }) => {
       const payload = {
         student_id: studentId,
         attended_on: date,
-        present,
+        present: status === "present",
+        excused: status === "excused",
         ...(rating !== undefined ? { rating } : {}),
       };
       const { error } = await supabase
@@ -136,9 +152,11 @@ function AttendancePage() {
   });
 
   const total = filteredStudents.length;
-  const present = filteredStudents.filter((s) => isStudentPresent(s.id)).length;
-  const absent = total - present;
+  const present = filteredStudents.filter((s) => getStudentStatus(s.id) === "present").length;
+  const excused = filteredStudents.filter((s) => getStudentStatus(s.id) === "excused").length;
+  const absent = total - present - excused;
   const percent = total === 0 ? 0 : Math.round((present / total) * 100);
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -160,7 +178,7 @@ function AttendancePage() {
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Filters */}
         <section className="bg-card rounded-2xl border p-4 shadow-soft">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="att-date">التاريخ</Label>
               <Input
@@ -208,11 +226,25 @@ function AttendancePage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="att-search">بحث</Label>
+              <div className="relative">
+                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="att-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="ابحث بالاسم أو الرقم..."
+                  className="pr-8"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
         {/* Stats */}
-        <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 grid-cols-2 lg:grid-cols-5">
           <StatBox
             icon={<Users className="h-5 w-5" />}
             label="إجمالي الطلاب"
@@ -232,12 +264,20 @@ function AttendancePage() {
             tone="destructive"
           />
           <StatBox
+            icon={<FileWarning className="h-5 w-5" />}
+            label="بعذر"
+            value={excused}
+            tone="warning"
+          />
+          <StatBox
             icon={<Percent className="h-5 w-5" />}
             label="نسبة الحضور"
             value={`${percent}%`}
             tone="success"
           />
         </section>
+
+
 
         {/* Hierarchical Students by Battalion → Company */}
         {studentsLoading ? (
@@ -298,13 +338,14 @@ function AttendancePage() {
                               presentCount={cPresent}
                               attendanceMap={attendanceMap}
                               recitedSet={recitedSet}
-                              onToggle={(id, v, rating) =>
-                                toggleMutation.mutate({
+                              onSetStatus={(id, status, rating) =>
+                                setStatusMutation.mutate({
                                   studentId: id,
-                                  present: v,
+                                  status,
                                   rating,
                                 })
                               }
+                              getStatus={getStudentStatus}
                             />
                           );
                         })}
@@ -318,13 +359,14 @@ function AttendancePage() {
                           }
                           attendanceMap={attendanceMap}
                           recitedSet={recitedSet}
-                          onToggle={(id, v, rating) =>
-                            toggleMutation.mutate({
+                          onSetStatus={(id, status, rating) =>
+                            setStatusMutation.mutate({
                               studentId: id,
-                              present: v,
+                              status,
                               rating,
                             })
                           }
+                          getStatus={getStudentStatus}
                         />
                       )}
                     </div>
@@ -347,9 +389,10 @@ function AttendancePage() {
                     }
                     attendanceMap={attendanceMap}
                     recitedSet={recitedSet}
-                    onToggle={(id, v, rating) =>
-                      toggleMutation.mutate({ studentId: id, present: v, rating })
+                    onSetStatus={(id, status, rating) =>
+                      setStatusMutation.mutate({ studentId: id, status, rating })
                     }
+                    getStatus={getStudentStatus}
                   />
                 </section>
               );
@@ -361,24 +404,23 @@ function AttendancePage() {
   );
 }
 
+type AttStatusVal = "present" | "absent" | "excused";
+
 function CompanyGroup({
   title,
   students,
   presentCount,
   attendanceMap,
-  recitedSet,
-  onToggle,
+  onSetStatus,
+  getStatus,
 }: {
   title: string;
   students: Student[];
   presentCount: number;
   attendanceMap: Map<string, Attendance>;
   recitedSet: Set<string>;
-  onToggle: (
-    id: string,
-    v: boolean,
-    rating?: string | null,
-  ) => void;
+  onSetStatus: (id: string, status: AttStatusVal, rating?: string | null) => void;
+  getStatus: (id: string) => AttStatusVal;
 }) {
   const [open, setOpen] = useState(true);
   return (
@@ -397,9 +439,9 @@ function CompanyGroup({
         <ul className="divide-y">
           {students.map((s) => {
             const rec = attendanceMap.get(s.id);
-            const recited = recitedSet.has(s.id);
-            const isPresent = rec ? rec.present : recited;
-            const auto = !rec && recited;
+            const status = getStatus(s.id);
+            const isPresent = status === "present";
+            const auto = !rec && isPresent;
             const rating = (rec as (Attendance & { rating?: string | null }) | undefined)?.rating ?? "";
             return (
               <li
@@ -409,9 +451,11 @@ function CompanyGroup({
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
                     className={`h-9 w-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
-                      isPresent
+                      status === "present"
                         ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
+                        : status === "excused"
+                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                          : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {s.full_name.charAt(0)}
@@ -423,18 +467,17 @@ function CompanyGroup({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                   <Select
                     value={rating || "none"}
                     onValueChange={(v) => {
                       if (v === "repeat") {
                         toast.warning(`${s.full_name}: تم تسجيل "إعادة" — لن تُحتسب ضمن معدّل الإتقان.`);
-                        onToggle(s.id, isPresent, "repeat");
+                        onSetStatus(s.id, status, "repeat");
                       } else if (v === "none") {
-                        onToggle(s.id, isPresent, null);
+                        onSetStatus(s.id, status, null);
                       } else {
-                        // 8 / 9 / 10 → اعتبار الطالب حاضراً تلقائياً
-                        onToggle(s.id, true, v);
+                        onSetStatus(s.id, "present", v);
                       }
                     }}
                   >
@@ -454,17 +497,27 @@ function CompanyGroup({
                       تلقائي
                     </span>
                   )}
-                  <span
-                    className={`text-xs font-medium ${
-                      isPresent ? "text-primary" : "text-muted-foreground"
-                    }`}
-                  >
-                    {isPresent ? "حاضر" : "غائب"}
-                  </span>
-                  <Switch
-                    checked={isPresent}
-                    onCheckedChange={(v) => onToggle(s.id, v)}
-                  />
+                  <div className="inline-flex rounded-md border overflow-hidden">
+                    {([
+                      { v: "present" as const, label: "حاضر", active: "bg-emerald-600 text-white" },
+                      { v: "absent" as const, label: "غائب", active: "bg-destructive text-destructive-foreground" },
+                      { v: "excused" as const, label: "بعذر", active: "bg-amber-500 text-white" },
+                    ]).map((opt) => {
+                      const isActive = status === opt.v;
+                      return (
+                        <button
+                          key={opt.v}
+                          type="button"
+                          onClick={() => onSetStatus(s.id, opt.v)}
+                          className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+                            isActive ? opt.active : "bg-background text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </li>
             );
@@ -484,19 +537,21 @@ function StatBox({
   icon: React.ReactNode;
   label: string;
   value: number | string;
-  tone: "muted" | "primary" | "destructive" | "success";
+  tone: "muted" | "primary" | "destructive" | "success" | "warning";
 }) {
   const tones: Record<string, string> = {
     muted: "bg-card",
     primary: "bg-primary text-primary-foreground",
     destructive: "bg-destructive/10 border-destructive/30 text-destructive",
     success: "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400",
+    warning: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400",
   };
   const iconTones: Record<string, string> = {
     muted: "bg-primary/10 text-primary",
     primary: "bg-primary-foreground/15 text-primary-foreground",
     destructive: "bg-destructive/15 text-destructive",
     success: "bg-emerald-500/15",
+    warning: "bg-amber-500/15",
   };
   return (
     <div className={`rounded-2xl border p-4 shadow-soft ${tones[tone]}`}>
