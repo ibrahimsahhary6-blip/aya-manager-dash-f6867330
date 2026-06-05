@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { ArrowRight, Users, UserCheck, UserX, Percent, ClipboardCheck, FileWarning, Search } from "lucide-react";
+import { ArrowRight, Users, UserCheck, UserX, Percent, FileWarning, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
