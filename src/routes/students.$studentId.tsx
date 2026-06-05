@@ -1094,6 +1094,7 @@ function RecitationForm({
           notes: notes.trim().slice(0, 2000),
           rating: isReview ? null : (rating || null),
           is_review: isReview,
+          attendance_status: attendanceStatus,
         });
       }}
       className="space-y-4"
