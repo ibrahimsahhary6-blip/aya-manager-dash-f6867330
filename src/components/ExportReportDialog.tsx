@@ -630,15 +630,16 @@ export function ExportReportDialog() {
           [titleRows[0]],
           [titleRows[1]],
           [titleRows[2]],
+          [titleRows[3]],
           [],
           headers,
         ];
         csvBlocks.push(buildCsv([...csvHead, ...dataRows]));
 
-        const title = `تقرير سرية: ${companyLabel}`;
+        const title = companyOnlyLabel;
         const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
         pdfSections.push({
-          html: buildPdfHtml(title, subtitle, pdfRows, isNewBattalion ? battalionLabel : undefined),
+          html: buildPdfHtml(title, subtitle, pdfRows, battalionLabel),
           title,
         });
       }
