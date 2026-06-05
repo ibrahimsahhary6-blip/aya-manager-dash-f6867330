@@ -347,11 +347,10 @@ function AttendancePage() {
                               presentCount={cPresent}
                               attendanceMap={attendanceMap}
                               recitedSet={recitedSet}
-                              onSetStatus={(id, status, rating) =>
+                              onSetStatus={(id, status) =>
                                 setStatusMutation.mutate({
                                   studentId: id,
                                   status,
-                                  rating,
                                 })
                               }
                               getStatus={getStudentStatus}
@@ -368,11 +367,10 @@ function AttendancePage() {
                           }
                           attendanceMap={attendanceMap}
                           recitedSet={recitedSet}
-                          onSetStatus={(id, status, rating) =>
+                          onSetStatus={(id, status) =>
                             setStatusMutation.mutate({
                               studentId: id,
                               status,
-                              rating,
                             })
                           }
                           getStatus={getStudentStatus}
@@ -398,8 +396,8 @@ function AttendancePage() {
                     }
                     attendanceMap={attendanceMap}
                     recitedSet={recitedSet}
-                    onSetStatus={(id, status, rating) =>
-                      setStatusMutation.mutate({ studentId: id, status, rating })
+                    onSetStatus={(id, status) =>
+                      setStatusMutation.mutate({ studentId: id, status })
                     }
                     getStatus={getStudentStatus}
                   />
@@ -413,7 +411,7 @@ function AttendancePage() {
   );
 }
 
-type AttStatusVal = "present" | "absent" | "excused";
+type AttStatusVal = "present" | "absent" | "excused" | "none";
 
 function CompanyGroup({
   title,
@@ -428,7 +426,7 @@ function CompanyGroup({
   presentCount: number;
   attendanceMap: Map<string, Attendance>;
   recitedSet: Set<string>;
-  onSetStatus: (id: string, status: AttStatusVal, rating?: string | null) => void;
+  onSetStatus: (id: string, status: AttStatusVal) => void;
   getStatus: (id: string) => AttStatusVal;
 }) {
   const [open, setOpen] = useState(true);
@@ -451,7 +449,6 @@ function CompanyGroup({
             const status = getStatus(s.id);
             const isPresent = status === "present";
             const auto = !rec && isPresent;
-            const rating = (rec as (Attendance & { rating?: string | null }) | undefined)?.rating ?? "";
             return (
               <li
                 key={s.id}
@@ -464,7 +461,9 @@ function CompanyGroup({
                         ? "bg-primary/10 text-primary"
                         : status === "excused"
                           ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                          : "bg-muted text-muted-foreground"
+                          : status === "absent"
+                            ? "bg-destructive/15 text-destructive"
+                            : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {s.full_name.charAt(0)}
@@ -477,33 +476,14 @@ function CompanyGroup({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                  <Select
-                    value={rating || "none"}
-                    onValueChange={(v) => {
-                      if (v === "repeat") {
-                        toast.warning(`${s.full_name}: تم تسجيل "إعادة" — لن تُحتسب ضمن معدّل الإتقان.`);
-                        onSetStatus(s.id, status, "repeat");
-                      } else if (v === "none") {
-                        onSetStatus(s.id, status, null);
-                      } else {
-                        onSetStatus(s.id, "present", v);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-24 text-xs">
-                      <SelectValue placeholder="التقييم" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">— تقييم —</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="9">9</SelectItem>
-                      <SelectItem value="8">8</SelectItem>
-                      <SelectItem value="repeat">إعادة</SelectItem>
-                    </SelectContent>
-                  </Select>
                   {auto && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                       تلقائي
+                    </span>
+                  )}
+                  {status === "none" && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border">
+                      بدون حالة
                     </span>
                   )}
                   <div className="inline-flex rounded-md border overflow-hidden">
@@ -517,10 +497,11 @@ function CompanyGroup({
                         <button
                           key={opt.v}
                           type="button"
-                          onClick={() => onSetStatus(s.id, opt.v)}
+                          onClick={() => onSetStatus(s.id, isActive ? "none" : opt.v)}
                           className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
                             isActive ? opt.active : "bg-background text-foreground hover:bg-muted"
                           }`}
+                          title={isActive ? "اضغط لإلغاء الحالة" : undefined}
                         >
                           {opt.label}
                         </button>
