@@ -460,9 +460,9 @@ function CompanyGroup({
             return (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-accent/20"
+                className="flex items-center gap-2 px-3 py-2.5 hover:bg-accent/20"
               >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div
                     className={`h-9 w-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
                       status === "present"
@@ -476,26 +476,20 @@ function CompanyGroup({
                   >
                     {s.full_name.charAt(0)}
                   </div>
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{s.full_name}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium break-words leading-tight">{s.full_name}</div>
                     <div className="text-xs font-mono text-muted-foreground">
                       {s.student_code}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {auto && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                       تلقائي
                     </span>
                   )}
-                  {status === "none" && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border">
-                      بدون حالة
-                    </span>
-                  )}
                   <StatusDropdown status={status} onChange={(v) => onSetStatus(s.id, v)} />
-
                 </div>
               </li>
             );
