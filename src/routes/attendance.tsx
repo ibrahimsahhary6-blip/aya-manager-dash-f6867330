@@ -163,7 +163,8 @@ function AttendancePage() {
   const total = filteredStudents.length;
   const present = filteredStudents.filter((s) => getStudentStatus(s.id) === "present").length;
   const excused = filteredStudents.filter((s) => getStudentStatus(s.id) === "excused").length;
-  const absent = total - present - excused;
+  const absent = filteredStudents.filter((s) => getStudentStatus(s.id) === "absent").length;
+  const noStatus = total - present - excused - absent;
   const percent = total === 0 ? 0 : Math.round((present / total) * 100);
 
 
