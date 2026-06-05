@@ -60,13 +60,21 @@ function AttendancePage() {
     },
   });
 
+  const normalizedSearch = search.trim().toLowerCase();
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
       if (battalionId !== "all" && s.battalion_id !== battalionId) return false;
       if (companyId !== "all" && s.company_id !== companyId) return false;
+      if (
+        normalizedSearch &&
+        !s.full_name.toLowerCase().includes(normalizedSearch) &&
+        !s.student_code.toLowerCase().includes(normalizedSearch)
+      ) {
+        return false;
+      }
       return true;
     });
-  }, [students, battalionId, companyId]);
+  }, [students, battalionId, companyId, normalizedSearch]);
 
   const { data: attendance = [] } = useQuery({
     queryKey: ["attendance", date],
@@ -103,26 +111,33 @@ function AttendancePage() {
     [dayRecitations],
   );
 
-  const isStudentPresent = (studentId: string) => {
+  type AttStatus = "present" | "absent" | "excused";
+  const getStudentStatus = (studentId: string): AttStatus => {
     const rec = attendanceMap.get(studentId);
-    if (rec) return rec.present;
-    return recitedSet.has(studentId);
+    if (rec) {
+      if (rec.excused) return "excused";
+      return rec.present ? "present" : "absent";
+    }
+    return recitedSet.has(studentId) ? "present" : "absent";
   };
 
-  const toggleMutation = useMutation({
+  const isStudentPresent = (studentId: string) => getStudentStatus(studentId) === "present";
+
+  const setStatusMutation = useMutation({
     mutationFn: async ({
       studentId,
-      present,
+      status,
       rating,
     }: {
       studentId: string;
-      present: boolean;
+      status: AttStatus;
       rating?: string | null;
     }) => {
       const payload = {
         student_id: studentId,
         attended_on: date,
-        present,
+        present: status === "present",
+        excused: status === "excused",
         ...(rating !== undefined ? { rating } : {}),
       };
       const { error } = await supabase
@@ -137,9 +152,11 @@ function AttendancePage() {
   });
 
   const total = filteredStudents.length;
-  const present = filteredStudents.filter((s) => isStudentPresent(s.id)).length;
-  const absent = total - present;
+  const present = filteredStudents.filter((s) => getStudentStatus(s.id) === "present").length;
+  const excused = filteredStudents.filter((s) => getStudentStatus(s.id) === "excused").length;
+  const absent = total - present - excused;
   const percent = total === 0 ? 0 : Math.round((present / total) * 100);
+
 
   return (
     <div className="min-h-screen bg-background">
