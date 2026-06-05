@@ -462,13 +462,10 @@ export function ExportReportDialog() {
         return caOrder - cbOrder;
       });
 
-      let lastBattalionId: string | null | undefined = undefined;
-
       for (const cid of sortedCompanyIds) {
         const company = companies.find((c) => c.id === cid);
         const battalion = battalions.find((b) => b.id === company?.battalion_id);
-        const isNewBattalion = battalion?.id !== lastBattalionId;
-        lastBattalionId = battalion?.id;
+
 
         const { data: students, error: sErr } = await supabase
           .from("students")
