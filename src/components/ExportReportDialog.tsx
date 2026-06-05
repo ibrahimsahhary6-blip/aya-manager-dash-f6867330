@@ -435,9 +435,28 @@ export function ExportReportDialog() {
       const pdfSections: { html: string; title: string }[] = [];
       let totalStudents = 0;
 
-      for (const cid of companyIds) {
+      // Sort selected company IDs by battalion order → company order, so the
+      // report is naturally grouped: كتيبة → سرية → طلاب
+      const sortedCompanyIds = [...companyIds].sort((a, b) => {
+        const ca = companies.find((c) => c.id === a);
+        const cb = companies.find((c) => c.id === b);
+        const ba = battalions.find((x) => x.id === ca?.battalion_id);
+        const bb = battalions.find((x) => x.id === cb?.battalion_id);
+        const baOrder = ba ? battalions.indexOf(ba) : 999;
+        const bbOrder = bb ? battalions.indexOf(bb) : 999;
+        if (baOrder !== bbOrder) return baOrder - bbOrder;
+        const caOrder = ca ? companies.indexOf(ca) : 999;
+        const cbOrder = cb ? companies.indexOf(cb) : 999;
+        return caOrder - cbOrder;
+      });
+
+      let lastBattalionId: string | null | undefined = undefined;
+
+      for (const cid of sortedCompanyIds) {
         const company = companies.find((c) => c.id === cid);
         const battalion = battalions.find((b) => b.id === company?.battalion_id);
+        const isNewBattalion = battalion?.id !== lastBattalionId;
+        lastBattalionId = battalion?.id;
 
         const { data: students, error: sErr } = await supabase
           .from("students")
@@ -472,11 +491,24 @@ export function ExportReportDialog() {
           (recRes.data ?? []).filter((r) => studentIds.includes(r.student_id)),
         );
 
-        const attByStudent = new Map<string, { present: number; absent: number }>();
+        const attByStudent = new Map<
+          string,
+          { present: number; absentExcused: number; absentUnexcused: number }
+        >();
         (attRes.data ?? []).forEach((a) => {
-          const cur = attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
-          if (a.present) cur.present++;
-          else cur.absent++;
+          const cur =
+            attByStudent.get(a.student_id) ?? {
+              present: 0,
+              absentExcused: 0,
+              absentUnexcused: 0,
+            };
+          if (a.present) {
+            cur.present++;
+          } else if ((a as { excused?: boolean }).excused) {
+            cur.absentExcused++;
+          } else {
+            cur.absentUnexcused++;
+          }
           attByStudent.set(a.student_id, cur);
         });
 
@@ -504,17 +536,20 @@ export function ExportReportDialog() {
           ratingByStudent.set(r.student_id, cur);
         });
 
-        const companyLabel = `${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`;
+        const battalionLabel = battalion ? `الكتيبة: ${battalion.name}` : "بدون كتيبة";
+        const companyLabel = `${company?.name ?? ""}${battalion ? ` — ${battalion.name}` : ""}`;
         const titleRows = [
           `${BRAND_NAME} — وشؤون المساجد`,
-          `تقرير سرية: ${companyLabel}`,
+          `${battalionLabel} ← سرية: ${company?.name ?? ""}`,
           `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
         ];
         const headers = [
           "الرقم التعريفي",
           "الاسم الكامل",
           "أيام الحضور",
-          "أيام الغياب",
+          "إجمالي الغياب",
+          "غياب بعذر",
+          "غياب بدون عذر",
           "نسبة الحضور %",
           "معدل التسميع التراكمي",
           "عدد التسميعات المُقيَّمة",
@@ -526,9 +561,15 @@ export function ExportReportDialog() {
         const pdfRows: PdfRow[] = [];
 
         (students ?? []).forEach((s) => {
-          const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
+          const a =
+            attByStudent.get(s.id) ?? {
+              present: 0,
+              absentExcused: 0,
+              absentUnexcused: 0,
+            };
+          const absentTotal = a.absentExcused + a.absentUnexcused;
           const rt = ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
-          const total = a.present + a.absent;
+          const total = a.present + absentTotal;
           const pct = total ? Math.round((a.present / total) * 100) : 0;
           const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
           const recs = sortRecitationsByDateAsc(recByStudent.get(s.id) ?? []);
@@ -537,7 +578,9 @@ export function ExportReportDialog() {
             s.student_code,
             s.full_name,
             a.present,
-            a.absent,
+            absentTotal,
+            a.absentExcused,
+            a.absentUnexcused,
             pct,
             avg,
             rt.ratedCount,
@@ -550,7 +593,9 @@ export function ExportReportDialog() {
             code: s.student_code,
             name: s.full_name,
             present: a.present,
-            absent: a.absent,
+            absentTotal,
+            absentExcused: a.absentExcused,
+            absentUnexcused: a.absentUnexcused,
             pct,
             avg: avg === "" ? "" : String(avg),
             rated: rt.ratedCount,
@@ -560,8 +605,9 @@ export function ExportReportDialog() {
           });
         });
 
+        const sheetName = `${battalion?.name ? battalion.name + " - " : ""}${company?.name ?? "Report"}`;
         xlsxSheets.push({
-          sheetName: company?.name ?? "Report",
+          sheetName,
           titleRows,
           headers,
           dataRows,
@@ -578,7 +624,10 @@ export function ExportReportDialog() {
 
         const title = `تقرير سرية: ${companyLabel}`;
         const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
-        pdfSections.push({ html: buildPdfHtml(title, subtitle, pdfRows), title });
+        pdfSections.push({
+          html: buildPdfHtml(title, subtitle, pdfRows, isNewBattalion ? battalionLabel : undefined),
+          title,
+        });
       }
 
       if (totalStudents === 0) {
