@@ -1110,6 +1110,32 @@ function RecitationForm({
         />
       </div>
 
+      <div className="space-y-2">
+        <Label>حالة الحضور</Label>
+        <div className="flex gap-2 flex-wrap">
+          {([
+            { v: "present", label: "حاضر", activeClass: "bg-emerald-600 text-white border-emerald-600" },
+            { v: "absent", label: "غائب", activeClass: "bg-destructive text-destructive-foreground border-destructive" },
+            { v: "excused", label: "بعذر", activeClass: "bg-amber-500 text-white border-amber-500" },
+          ] as const).map((opt) => {
+            const active = attendanceStatus === opt.v;
+            return (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setAttendanceStatus(opt.v)}
+                className={`h-9 px-4 text-sm font-semibold rounded-md border transition-colors ${
+                  active ? opt.activeClass : "bg-background text-foreground border-border hover:bg-muted"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>من سورة</Label>
