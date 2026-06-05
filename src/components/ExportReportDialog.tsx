@@ -92,16 +92,18 @@ async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
     });
 
     ws.columns = [
-      { width: 16 },
-      { width: 32 },
+      { width: 14 },
+      { width: 28 },
+      { width: 10 },
+      { width: 12 },
+      { width: 10 },
       { width: 12 },
       { width: 12 },
       { width: 14 },
-      { width: 18 },
-      { width: 18 },
-      { width: 12 },
       { width: 14 },
-      { width: 70 },
+      { width: 10 },
+      { width: 12 },
+      { width: 60 },
     ];
 
     const colCount = headers.length;
@@ -160,7 +162,7 @@ async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
         cell.font = { name: "Tajawal", size: 11, color: { argb: "FF111111" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebra } };
         cell.alignment = {
-          horizontal: colNumber === 2 || colNumber === 10 ? "right" : "center",
+          horizontal: colNumber === 2 || colNumber === 12 ? "right" : "center",
           vertical: "middle",
           readingOrder: "rtl",
           wrapText: true,
@@ -171,12 +173,16 @@ async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
           left: { style: "hair", color: { argb: "FFCBD5D1" } },
           right: { style: "hair", color: { argb: "FFCBD5D1" } },
         };
+        // 1:code 2:name 3:present 4:absentTotal 5:absentExcused 6:absentUnexcused
+        // 7:pct 8:avg 9:rated 10:repeats 11:total 12:details
         if (colNumber === 2) cell.font = { ...cell.font, bold: true };
         if (colNumber === 3) cell.font = { ...cell.font, color: { argb: "FF0F5132" }, bold: true };
         if (colNumber === 4) cell.font = { ...cell.font, color: { argb: "FFB91C1C" }, bold: true };
-        if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
-        if (colNumber === 6) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
-        if (colNumber === 8) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
+        if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
+        if (colNumber === 6) cell.font = { ...cell.font, color: { argb: "FF991B1B" }, bold: true };
+        if (colNumber === 7) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
+        if (colNumber === 8) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
+        if (colNumber === 10) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
       });
       row.height = 22;
     });
@@ -198,7 +204,9 @@ type PdfRow = {
   code: string;
   name: string;
   present: number;
-  absent: number;
+  absentTotal: number;
+  absentExcused: number;
+  absentUnexcused: number;
   pct: number;
   avg: string;
   rated: number;
@@ -216,37 +224,42 @@ function escHtml(v: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
-function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
+function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[], battalionLabel?: string): string {
   const logoSrc = new URL(BRAND_LOGO_URL, window.location.origin).toString();
   return `
     <div style="box-sizing:border-box;width:1200px;max-width:1200px;background:#ffffff;color:#111111;padding:24px;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
     <div style="border-bottom:2px solid #1f6b6b;padding-bottom:10px;margin-bottom:14px;display:flex;align-items:center;gap:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:68px;width:68px;object-fit:cover;border-radius:8px;border:1px solid #1f6b6b;flex-shrink:0;" />
+      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:68px;width:68px;object-fit:cover;border-radius:8px;border:2px solid #c9a84c;flex-shrink:0;" />
       <div style="flex:1;">
         <div style="font-size:18px;font-weight:700;color:#1f6b6b;">${escHtml(BRAND_NAME)}</div>
-        <h1 style="margin:2px 0 0;font-size:18px;font-weight:700;color:#111;">${escHtml(title)}</h1>
+        ${battalionLabel ? `<div style="display:inline-block;margin-top:4px;background:linear-gradient(90deg,#0f5132,#1f6b6b);color:#fff;padding:4px 12px;border-radius:4px;font-size:13px;font-weight:700;border-right:4px solid #c9a84c;">${escHtml(battalionLabel)}</div>` : ""}
+        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#111;">${escHtml(title)}</h1>
         <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
       </div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;direction:rtl;unicode-bidi:plaintext;">
       <colgroup>
-        <col style="width:7%" />
-        <col style="width:18%" />
+        <col style="width:6%" />
+        <col style="width:16%" />
+        <col style="width:5%" />
         <col style="width:6%" />
         <col style="width:6%" />
-        <col style="width:8%" />
-        <col style="width:7%" />
-        <col style="width:7%" />
         <col style="width:6%" />
-        <col style="width:7%" />
-        <col style="width:28%" />
+        <col style="width:6%" />
+        <col style="width:6%" />
+        <col style="width:6%" />
+        <col style="width:5%" />
+        <col style="width:6%" />
+        <col style="width:26%" />
       </colgroup>
       <thead>
         <tr style="background:#0f5132;color:#ffffff;">
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">الرقم</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">الاسم</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">حضور</th>
-          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">غياب</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">إجمالي الغياب</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">بعذر</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">بدون عذر</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">% الحضور</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">المعدل</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">مُقيَّمة</th>
@@ -260,16 +273,18 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
           .map(
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-family:monospace;line-height:1.7;white-space:nowrap;">${escHtml(r.code)}</td>
-            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:2;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:1.7;">${r.present}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b91c1c;line-height:1.7;">${r.absent}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.pct}%</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-weight:700;line-height:1.7;">${escHtml(r.avg) || "—"}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.rated}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b45309;line-height:1.7;">${r.repeats}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.total}</td>
-            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-size:10px;color:#374151;line-height:1.9;word-break:break-word;">${
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;font-family:monospace;line-height:1.6;white-space:nowrap;">${escHtml(r.code)}</td>
+            <td style="border:1px solid #999;padding:8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:1.8;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#0f5132;font-weight:700;line-height:1.6;">${r.present}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b91c1c;font-weight:700;line-height:1.6;">${r.absentTotal}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b45309;line-height:1.6;">${r.absentExcused}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#991b1b;font-weight:700;line-height:1.6;">${r.absentUnexcused}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;line-height:1.6;">${r.pct}%</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;font-weight:700;line-height:1.6;">${escHtml(r.avg) || "—"}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;line-height:1.6;">${r.rated}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b45309;line-height:1.6;">${r.repeats}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;line-height:1.6;">${r.total}</td>
+            <td style="border:1px solid #999;padding:8px;text-align:right;font-size:10px;color:#374151;line-height:1.8;word-break:break-word;">${
               r.details ? escHtml(r.details) : "—"
             }</td>
           </tr>
@@ -426,9 +441,28 @@ export function ExportReportDialog() {
       const pdfSections: { html: string; title: string }[] = [];
       let totalStudents = 0;
 
-      for (const cid of companyIds) {
+      // Sort selected company IDs by battalion order → company order, so the
+      // report is naturally grouped: كتيبة → سرية → طلاب
+      const sortedCompanyIds = [...companyIds].sort((a, b) => {
+        const ca = companies.find((c) => c.id === a);
+        const cb = companies.find((c) => c.id === b);
+        const ba = battalions.find((x) => x.id === ca?.battalion_id);
+        const bb = battalions.find((x) => x.id === cb?.battalion_id);
+        const baOrder = ba ? battalions.indexOf(ba) : 999;
+        const bbOrder = bb ? battalions.indexOf(bb) : 999;
+        if (baOrder !== bbOrder) return baOrder - bbOrder;
+        const caOrder = ca ? companies.indexOf(ca) : 999;
+        const cbOrder = cb ? companies.indexOf(cb) : 999;
+        return caOrder - cbOrder;
+      });
+
+      let lastBattalionId: string | null | undefined = undefined;
+
+      for (const cid of sortedCompanyIds) {
         const company = companies.find((c) => c.id === cid);
         const battalion = battalions.find((b) => b.id === company?.battalion_id);
+        const isNewBattalion = battalion?.id !== lastBattalionId;
+        lastBattalionId = battalion?.id;
 
         const { data: students, error: sErr } = await supabase
           .from("students")
@@ -463,11 +497,24 @@ export function ExportReportDialog() {
           (recRes.data ?? []).filter((r) => studentIds.includes(r.student_id)),
         );
 
-        const attByStudent = new Map<string, { present: number; absent: number }>();
+        const attByStudent = new Map<
+          string,
+          { present: number; absentExcused: number; absentUnexcused: number }
+        >();
         (attRes.data ?? []).forEach((a) => {
-          const cur = attByStudent.get(a.student_id) ?? { present: 0, absent: 0 };
-          if (a.present) cur.present++;
-          else cur.absent++;
+          const cur =
+            attByStudent.get(a.student_id) ?? {
+              present: 0,
+              absentExcused: 0,
+              absentUnexcused: 0,
+            };
+          if (a.present) {
+            cur.present++;
+          } else if ((a as { excused?: boolean }).excused) {
+            cur.absentExcused++;
+          } else {
+            cur.absentUnexcused++;
+          }
           attByStudent.set(a.student_id, cur);
         });
 
@@ -495,17 +542,20 @@ export function ExportReportDialog() {
           ratingByStudent.set(r.student_id, cur);
         });
 
-        const companyLabel = `${company?.name ?? ""}${battalion ? ` — كتيبة: ${battalion.name}` : ""}`;
+        const battalionLabel = battalion ? `الكتيبة: ${battalion.name}` : "بدون كتيبة";
+        const companyLabel = `${company?.name ?? ""}${battalion ? ` — ${battalion.name}` : ""}`;
         const titleRows = [
           `${BRAND_NAME} — وشؤون المساجد`,
-          `تقرير سرية: ${companyLabel}`,
+          `${battalionLabel} ← سرية: ${company?.name ?? ""}`,
           `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`,
         ];
         const headers = [
           "الرقم التعريفي",
           "الاسم الكامل",
           "أيام الحضور",
-          "أيام الغياب",
+          "إجمالي الغياب",
+          "غياب بعذر",
+          "غياب بدون عذر",
           "نسبة الحضور %",
           "معدل التسميع التراكمي",
           "عدد التسميعات المُقيَّمة",
@@ -517,9 +567,15 @@ export function ExportReportDialog() {
         const pdfRows: PdfRow[] = [];
 
         (students ?? []).forEach((s) => {
-          const a = attByStudent.get(s.id) ?? { present: 0, absent: 0 };
+          const a =
+            attByStudent.get(s.id) ?? {
+              present: 0,
+              absentExcused: 0,
+              absentUnexcused: 0,
+            };
+          const absentTotal = a.absentExcused + a.absentUnexcused;
           const rt = ratingByStudent.get(s.id) ?? { ratedSum: 0, ratedCount: 0, repeats: 0 };
-          const total = a.present + a.absent;
+          const total = a.present + absentTotal;
           const pct = total ? Math.round((a.present / total) * 100) : 0;
           const avg = rt.ratedCount ? +(rt.ratedSum / rt.ratedCount).toFixed(2) : "";
           const recs = sortRecitationsByDateAsc(recByStudent.get(s.id) ?? []);
@@ -528,7 +584,9 @@ export function ExportReportDialog() {
             s.student_code,
             s.full_name,
             a.present,
-            a.absent,
+            absentTotal,
+            a.absentExcused,
+            a.absentUnexcused,
             pct,
             avg,
             rt.ratedCount,
@@ -541,7 +599,9 @@ export function ExportReportDialog() {
             code: s.student_code,
             name: s.full_name,
             present: a.present,
-            absent: a.absent,
+            absentTotal,
+            absentExcused: a.absentExcused,
+            absentUnexcused: a.absentUnexcused,
             pct,
             avg: avg === "" ? "" : String(avg),
             rated: rt.ratedCount,
@@ -551,8 +611,9 @@ export function ExportReportDialog() {
           });
         });
 
+        const sheetName = `${battalion?.name ? battalion.name + " - " : ""}${company?.name ?? "Report"}`;
         xlsxSheets.push({
-          sheetName: company?.name ?? "Report",
+          sheetName,
           titleRows,
           headers,
           dataRows,
@@ -569,7 +630,10 @@ export function ExportReportDialog() {
 
         const title = `تقرير سرية: ${companyLabel}`;
         const subtitle = `الفترة: من ${formatReportDate(from)} إلى ${formatReportDate(to)}`;
-        pdfSections.push({ html: buildPdfHtml(title, subtitle, pdfRows), title });
+        pdfSections.push({
+          html: buildPdfHtml(title, subtitle, pdfRows, isNewBattalion ? battalionLabel : undefined),
+          title,
+        });
       }
 
       if (totalStudents === 0) {
