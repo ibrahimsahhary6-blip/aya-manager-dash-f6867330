@@ -198,7 +198,9 @@ type PdfRow = {
   code: string;
   name: string;
   present: number;
-  absent: number;
+  absentTotal: number;
+  absentExcused: number;
+  absentUnexcused: number;
   pct: number;
   avg: string;
   rated: number;
@@ -216,37 +218,42 @@ function escHtml(v: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
-function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
+function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[], battalionLabel?: string): string {
   const logoSrc = new URL(BRAND_LOGO_URL, window.location.origin).toString();
   return `
     <div style="box-sizing:border-box;width:1200px;max-width:1200px;background:#ffffff;color:#111111;padding:24px;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
     <div style="border-bottom:2px solid #1f6b6b;padding-bottom:10px;margin-bottom:14px;display:flex;align-items:center;gap:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:68px;width:68px;object-fit:cover;border-radius:8px;border:1px solid #1f6b6b;flex-shrink:0;" />
+      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:68px;width:68px;object-fit:cover;border-radius:8px;border:2px solid #c9a84c;flex-shrink:0;" />
       <div style="flex:1;">
         <div style="font-size:18px;font-weight:700;color:#1f6b6b;">${escHtml(BRAND_NAME)}</div>
-        <h1 style="margin:2px 0 0;font-size:18px;font-weight:700;color:#111;">${escHtml(title)}</h1>
+        ${battalionLabel ? `<div style="display:inline-block;margin-top:4px;background:linear-gradient(90deg,#0f5132,#1f6b6b);color:#fff;padding:4px 12px;border-radius:4px;font-size:13px;font-weight:700;border-right:4px solid #c9a84c;">${escHtml(battalionLabel)}</div>` : ""}
+        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#111;">${escHtml(title)}</h1>
         <div style="font-size:12px;color:#555555;margin-top:4px;">${escHtml(subtitle)}</div>
       </div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;direction:rtl;unicode-bidi:plaintext;">
       <colgroup>
-        <col style="width:7%" />
-        <col style="width:18%" />
+        <col style="width:6%" />
+        <col style="width:16%" />
+        <col style="width:5%" />
         <col style="width:6%" />
         <col style="width:6%" />
-        <col style="width:8%" />
-        <col style="width:7%" />
-        <col style="width:7%" />
         <col style="width:6%" />
-        <col style="width:7%" />
-        <col style="width:28%" />
+        <col style="width:6%" />
+        <col style="width:6%" />
+        <col style="width:6%" />
+        <col style="width:5%" />
+        <col style="width:6%" />
+        <col style="width:26%" />
       </colgroup>
       <thead>
         <tr style="background:#0f5132;color:#ffffff;">
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">الرقم</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">الاسم</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">حضور</th>
-          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">غياب</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">إجمالي الغياب</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">بعذر</th>
+          <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">بدون عذر</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">% الحضور</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">المعدل</th>
           <th style="border:1.5px solid #0f5132;padding:10px 4px;text-align:center;line-height:1.6;">مُقيَّمة</th>
@@ -260,16 +267,18 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
           .map(
             (r, i) => `
           <tr style="background:${i % 2 ? "#f5f7f6" : "#ffffff"};color:#111111;">
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-family:monospace;line-height:1.7;white-space:nowrap;">${escHtml(r.code)}</td>
-            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:2;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#0f5132;font-weight:600;line-height:1.7;">${r.present}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b91c1c;line-height:1.7;">${r.absent}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.pct}%</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;font-weight:700;line-height:1.7;">${escHtml(r.avg) || "—"}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.rated}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;color:#b45309;line-height:1.7;">${r.repeats}</td>
-            <td style="border:1px solid #999;padding:10px 4px;text-align:center;line-height:1.7;">${r.total}</td>
-            <td style="border:1px solid #999;padding:10px 8px;text-align:right;font-size:10px;color:#374151;line-height:1.9;word-break:break-word;">${
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;font-family:monospace;line-height:1.6;white-space:nowrap;">${escHtml(r.code)}</td>
+            <td style="border:1px solid #999;padding:8px;text-align:right;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;font-weight:700;line-height:1.8;letter-spacing:0;word-spacing:4px;word-break:normal;overflow-wrap:anywhere;white-space:normal;direction:rtl;unicode-bidi:plaintext;">${escHtml(r.name)}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#0f5132;font-weight:700;line-height:1.6;">${r.present}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b91c1c;font-weight:700;line-height:1.6;">${r.absentTotal}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b45309;line-height:1.6;">${r.absentExcused}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#991b1b;font-weight:700;line-height:1.6;">${r.absentUnexcused}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;line-height:1.6;">${r.pct}%</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;font-weight:700;line-height:1.6;">${escHtml(r.avg) || "—"}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;line-height:1.6;">${r.rated}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;color:#b45309;line-height:1.6;">${r.repeats}</td>
+            <td style="border:1px solid #999;padding:8px 4px;text-align:center;line-height:1.6;">${r.total}</td>
+            <td style="border:1px solid #999;padding:8px;text-align:right;font-size:10px;color:#374151;line-height:1.8;word-break:break-word;">${
               r.details ? escHtml(r.details) : "—"
             }</td>
           </tr>
