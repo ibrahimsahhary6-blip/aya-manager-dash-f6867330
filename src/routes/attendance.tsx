@@ -404,24 +404,23 @@ function AttendancePage() {
   );
 }
 
+type AttStatusVal = "present" | "absent" | "excused";
+
 function CompanyGroup({
   title,
   students,
   presentCount,
   attendanceMap,
-  recitedSet,
-  onToggle,
+  onSetStatus,
+  getStatus,
 }: {
   title: string;
   students: Student[];
   presentCount: number;
   attendanceMap: Map<string, Attendance>;
   recitedSet: Set<string>;
-  onToggle: (
-    id: string,
-    v: boolean,
-    rating?: string | null,
-  ) => void;
+  onSetStatus: (id: string, status: AttStatusVal, rating?: string | null) => void;
+  getStatus: (id: string) => AttStatusVal;
 }) {
   const [open, setOpen] = useState(true);
   return (
@@ -440,9 +439,9 @@ function CompanyGroup({
         <ul className="divide-y">
           {students.map((s) => {
             const rec = attendanceMap.get(s.id);
-            const recited = recitedSet.has(s.id);
-            const isPresent = rec ? rec.present : recited;
-            const auto = !rec && recited;
+            const status = getStatus(s.id);
+            const isPresent = status === "present";
+            const auto = !rec && isPresent;
             const rating = (rec as (Attendance & { rating?: string | null }) | undefined)?.rating ?? "";
             return (
               <li
@@ -452,9 +451,11 @@ function CompanyGroup({
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
                     className={`h-9 w-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
-                      isPresent
+                      status === "present"
                         ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
+                        : status === "excused"
+                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                          : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {s.full_name.charAt(0)}
@@ -466,18 +467,17 @@ function CompanyGroup({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                   <Select
                     value={rating || "none"}
                     onValueChange={(v) => {
                       if (v === "repeat") {
                         toast.warning(`${s.full_name}: تم تسجيل "إعادة" — لن تُحتسب ضمن معدّل الإتقان.`);
-                        onToggle(s.id, isPresent, "repeat");
+                        onSetStatus(s.id, status, "repeat");
                       } else if (v === "none") {
-                        onToggle(s.id, isPresent, null);
+                        onSetStatus(s.id, status, null);
                       } else {
-                        // 8 / 9 / 10 → اعتبار الطالب حاضراً تلقائياً
-                        onToggle(s.id, true, v);
+                        onSetStatus(s.id, "present", v);
                       }
                     }}
                   >
@@ -497,17 +497,27 @@ function CompanyGroup({
                       تلقائي
                     </span>
                   )}
-                  <span
-                    className={`text-xs font-medium ${
-                      isPresent ? "text-primary" : "text-muted-foreground"
-                    }`}
-                  >
-                    {isPresent ? "حاضر" : "غائب"}
-                  </span>
-                  <Switch
-                    checked={isPresent}
-                    onCheckedChange={(v) => onToggle(s.id, v)}
-                  />
+                  <div className="inline-flex rounded-md border overflow-hidden">
+                    {([
+                      { v: "present" as const, label: "حاضر", active: "bg-emerald-600 text-white" },
+                      { v: "absent" as const, label: "غائب", active: "bg-destructive text-destructive-foreground" },
+                      { v: "excused" as const, label: "بعذر", active: "bg-amber-500 text-white" },
+                    ]).map((opt) => {
+                      const isActive = status === opt.v;
+                      return (
+                        <button
+                          key={opt.v}
+                          type="button"
+                          onClick={() => onSetStatus(s.id, opt.v)}
+                          className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+                            isActive ? opt.active : "bg-background text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </li>
             );
@@ -527,19 +537,21 @@ function StatBox({
   icon: React.ReactNode;
   label: string;
   value: number | string;
-  tone: "muted" | "primary" | "destructive" | "success";
+  tone: "muted" | "primary" | "destructive" | "success" | "warning";
 }) {
   const tones: Record<string, string> = {
     muted: "bg-card",
     primary: "bg-primary text-primary-foreground",
     destructive: "bg-destructive/10 border-destructive/30 text-destructive",
     success: "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400",
+    warning: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400",
   };
   const iconTones: Record<string, string> = {
     muted: "bg-primary/10 text-primary",
     primary: "bg-primary-foreground/15 text-primary-foreground",
     destructive: "bg-destructive/15 text-destructive",
     success: "bg-emerald-500/15",
+    warning: "bg-amber-500/15",
   };
   return (
     <div className={`rounded-2xl border p-4 shadow-soft ${tones[tone]}`}>
