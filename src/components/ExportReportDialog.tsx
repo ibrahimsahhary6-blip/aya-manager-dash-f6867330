@@ -410,14 +410,20 @@ export function ExportReportDialog() {
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
 
-  const companyOptions = useMemo(
-    () =>
-      companies.map((c) => {
-        const b = battalions.find((x) => x.id === c.battalion_id);
-        return { id: c.id, label: `${c.name}${b ? ` — ${b.name}` : ""}` };
-      }),
-    [companies, battalions],
-  );
+  const companyOptions = useMemo(() => {
+    const sorted = [...companies].sort((a, b) => {
+      const ba = battalions.find((x) => x.id === a.battalion_id);
+      const bb = battalions.find((x) => x.id === b.battalion_id);
+      const baOrder = ba ? battalions.indexOf(ba) : 999;
+      const bbOrder = bb ? battalions.indexOf(bb) : 999;
+      if (baOrder !== bbOrder) return baOrder - bbOrder;
+      return companies.indexOf(a) - companies.indexOf(b);
+    });
+    return sorted.map((c) => {
+      const b = battalions.find((x) => x.id === c.battalion_id);
+      return { id: c.id, label: `${b ? `${b.name} — ` : ""}${c.name}` };
+    });
+  }, [companies, battalions]);
 
   const toggleCompany = (id: string) => {
     setCompanyIds((prev) =>
