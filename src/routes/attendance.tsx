@@ -494,28 +494,8 @@ function CompanyGroup({
                       بدون حالة
                     </span>
                   )}
-                  <div className="inline-flex rounded-md border overflow-hidden">
-                    {([
-                      { v: "present" as const, label: "حاضر", active: "bg-emerald-600 text-white" },
-                      { v: "absent" as const, label: "غائب", active: "bg-destructive text-destructive-foreground" },
-                      { v: "excused" as const, label: "بعذر", active: "bg-amber-500 text-white" },
-                    ]).map((opt) => {
-                      const isActive = status === opt.v;
-                      return (
-                        <button
-                          key={opt.v}
-                          type="button"
-                          onClick={() => onSetStatus(s.id, isActive ? "none" : opt.v)}
-                          className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
-                            isActive ? opt.active : "bg-background text-foreground hover:bg-muted"
-                          }`}
-                          title={isActive ? "اضغط لإلغاء الحالة" : undefined}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <StatusDropdown status={status} onChange={(v) => onSetStatus(s.id, v)} />
+
                 </div>
               </li>
             );
