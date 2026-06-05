@@ -35,6 +35,7 @@ function AttendancePage() {
   const [date, setDate] = useState(today);
   const [battalionId, setBattalionId] = useState<string>("all");
   const [companyId, setCompanyId] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
