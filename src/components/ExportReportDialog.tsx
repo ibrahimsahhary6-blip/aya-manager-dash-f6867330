@@ -60,114 +60,126 @@ function saveBlob(blob: Blob, filename: string) {
   }, 4000);
 }
 
-async function downloadXlsx(
-  sheetName: string,
-  titleRows: string[],
-  headers: string[],
-  dataRows: (string | number | null)[][],
-  filename: string,
-) {
+type XlsxSheet = {
+  sheetName: string;
+  titleRows: string[];
+  headers: string[];
+  dataRows: (string | number | null)[][];
+};
+
+async function downloadXlsxMulti(sheets: XlsxSheet[], filename: string) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "نظام إدارة التسميع";
   wb.created = new Date();
-  const ws = wb.addWorksheet(sheetName.slice(0, 31) || "Report", {
-    views: [{ rightToLeft: true, state: "frozen", ySplit: titleRows.length + 1 }],
-    pageSetup: { orientation: "landscape", paperSize: 9, fitToPage: true },
-  });
 
-  ws.columns = [
-    { width: 16 },
-    { width: 32 },
-    { width: 12 },
-    { width: 12 },
-    { width: 14 },
-    { width: 18 },
-    { width: 18 },
-    { width: 12 },
-    { width: 14 },
-    { width: 70 },
-  ];
+  const usedNames = new Set<string>();
+  const safeName = (n: string, i: number) => {
+    let base = (n || `Report ${i + 1}`).replace(/[\\/?*\[\]:]/g, "").slice(0, 31) || `Sheet ${i + 1}`;
+    let candidate = base;
+    let suffix = 2;
+    while (usedNames.has(candidate)) {
+      const tail = `_${suffix++}`;
+      candidate = base.slice(0, 31 - tail.length) + tail;
+    }
+    usedNames.add(candidate);
+    return candidate;
+  };
 
-  const colCount = headers.length;
-  const lastColLetter = String.fromCharCode(64 + colCount); // A..Z
+  sheets.forEach(({ sheetName, titleRows, headers, dataRows }, sheetIdx) => {
+    const ws = wb.addWorksheet(safeName(sheetName, sheetIdx), {
+      views: [{ rightToLeft: true, state: "frozen", ySplit: titleRows.length + 1 }],
+      pageSetup: { orientation: "landscape", paperSize: 9, fitToPage: true },
+    });
 
-  // Title rows (merged across all columns)
-  titleRows.forEach((t, idx) => {
-    const row = ws.addRow([t]);
-    ws.mergeCells(`A${idx + 1}:${lastColLetter}${idx + 1}`);
-    const cell = row.getCell(1);
-    cell.value = t;
-    cell.alignment = {
-      horizontal: "right",
-      vertical: "middle",
-      readingOrder: "rtl",
-      wrapText: true,
-    };
-    cell.font = {
-      name: "Tajawal",
-      size: idx === 0 ? 16 : 12,
-      bold: idx === 0,
-      color: { argb: "FF0F5132" },
-    };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" },
-    };
-    row.height = idx === 0 ? 28 : 20;
-  });
+    ws.columns = [
+      { width: 16 },
+      { width: 32 },
+      { width: 12 },
+      { width: 12 },
+      { width: 14 },
+      { width: 18 },
+      { width: 18 },
+      { width: 12 },
+      { width: 14 },
+      { width: 70 },
+    ];
 
-  // Spacer
-  ws.addRow([]);
+    const colCount = headers.length;
+    const lastColLetter = String.fromCharCode(64 + colCount);
 
-  // Header row
-  const headerRow = ws.addRow(headers);
-  headerRow.height = 26;
-  headerRow.eachCell((cell) => {
-    cell.font = { name: "Tajawal", bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F5132" } };
-    cell.alignment = {
-      horizontal: "center",
-      vertical: "middle",
-      readingOrder: "rtl",
-      wrapText: true,
-    };
-    cell.border = {
-      top: { style: "thin", color: { argb: "FF0F5132" } },
-      bottom: { style: "thin", color: { argb: "FF0F5132" } },
-      left: { style: "thin", color: { argb: "FF0F5132" } },
-      right: { style: "thin", color: { argb: "FF0F5132" } },
-    };
-  });
-
-  // Data rows with alternating colors + per-column accents
-  dataRows.forEach((r, i) => {
-    const row = ws.addRow(r);
-    const zebra = i % 2 === 0 ? "FFFFFFFF" : "FFF5F7F6";
-    row.eachCell((cell, colNumber) => {
-      cell.font = { name: "Tajawal", size: 11, color: { argb: "FF111111" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebra } };
+    titleRows.forEach((t, idx) => {
+      const row = ws.addRow([t]);
+      ws.mergeCells(`A${idx + 1}:${lastColLetter}${idx + 1}`);
+      const cell = row.getCell(1);
+      cell.value = t;
       cell.alignment = {
-        horizontal: colNumber === 2 || colNumber === 10 ? "right" : "center",
+        horizontal: "right",
+        vertical: "middle",
+        readingOrder: "rtl",
+        wrapText: true,
+      };
+      cell.font = {
+        name: "Tajawal",
+        size: idx === 0 ? 16 : 12,
+        bold: idx === 0,
+        color: { argb: "FF0F5132" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: idx === 0 ? "FFE8F1EC" : "FFF3F7F5" },
+      };
+      row.height = idx === 0 ? 28 : 20;
+    });
+
+    ws.addRow([]);
+
+    const headerRow = ws.addRow(headers);
+    headerRow.height = 26;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: "Tajawal", bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F5132" } };
+      cell.alignment = {
+        horizontal: "center",
         vertical: "middle",
         readingOrder: "rtl",
         wrapText: true,
       };
       cell.border = {
-        top: { style: "hair", color: { argb: "FFCBD5D1" } },
-        bottom: { style: "hair", color: { argb: "FFCBD5D1" } },
-        left: { style: "hair", color: { argb: "FFCBD5D1" } },
-        right: { style: "hair", color: { argb: "FFCBD5D1" } },
+        top: { style: "thin", color: { argb: "FF0F5132" } },
+        bottom: { style: "thin", color: { argb: "FF0F5132" } },
+        left: { style: "thin", color: { argb: "FF0F5132" } },
+        right: { style: "thin", color: { argb: "FF0F5132" } },
       };
-      // Accents: present (col 3) green, absent (col 4) red, repeats (col 8) amber, name (col 2) bold
-      if (colNumber === 2) cell.font = { ...cell.font, bold: true };
-      if (colNumber === 3) cell.font = { ...cell.font, color: { argb: "FF0F5132" }, bold: true };
-      if (colNumber === 4) cell.font = { ...cell.font, color: { argb: "FFB91C1C" }, bold: true };
-      if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
-      if (colNumber === 6) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
-      if (colNumber === 8) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
     });
-    row.height = 22;
+
+    dataRows.forEach((r, i) => {
+      const row = ws.addRow(r);
+      const zebra = i % 2 === 0 ? "FFFFFFFF" : "FFF5F7F6";
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: "Tajawal", size: 11, color: { argb: "FF111111" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebra } };
+        cell.alignment = {
+          horizontal: colNumber === 2 || colNumber === 10 ? "right" : "center",
+          vertical: "middle",
+          readingOrder: "rtl",
+          wrapText: true,
+        };
+        cell.border = {
+          top: { style: "hair", color: { argb: "FFCBD5D1" } },
+          bottom: { style: "hair", color: { argb: "FFCBD5D1" } },
+          left: { style: "hair", color: { argb: "FFCBD5D1" } },
+          right: { style: "hair", color: { argb: "FFCBD5D1" } },
+        };
+        if (colNumber === 2) cell.font = { ...cell.font, bold: true };
+        if (colNumber === 3) cell.font = { ...cell.font, color: { argb: "FF0F5132" }, bold: true };
+        if (colNumber === 4) cell.font = { ...cell.font, color: { argb: "FFB91C1C" }, bold: true };
+        if (colNumber === 5) cell.font = { ...cell.font, color: { argb: "FF0F5132" } };
+        if (colNumber === 6) cell.font = { ...cell.font, bold: true, color: { argb: "FF1E40AF" } };
+        if (colNumber === 8) cell.font = { ...cell.font, color: { argb: "FFB45309" } };
+      });
+      row.height = 22;
+    });
   });
 
   const buf = await wb.xlsx.writeBuffer();
