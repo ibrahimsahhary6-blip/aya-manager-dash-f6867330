@@ -18,6 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Check, X as XIcon, FileText, ChevronDown } from "lucide-react";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { BrandLogo } from "@/components/BrandLogo";
 
