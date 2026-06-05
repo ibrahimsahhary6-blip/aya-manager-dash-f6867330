@@ -178,7 +178,7 @@ function AttendancePage() {
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Filters */}
         <section className="bg-card rounded-2xl border p-4 shadow-soft">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="att-date">التاريخ</Label>
               <Input
@@ -226,7 +226,55 @@ function AttendancePage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="att-search">بحث</Label>
+              <div className="relative">
+                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="att-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="ابحث بالاسم أو الرقم..."
+                  className="pr-8"
+                />
+              </div>
+            </div>
           </div>
+        </section>
+
+        {/* Stats */}
+        <section className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+          <StatBox
+            icon={<Users className="h-5 w-5" />}
+            label="إجمالي الطلاب"
+            value={total}
+            tone="muted"
+          />
+          <StatBox
+            icon={<UserCheck className="h-5 w-5" />}
+            label="الحاضرون"
+            value={present}
+            tone="primary"
+          />
+          <StatBox
+            icon={<UserX className="h-5 w-5" />}
+            label="الغائبون"
+            value={absent}
+            tone="destructive"
+          />
+          <StatBox
+            icon={<FileWarning className="h-5 w-5" />}
+            label="بعذر"
+            value={excused}
+            tone="warning"
+          />
+          <StatBox
+            icon={<Percent className="h-5 w-5" />}
+            label="نسبة الحضور"
+            value={`${percent}%`}
+            tone="success"
+          />
         </section>
 
         {/* Stats */}
