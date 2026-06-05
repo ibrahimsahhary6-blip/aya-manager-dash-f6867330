@@ -338,13 +338,14 @@ function AttendancePage() {
                               presentCount={cPresent}
                               attendanceMap={attendanceMap}
                               recitedSet={recitedSet}
-                              onToggle={(id, v, rating) =>
-                                toggleMutation.mutate({
+                              onSetStatus={(id, status, rating) =>
+                                setStatusMutation.mutate({
                                   studentId: id,
-                                  present: v,
+                                  status,
                                   rating,
                                 })
                               }
+                              getStatus={getStudentStatus}
                             />
                           );
                         })}
