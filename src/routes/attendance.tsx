@@ -18,6 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Check, X as XIcon, FileText, ChevronDown } from "lucide-react";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -487,28 +494,8 @@ function CompanyGroup({
                       بدون حالة
                     </span>
                   )}
-                  <div className="inline-flex rounded-md border overflow-hidden">
-                    {([
-                      { v: "present" as const, label: "حاضر", active: "bg-emerald-600 text-white" },
-                      { v: "absent" as const, label: "غائب", active: "bg-destructive text-destructive-foreground" },
-                      { v: "excused" as const, label: "بعذر", active: "bg-amber-500 text-white" },
-                    ]).map((opt) => {
-                      const isActive = status === opt.v;
-                      return (
-                        <button
-                          key={opt.v}
-                          type="button"
-                          onClick={() => onSetStatus(s.id, isActive ? "none" : opt.v)}
-                          className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
-                            isActive ? opt.active : "bg-background text-foreground hover:bg-muted"
-                          }`}
-                          title={isActive ? "اضغط لإلغاء الحالة" : undefined}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <StatusDropdown status={status} onChange={(v) => onSetStatus(s.id, v)} />
+
                 </div>
               </li>
             );
@@ -516,6 +503,51 @@ function CompanyGroup({
         </ul>
       )}
     </div>
+  );
+}
+
+function StatusDropdown({
+  status,
+  onChange,
+}: {
+  status: AttStatusVal;
+  onChange: (v: AttStatusVal) => void;
+}) {
+  const config = {
+    present: { icon: <Check className="h-4 w-4" />, cls: "bg-emerald-600 text-white border-emerald-600", label: "حاضر" },
+    absent: { icon: <XIcon className="h-4 w-4" />, cls: "bg-destructive text-destructive-foreground border-destructive", label: "غائب" },
+    excused: { icon: <FileText className="h-4 w-4" />, cls: "bg-amber-500 text-white border-amber-500", label: "بعذر" },
+    none: { icon: <FileText className="h-4 w-4 opacity-40" />, cls: "bg-muted text-muted-foreground border", label: "بدون حالة" },
+  }[status];
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 ${config.cls}`}
+          title={config.label}
+        >
+          <span className="h-6 w-6 rounded-full flex items-center justify-center bg-white/20">
+            {config.icon}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[8rem]">
+        <DropdownMenuItem onClick={() => onChange("present")}>
+          <Check className="h-4 w-4 text-emerald-600 ml-2" /> حاضر
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onChange("absent")}>
+          <XIcon className="h-4 w-4 text-destructive ml-2" /> غائب
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onChange("excused")}>
+          <FileText className="h-4 w-4 text-amber-500 ml-2" /> بعذر
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onChange("none")}>
+          <FileText className="h-4 w-4 opacity-40 ml-2" /> بدون حالة
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
