@@ -648,6 +648,7 @@ type RecitationFormValues = {
   notes: string;
   rating: string | null;
   is_review: boolean;
+  attendance_status: "present" | "absent" | "excused";
 };
 
 const RATING_BUTTONS: {
