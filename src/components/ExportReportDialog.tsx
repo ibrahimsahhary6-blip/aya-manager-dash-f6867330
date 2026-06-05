@@ -273,83 +273,89 @@ function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[]): string {
   `;
 }
 
-async function downloadPdf(html: string, filename: string) {
+async function downloadPdf(sections: { html: string }[], filename: string) {
   const frame = document.createElement("iframe");
   frame.style.cssText =
     "position:fixed;top:0;left:-10000px;width:1240px;height:1800px;border:0;opacity:0;pointer-events:none;";
   document.body.appendChild(frame);
 
   try {
-    const doc = frame.contentDocument;
-    if (!doc) throw new Error("تعذر تجهيز ملف PDF");
-    doc.open();
-    doc.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8" />
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-      <style>
-        *{box-sizing:border-box;letter-spacing:0!important}
-        html,body{margin:0;padding:0;background:#fff;color:#111;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif}
-        body{width:1240px;min-height:100%;padding:0}
-      </style></head><body>${html}</body></html>`);
-    doc.close();
-
-    if (doc.fonts && doc.fonts.ready) {
-      try {
-        await doc.fonts.ready;
-      } catch {
-        /* ignore */
-      }
-    }
-    // Wait for all images (logo) to finish loading inside the iframe
-    const imgs = Array.from(doc.images);
-    await Promise.all(
-      imgs.map(
-        (img) =>
-          img.complete && img.naturalWidth > 0
-            ? Promise.resolve()
-            : new Promise<void>((res) => {
-                img.addEventListener("load", () => res(), { once: true });
-                img.addEventListener("error", () => res(), { once: true });
-              }),
-      ),
-    );
-    await new Promise((r) => setTimeout(r, 200));
-
     const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
       import("html2canvas"),
       import("jspdf"),
     ]);
 
-    const target = doc.body.firstElementChild as HTMLElement | null;
-    if (!target) throw new Error("تعذر تجهيز محتوى PDF");
-    const canvas = await html2canvas(target, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      useCORS: true,
-      logging: false,
-      windowWidth: 1200,
-      width: 1200,
-    });
-
     const pdf = new JsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    const imgW = pageW;
-    const imgH = (canvas.height * imgW) / canvas.width;
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    for (let s = 0; s < sections.length; s++) {
+      const section = sections[s];
+      const doc = frame.contentDocument;
+      if (!doc) throw new Error("تعذر تجهيز ملف PDF");
+      doc.open();
+      doc.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+        <style>
+          *{box-sizing:border-box;letter-spacing:0!important}
+          html,body{margin:0;padding:0;background:#fff;color:#111;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif}
+          body{width:1240px;min-height:100%;padding:0}
+        </style></head><body>${section.html}</body></html>`);
+      doc.close();
 
-    if (imgH <= pageH) {
-      pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
-    } else {
-      let position = 0;
-      let remaining = imgH;
-      while (remaining > 0) {
-        pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
-        remaining -= pageH;
-        position -= pageH;
-        if (remaining > 0) pdf.addPage();
+      if (doc.fonts && doc.fonts.ready) {
+        try {
+          await doc.fonts.ready;
+        } catch {
+          /* ignore */
+        }
+      }
+      const imgs = Array.from(doc.images);
+      await Promise.all(
+        imgs.map(
+          (img) =>
+            img.complete && img.naturalWidth > 0
+              ? Promise.resolve()
+              : new Promise<void>((res) => {
+                  img.addEventListener("load", () => res(), { once: true });
+                  img.addEventListener("error", () => res(), { once: true });
+                }),
+        ),
+      );
+      await new Promise((r) => setTimeout(r, 150));
+
+      const target = doc.body.firstElementChild as HTMLElement | null;
+      if (!target) throw new Error("تعذر تجهيز محتوى PDF");
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false,
+        windowWidth: 1200,
+        width: 1200,
+      });
+
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+      if (s > 0) pdf.addPage();
+
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
+      } else {
+        let position = 0;
+        let remaining = imgH;
+        let isFirst = true;
+        while (remaining > 0) {
+          if (!isFirst) pdf.addPage();
+          pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
+          remaining -= pageH;
+          position -= pageH;
+          isFirst = false;
+        }
       }
     }
 
