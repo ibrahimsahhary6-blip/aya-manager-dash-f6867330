@@ -407,10 +407,27 @@ export function ExportReportDialog() {
   const [open, setOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(monthAgo);
-  const [to, setTo] = useState(today);
-  const [companyIds, setCompanyIds] = useState<string[]>([]);
-  const [format, setFormat] = useState<Format>("xlsx");
+  const EXPORT_KEY = "export-report-filters-v1";
+  const initial = (() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = sessionStorage.getItem(EXPORT_KEY);
+      return raw ? (JSON.parse(raw) as { from: string; to: string; companyIds: string[]; format: Format }) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const [from, setFrom] = useState(initial?.from ?? monthAgo);
+  const [to, setTo] = useState(initial?.to ?? today);
+  const [companyIds, setCompanyIds] = useState<string[]>(initial?.companyIds ?? []);
+  const [format, setFormat] = useState<Format>(initial?.format ?? "xlsx");
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(EXPORT_KEY, JSON.stringify({ from, to, companyIds, format }));
+    } catch {
+      // ignore
+    }
+  }, [from, to, companyIds, format]);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<{
     sections: { html: string; title: string }[];
