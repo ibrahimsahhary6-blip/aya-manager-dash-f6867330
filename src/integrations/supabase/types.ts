@@ -93,6 +93,7 @@ export type Database = {
         Row: {
           attended_on: string
           created_at: string
+          created_by: string | null
           excused: boolean
           id: string
           present: boolean
@@ -103,6 +104,7 @@ export type Database = {
         Insert: {
           attended_on?: string
           created_at?: string
+          created_by?: string | null
           excused?: boolean
           id?: string
           present?: boolean
@@ -113,6 +115,7 @@ export type Database = {
         Update: {
           attended_on?: string
           created_at?: string
+          created_by?: string | null
           excused?: boolean
           id?: string
           present?: boolean
@@ -273,6 +276,7 @@ export type Database = {
       recitations: {
         Row: {
           created_at: string
+          created_by: string | null
           from_ayah: number
           id: string
           is_review: boolean
@@ -286,6 +290,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           from_ayah: number
           id?: string
           is_review?: boolean
@@ -299,6 +304,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           from_ayah?: number
           id?: string
           is_review?: boolean
