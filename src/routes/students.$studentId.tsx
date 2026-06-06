@@ -50,6 +50,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { useCurrentUserId, useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
 import {
   compareReportDates,
   formatArabicReportDate,
