@@ -226,17 +226,25 @@ function escHtml(v: unknown): string {
 
 function buildPdfHtml(title: string, subtitle: string, rows: PdfRow[], battalionLabel?: string): string {
   const logoSrc = new URL(BRAND_LOGO_URL, window.location.origin).toString();
+  const cleanBattalion = battalionLabel ? battalionLabel.replace(/^الكتيبة:\s*/, "") : "";
+  const cleanCompany = title.replace(/^السرية:\s*/, "");
+  const cleanPeriod = subtitle.replace(/^الفترة:\s*/, "");
   return `
     <div style="box-sizing:border-box;width:1200px;max-width:1200px;background:#ffffff;color:#111111;padding:24px;direction:rtl;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-    <div style="border-bottom:2px solid #1f6b6b;padding-bottom:12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:14px;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;">
-      <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:72px;width:72px;object-fit:cover;border-radius:8px;border:2px solid #c9a84c;flex-shrink:0;" />
-      <div style="flex:1;min-width:0;">
-        <div style="display:inline-block;background:linear-gradient(90deg,#0f5132,#1f6b6b);color:#fff;padding:6px 14px 8px;border-radius:4px;border-right:5px solid #c9a84c;">
-          <div style="font-size:18px;font-weight:800;line-height:1.2;">${escHtml(BRAND_NAME)}</div>
-          ${battalionLabel ? `<div style="font-size:13px;font-weight:700;line-height:1.3;margin-top:2px;opacity:0.95;">${escHtml(battalionLabel)}</div>` : ""}
+    <div style="position:relative;margin-bottom:18px;border:1.5px solid #d6c89a;border-radius:12px;background:linear-gradient(135deg,#f7f4ea 0%,#ffffff 60%);box-shadow:0 2px 0 #ecdfb8 inset;overflow:hidden;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;">
+      <div style="height:6px;background:linear-gradient(90deg,#c9a84c,#0f5132,#c9a84c);"></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;">
+        <img src="${escHtml(logoSrc)}" alt="شعار" crossorigin="anonymous" style="height:78px;width:78px;object-fit:cover;border-radius:50%;border:3px solid #c9a84c;background:#fff;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.08);" />
+        <div style="flex:1;min-width:0;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:#0f5132;line-height:1.2;">${escHtml(BRAND_NAME)}</div>
+          <div style="display:inline-block;margin-top:6px;font-size:14px;font-weight:700;color:#0f5132;background:#fff;border:1px solid #c9a84c;padding:4px 14px;border-radius:999px;">تقرير الحضور والتسميع</div>
         </div>
-        <h1 style="margin:8px 0 0;font-size:17px;font-weight:700;color:#0f5132;">${escHtml(title)}</h1>
-        <div style="font-size:12px;color:#555555;margin-top:2px;">${escHtml(subtitle)}</div>
+        <div style="flex-shrink:0;width:78px;"></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 18px 14px;">
+        ${cleanBattalion ? `<div style="background:#0f5132;color:#fff;padding:6px 14px;border-radius:8px;font-size:12.5px;font-weight:700;"><span style="opacity:0.75;font-weight:500;">الكتيبة:</span> ${escHtml(cleanBattalion)}</div>` : ""}
+        <div style="background:#1f6b6b;color:#fff;padding:6px 14px;border-radius:8px;font-size:12.5px;font-weight:700;"><span style="opacity:0.75;font-weight:500;">السرية:</span> ${escHtml(cleanCompany)}</div>
+        <div style="background:#fff;color:#0f5132;border:1.5px solid #0f5132;padding:5px 14px;border-radius:8px;font-size:12.5px;font-weight:700;"><span style="opacity:0.7;font-weight:500;">الفترة:</span> ${escHtml(cleanPeriod)}</div>
       </div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;color:#111111;table-layout:fixed;word-break:break-word;font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;letter-spacing:0;direction:rtl;unicode-bidi:plaintext;">
