@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@/lib/errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -39,10 +39,27 @@ function AttendancePage() {
   const qc = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
+  const FILTERS_KEY = "attendance-filters-v1";
+  const initialFilters = (() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = sessionStorage.getItem(FILTERS_KEY);
+      return raw ? (JSON.parse(raw) as { battalionId: string; companyId: string; search: string }) : null;
+    } catch {
+      return null;
+    }
+  })();
   const [date, setDate] = useState(today);
-  const [battalionId, setBattalionId] = useState<string>("all");
-  const [companyId, setCompanyId] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const [battalionId, setBattalionId] = useState<string>(initialFilters?.battalionId ?? "all");
+  const [companyId, setCompanyId] = useState<string>(initialFilters?.companyId ?? "all");
+  const [search, setSearch] = useState(initialFilters?.search ?? "");
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ battalionId, companyId, search }));
+    } catch {
+      // ignore
+    }
+  }, [battalionId, companyId, search]);
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
