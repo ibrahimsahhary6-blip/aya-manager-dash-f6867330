@@ -722,12 +722,14 @@ function DateGroup({
   onPatch,
   onEdit,
   onDelete,
+  canDelete,
 }: {
   date: string;
   rows: Recitation[];
   onPatch: (id: string, patch: Partial<Recitation>) => void;
   onEdit: (r: Recitation) => void;
   onDelete: (r: Recitation) => void;
+  canDelete: (r: Recitation) => boolean;
 }) {
   return (
     <div className="divide-y" dir="rtl">
@@ -738,6 +740,7 @@ function DateGroup({
           onPatch={(patch) => onPatch(r.id, patch)}
           onEdit={() => onEdit(r)}
           onDelete={() => onDelete(r)}
+          canDelete={canDelete(r)}
         />
       ))}
     </div>
