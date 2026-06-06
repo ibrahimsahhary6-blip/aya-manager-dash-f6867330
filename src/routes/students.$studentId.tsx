@@ -50,6 +50,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { useCurrentUserId, useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
 import {
   compareReportDates,
   formatArabicReportDate,
@@ -68,6 +69,16 @@ function StudentProfilePage() {
   const { studentId } = Route.useParams();
   const router = useRouter();
   const qc = useQueryClient();
+  const currentUserId = useCurrentUserId();
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  const isManager = isAdmin || isSuper;
+  const canDeleteRecitation = (r: Recitation) => {
+    if (isManager) return true;
+    const createdBy = (r as Recitation & { created_by?: string | null }).created_by;
+    if (!currentUserId || createdBy !== currentUserId) return false;
+    return Date.now() - new Date(r.created_at).getTime() < 24 * 60 * 60 * 1000;
+  };
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
     else router.navigate({ to: "/" });
@@ -499,6 +510,7 @@ function StudentProfilePage() {
                   onPatch={(id, patch) => inlineMutation.mutate({ id, patch })}
                   onEdit={(r) => setEditing(r)}
                   onDelete={(r) => setDeleting(r)}
+                  canDelete={canDeleteRecitation}
                 />
               ))}
             </div>
@@ -710,12 +722,14 @@ function DateGroup({
   onPatch,
   onEdit,
   onDelete,
+  canDelete,
 }: {
   date: string;
   rows: Recitation[];
   onPatch: (id: string, patch: Partial<Recitation>) => void;
   onEdit: (r: Recitation) => void;
   onDelete: (r: Recitation) => void;
+  canDelete: (r: Recitation) => boolean;
 }) {
   return (
     <div className="divide-y" dir="rtl">
@@ -726,6 +740,7 @@ function DateGroup({
           onPatch={(patch) => onPatch(r.id, patch)}
           onEdit={() => onEdit(r)}
           onDelete={() => onDelete(r)}
+          canDelete={canDelete(r)}
         />
       ))}
     </div>
@@ -737,11 +752,13 @@ function RecitationCard({
   onPatch,
   onEdit,
   onDelete,
+  canDelete,
 }: {
   rec: Recitation;
   onPatch: (patch: Partial<Recitation>) => void;
   onEdit: () => void;
   onDelete: () => void;
+  canDelete: boolean;
 }) {
   const [notes, setNotes] = useState(rec.notes ?? "");
   const [lastSyncedId, setLastSyncedId] = useState(rec.id);
@@ -799,9 +816,11 @@ function RecitationCard({
         dir="rtl"
       />
       <div className="flex items-center gap-1.5 flex-wrap">
-        <Button size="icon" variant="ghost" onClick={onDelete} className="h-8 w-8" title="حذف">
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
+        {canDelete && (
+          <Button size="icon" variant="ghost" onClick={onDelete} className="h-8 w-8" title="حذف">
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        )}
         <Button size="icon" variant="ghost" onClick={onEdit} className="h-8 w-8" title="تعديل">
           <Pencil className="h-4 w-4" />
         </Button>
