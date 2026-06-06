@@ -69,6 +69,16 @@ function StudentProfilePage() {
   const { studentId } = Route.useParams();
   const router = useRouter();
   const qc = useQueryClient();
+  const currentUserId = useCurrentUserId();
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  const isManager = isAdmin || isSuper;
+  const canDeleteRecitation = (r: Recitation) => {
+    if (isManager) return true;
+    const createdBy = (r as Recitation & { created_by?: string | null }).created_by;
+    if (!currentUserId || createdBy !== currentUserId) return false;
+    return Date.now() - new Date(r.created_at).getTime() < 24 * 60 * 60 * 1000;
+  };
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
     else router.navigate({ to: "/" });
