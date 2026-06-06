@@ -752,11 +752,13 @@ function RecitationCard({
   onPatch,
   onEdit,
   onDelete,
+  canDelete,
 }: {
   rec: Recitation;
   onPatch: (patch: Partial<Recitation>) => void;
   onEdit: () => void;
   onDelete: () => void;
+  canDelete: boolean;
 }) {
   const [notes, setNotes] = useState(rec.notes ?? "");
   const [lastSyncedId, setLastSyncedId] = useState(rec.id);
