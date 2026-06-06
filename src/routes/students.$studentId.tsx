@@ -816,9 +816,11 @@ function RecitationCard({
         dir="rtl"
       />
       <div className="flex items-center gap-1.5 flex-wrap">
-        <Button size="icon" variant="ghost" onClick={onDelete} className="h-8 w-8" title="حذف">
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
+        {canDelete && (
+          <Button size="icon" variant="ghost" onClick={onDelete} className="h-8 w-8" title="حذف">
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        )}
         <Button size="icon" variant="ghost" onClick={onEdit} className="h-8 w-8" title="تعديل">
           <Pencil className="h-4 w-4" />
         </Button>
