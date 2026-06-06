@@ -510,6 +510,7 @@ function StudentProfilePage() {
                   onPatch={(id, patch) => inlineMutation.mutate({ id, patch })}
                   onEdit={(r) => setEditing(r)}
                   onDelete={(r) => setDeleting(r)}
+                  canDelete={canDeleteRecitation}
                 />
               ))}
             </div>
