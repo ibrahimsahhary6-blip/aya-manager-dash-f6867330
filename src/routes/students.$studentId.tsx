@@ -471,7 +471,6 @@ function StudentProfilePage() {
             const extraJuz = ((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? [];
             const has28 = extraJuz.includes(28);
             const has29 = extraJuz.includes(29);
-            if (!isManager && !has28 && !has29) return null;
             return (
               <div className="mt-5 pt-5 border-t">
                 <div className="text-xs text-muted-foreground mb-3">الأجزاء المتاحة للتسميع</div>
