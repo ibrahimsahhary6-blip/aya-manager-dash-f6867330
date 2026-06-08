@@ -1215,7 +1215,7 @@ function RecitationForm({
               <SelectValue placeholder="اختر .." />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {SURAHS.map((s) => (
+              {availableSurahs.map((s) => (
                 <SelectItem key={s.number} value={s.name}>
                   {s.name}
                 </SelectItem>
