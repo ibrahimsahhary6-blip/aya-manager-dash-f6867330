@@ -188,7 +188,7 @@ function HistoryView({ data }: { data: History }) {
             <td dir="ltr">${esc(r.from_ayah)} - ${esc(r.to_ayah)}</td>
             <td>${r.is_review ? "مراجعة" : "حفظ"}</td>
             <td>${esc(r.rating)}</td>
-            <td>${esc(r.notes)}</td>
+            
           </tr>`,
         )
         .join("");
@@ -237,7 +237,7 @@ function HistoryView({ data }: { data: History }) {
       data.recitations.length === 0
         ? '<p class="empty">لا يوجد تسميع مسجل</p>'
         : `<table><thead><tr>
-            <th>التاريخ</th><th>السورة</th><th>الآيات</th><th>النوع</th><th>التقييم</th><th>ملاحظات</th>
+            <th>التاريخ</th><th>السورة</th><th>الآيات</th><th>النوع</th><th>التقييم</th>
           </tr></thead><tbody>${recRows}</tbody></table>`
     }
   </div>
@@ -319,7 +319,7 @@ function HistoryView({ data }: { data: History }) {
                     <TableHead className="text-right">الآيات</TableHead>
                     <TableHead className="text-right">النوع</TableHead>
                     <TableHead className="text-right">التقييم</TableHead>
-                    <TableHead className="text-right">ملاحظات</TableHead>
+                    
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -338,9 +338,6 @@ function HistoryView({ data }: { data: History }) {
                         </Badge>
                       </TableCell>
                       <TableCell>{r.rating ?? "—"}</TableCell>
-                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-sm">
-                        {r.notes ?? "—"}
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
