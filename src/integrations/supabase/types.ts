@@ -332,6 +332,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           deleted_at: string | null
+          extra_juz: number[]
           full_name: string
           id: string
           notes: string | null
@@ -343,6 +344,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          extra_juz?: number[]
           full_name: string
           id?: string
           notes?: string | null
@@ -354,6 +356,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          extra_juz?: number[]
           full_name?: string
           id?: string
           notes?: string | null
