@@ -467,44 +467,6 @@ function StudentProfilePage() {
             </div>
           )}
 
-          {(() => {
-            const extraJuz = ((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? [];
-            const has28 = extraJuz.includes(28);
-            const has29 = extraJuz.includes(29);
-            return (
-              <div className="mt-5 pt-5 border-t">
-                <div className="text-xs text-muted-foreground mb-3">الأجزاء المتاحة للتسميع</div>
-                <div className="flex flex-wrap gap-3 items-center">
-                  <Badge variant="secondary">جزء عمّ (30)</Badge>
-                  {isManager ? (
-                    <>
-                      <label className="flex items-center gap-2 text-sm border rounded-md px-3 py-1.5 bg-background">
-                        <Switch
-                          checked={has29}
-                          onCheckedChange={(v) => toggleJuz(29, v)}
-                          disabled={juzMutation.isPending}
-                        />
-                        <span>جزء تبارك (29)</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm border rounded-md px-3 py-1.5 bg-background">
-                        <Switch
-                          checked={has28}
-                          onCheckedChange={(v) => toggleJuz(28, v)}
-                          disabled={juzMutation.isPending}
-                        />
-                        <span>جزء قد سمع (28)</span>
-                      </label>
-                    </>
-                  ) : (
-                    <>
-                      {has29 && <Badge variant="secondary">جزء تبارك (29)</Badge>}
-                      {has28 && <Badge variant="secondary">جزء قد سمع (28)</Badge>}
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
 
           <div className="mt-5 pt-5 border-t grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border bg-background p-3">
