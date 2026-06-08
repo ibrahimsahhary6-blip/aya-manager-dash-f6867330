@@ -1237,7 +1237,7 @@ function RecitationForm({
               <SelectValue placeholder={fromSurah ? "اختر .." : "اختر من سورة أولاً"} />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {SURAHS.filter(
+              {availableSurahs.filter(
                 (s) => !selectedSurah || s.number >= selectedSurah.number,
               ).map((s) => (
                 <SelectItem key={s.number} value={s.name}>
