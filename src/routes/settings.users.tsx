@@ -8,6 +8,9 @@ import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
 import { StudentQrCard } from "@/components/StudentQrCard";
 import { ManageStudentsPermissionCard } from "@/components/ManageStudentsPermissionCard";
+import { StudentJuzManagerCard } from "@/components/StudentJuzManagerCard";
+
+
 
 export const Route = createFileRoute("/settings/users")({
   component: UsersSettingsPage,
@@ -31,6 +34,8 @@ function UsersSettingsPage() {
       <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 grid gap-6">
         <AccessRequestsCard />
         <ManageStudentsPermissionCard />
+        <StudentJuzManagerCard />
+        
         
         
         <CreateUserCard />
