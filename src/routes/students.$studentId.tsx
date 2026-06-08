@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SURAHS, getSurahByName } from "@/lib/quran";
+import { getSurahByName, getSurahsForStudent } from "@/lib/quran";
+import { Switch } from "@/components/ui/switch";
 
 import { Button } from "@/components/ui/button";
 import { BrandLogo, BRAND_LOGO_URL, BRAND_NAME } from "@/components/BrandLogo";
