@@ -371,6 +371,29 @@ function StudentProfilePage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const juzMutation = useMutation({
+    mutationFn: async (extra_juz: number[]) => {
+      const { error } = await supabase
+        .from("students")
+        .update({ extra_juz })
+        .eq("id", studentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("تم تحديث الأجزاء المتاحة");
+      qc.invalidateQueries({ queryKey: ["student", studentId] });
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
+  const toggleJuz = (juz: 28 | 29, enabled: boolean) => {
+    const current = ((student as (Student & { extra_juz?: number[] | null }) | null | undefined)?.extra_juz) ?? [];
+    const next = enabled
+      ? Array.from(new Set([...current, juz])).sort()
+      : current.filter((j) => j !== juz);
+    juzMutation.mutate(next);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
