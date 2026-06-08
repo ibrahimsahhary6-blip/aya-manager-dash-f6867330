@@ -1104,13 +1104,16 @@ function RecitationForm({
   onSubmit,
   onCancel,
   loading,
+  extraJuz = [],
 }: {
   initial?: Partial<RecitationFormValues>;
   submitLabel?: string;
   onSubmit: (v: RecitationFormValues) => void;
   onCancel?: () => void;
   loading?: boolean;
+  extraJuz?: number[];
 }) {
+  const availableSurahs = getSurahsForStudent(extraJuz);
   const getToday = () => {
     const d = new Date();
     const y = d.getFullYear();
