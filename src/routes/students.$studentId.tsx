@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SURAHS, getSurahByName } from "@/lib/quran";
+import { getSurahByName, getSurahsForStudent } from "@/lib/quran";
+import { Switch } from "@/components/ui/switch";
 
 import { Button } from "@/components/ui/button";
 import { BrandLogo, BRAND_LOGO_URL, BRAND_NAME } from "@/components/BrandLogo";
@@ -370,6 +371,29 @@ function StudentProfilePage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const juzMutation = useMutation({
+    mutationFn: async (extra_juz: number[]) => {
+      const { error } = await supabase
+        .from("students")
+        .update({ extra_juz })
+        .eq("id", studentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("تم تحديث الأجزاء المتاحة");
+      qc.invalidateQueries({ queryKey: ["student", studentId] });
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
+  const toggleJuz = (juz: 28 | 29, enabled: boolean) => {
+    const current = ((student as (Student & { extra_juz?: number[] | null }) | null | undefined)?.extra_juz) ?? [];
+    const next = enabled
+      ? Array.from(new Set([...current, juz])).sort()
+      : current.filter((j) => j !== juz);
+    juzMutation.mutate(next);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
@@ -443,6 +467,45 @@ function StudentProfilePage() {
             </div>
           )}
 
+          {(() => {
+            const extraJuz = ((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? [];
+            const has28 = extraJuz.includes(28);
+            const has29 = extraJuz.includes(29);
+            if (!isManager && !has28 && !has29) return null;
+            return (
+              <div className="mt-5 pt-5 border-t">
+                <div className="text-xs text-muted-foreground mb-3">الأجزاء المتاحة للتسميع</div>
+                <div className="flex flex-wrap gap-3 items-center">
+                  <Badge variant="secondary">جزء عمّ (30)</Badge>
+                  {isManager ? (
+                    <>
+                      <label className="flex items-center gap-2 text-sm border rounded-md px-3 py-1.5 bg-background">
+                        <Switch
+                          checked={has29}
+                          onCheckedChange={(v) => toggleJuz(29, v)}
+                          disabled={juzMutation.isPending}
+                        />
+                        <span>جزء تبارك (29)</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm border rounded-md px-3 py-1.5 bg-background">
+                        <Switch
+                          checked={has28}
+                          onCheckedChange={(v) => toggleJuz(28, v)}
+                          disabled={juzMutation.isPending}
+                        />
+                        <span>جزء قد سمع (28)</span>
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      {has29 && <Badge variant="secondary">جزء تبارك (29)</Badge>}
+                      {has28 && <Badge variant="secondary">جزء قد سمع (28)</Badge>}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="mt-5 pt-5 border-t grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border bg-background p-3">
@@ -595,6 +658,7 @@ function StudentProfilePage() {
             loading={addMutation.isPending}
             onSubmit={(v) => addMutation.mutate(v)}
             onCancel={() => setAddOpen(false)}
+            extraJuz={((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? []}
           />
         </DialogContent>
       </Dialog>
@@ -622,6 +686,7 @@ function StudentProfilePage() {
                 updateMutation.mutate({ id: editing.id, values })
               }
               onCancel={() => setEditing(null)}
+              extraJuz={((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? []}
             />
           )}
         </DialogContent>
@@ -1039,13 +1104,16 @@ function RecitationForm({
   onSubmit,
   onCancel,
   loading,
+  extraJuz = [],
 }: {
   initial?: Partial<RecitationFormValues>;
   submitLabel?: string;
   onSubmit: (v: RecitationFormValues) => void;
   onCancel?: () => void;
   loading?: boolean;
+  extraJuz?: number[];
 }) {
+  const availableSurahs = getSurahsForStudent(extraJuz);
   const getToday = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -1147,7 +1215,7 @@ function RecitationForm({
               <SelectValue placeholder="اختر .." />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {SURAHS.map((s) => (
+              {availableSurahs.map((s) => (
                 <SelectItem key={s.number} value={s.name}>
                   {s.name}
                 </SelectItem>
@@ -1169,7 +1237,7 @@ function RecitationForm({
               <SelectValue placeholder={fromSurah ? "اختر .." : "اختر من سورة أولاً"} />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {SURAHS.filter(
+              {availableSurahs.filter(
                 (s) => !selectedSurah || s.number >= selectedSurah.number,
               ).map((s) => (
                 <SelectItem key={s.number} value={s.name}>

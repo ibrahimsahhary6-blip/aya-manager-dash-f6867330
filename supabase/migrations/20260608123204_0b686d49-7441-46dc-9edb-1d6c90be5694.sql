@@ -1,0 +1,1 @@
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS extra_juz integer[] NOT NULL DEFAULT '{}'::integer[];
