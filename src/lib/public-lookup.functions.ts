@@ -76,7 +76,7 @@ export const publicGetStudentHistory = createServerFn({ method: "POST" })
     const [{ data: recitations }, { data: attendance }] = await Promise.all([
       supabaseAdmin
         .from("recitations")
-        .select("id, recited_on, surah, from_ayah, to_ayah, is_review, rating, notes")
+        .select("id, recited_on, surah, from_ayah, to_ayah, is_review, rating")
         .eq("student_id", student.id)
         .order("recited_on", { ascending: false })
         .limit(500),
