@@ -156,6 +156,11 @@ function AttendancePage() {
 
   const isStudentPresent = (studentId: string) => getStudentStatus(studentId) === "present";
 
+  const displayStudents = useMemo(() => {
+    if (statusFilter === "all") return filteredStudents;
+    return filteredStudents.filter((s) => getStudentStatus(s.id) === statusFilter);
+  }, [filteredStudents, statusFilter, attendanceMap, recitedSet]);
+
   const setStatusMutation = useMutation({
     mutationFn: async ({
       studentId,
