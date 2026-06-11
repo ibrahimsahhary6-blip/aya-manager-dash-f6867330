@@ -354,7 +354,7 @@ function AttendancePage() {
             {battalions
               .filter((b) => battalionId === "all" || b.id === battalionId)
               .map((b) => {
-                const battStudents = filteredStudents.filter(
+                const battStudents = displayStudents.filter(
                   (s) => s.battalion_id === b.id,
                 );
                 const battCompanies = companies.filter(
