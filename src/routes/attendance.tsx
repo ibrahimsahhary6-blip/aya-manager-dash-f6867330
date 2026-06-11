@@ -285,6 +285,22 @@ function AttendancePage() {
                 />
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label>الحالة</Label>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as "all" | "present" | "absent")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="present">الحاضرون</SelectItem>
+                  <SelectItem value="absent">الغائبون</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </section>
 
