@@ -44,7 +44,7 @@ function AttendancePage() {
     if (typeof window === "undefined") return null;
     try {
       const raw = sessionStorage.getItem(FILTERS_KEY);
-      return raw ? (JSON.parse(raw) as { battalionId: string; companyId: string; search: string }) : null;
+      return raw ? (JSON.parse(raw) as { battalionId: string; companyId: string; search: string; statusFilter: string }) : null;
     } catch {
       return null;
     }
@@ -53,13 +53,19 @@ function AttendancePage() {
   const [battalionId, setBattalionId] = useState<string>(initialFilters?.battalionId ?? "all");
   const [companyId, setCompanyId] = useState<string>(initialFilters?.companyId ?? "all");
   const [search, setSearch] = useState(initialFilters?.search ?? "");
+  const [statusFilter, setStatusFilter] = useState<"all" | "present" | "absent">(
+    (initialFilters?.statusFilter as "all" | "present" | "absent") ?? "all",
+  );
   useEffect(() => {
     try {
-      sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ battalionId, companyId, search }));
+      sessionStorage.setItem(
+        FILTERS_KEY,
+        JSON.stringify({ battalionId, companyId, search, statusFilter }),
+      );
     } catch {
       // ignore
     }
-  }, [battalionId, companyId, search]);
+  }, [battalionId, companyId, search, statusFilter]);
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
