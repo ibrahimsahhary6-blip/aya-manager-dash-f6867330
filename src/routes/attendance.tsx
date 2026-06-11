@@ -223,7 +223,7 @@ function AttendancePage() {
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Filters */}
         <section className="bg-card rounded-2xl border p-4 shadow-soft">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="space-y-1.5">
               <Label htmlFor="att-date">التاريخ</Label>
               <Input
