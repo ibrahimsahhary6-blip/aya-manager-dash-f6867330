@@ -345,7 +345,7 @@ function AttendancePage() {
           <section className="bg-card rounded-2xl border shadow-soft p-12 text-center text-muted-foreground">
             جارٍ التحميل...
           </section>
-        ) : filteredStudents.length === 0 ? (
+        ) : displayStudents.length === 0 ? (
           <section className="bg-card rounded-2xl border shadow-soft p-12 text-center text-muted-foreground">
             لا يوجد طلاب لعرضهم.
           </section>
