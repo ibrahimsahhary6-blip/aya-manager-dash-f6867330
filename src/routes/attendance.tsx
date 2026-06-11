@@ -433,7 +433,7 @@ function AttendancePage() {
                 );
               })}
             {(() => {
-              const noBatt = filteredStudents.filter((s) => !s.battalion_id);
+              const noBatt = displayStudents.filter((s) => !s.battalion_id);
               if (noBatt.length === 0 || battalionId !== "all") return null;
               return (
                 <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
