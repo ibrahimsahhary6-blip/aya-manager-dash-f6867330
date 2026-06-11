@@ -44,7 +44,7 @@ function AttendancePage() {
     if (typeof window === "undefined") return null;
     try {
       const raw = sessionStorage.getItem(FILTERS_KEY);
-      return raw ? (JSON.parse(raw) as { battalionId: string; companyId: string; search: string }) : null;
+      return raw ? (JSON.parse(raw) as { battalionId: string; companyId: string; search: string; statusFilter: string }) : null;
     } catch {
       return null;
     }
@@ -53,13 +53,19 @@ function AttendancePage() {
   const [battalionId, setBattalionId] = useState<string>(initialFilters?.battalionId ?? "all");
   const [companyId, setCompanyId] = useState<string>(initialFilters?.companyId ?? "all");
   const [search, setSearch] = useState(initialFilters?.search ?? "");
+  const [statusFilter, setStatusFilter] = useState<"all" | "present" | "absent">(
+    (initialFilters?.statusFilter as "all" | "present" | "absent") ?? "all",
+  );
   useEffect(() => {
     try {
-      sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ battalionId, companyId, search }));
+      sessionStorage.setItem(
+        FILTERS_KEY,
+        JSON.stringify({ battalionId, companyId, search, statusFilter }),
+      );
     } catch {
       // ignore
     }
-  }, [battalionId, companyId, search]);
+  }, [battalionId, companyId, search, statusFilter]);
 
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
@@ -150,6 +156,11 @@ function AttendancePage() {
 
   const isStudentPresent = (studentId: string) => getStudentStatus(studentId) === "present";
 
+  const displayStudents = useMemo(() => {
+    if (statusFilter === "all") return filteredStudents;
+    return filteredStudents.filter((s) => getStudentStatus(s.id) === statusFilter);
+  }, [filteredStudents, statusFilter, attendanceMap, recitedSet]);
+
   const setStatusMutation = useMutation({
     mutationFn: async ({
       studentId,
@@ -212,7 +223,7 @@ function AttendancePage() {
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Filters */}
         <section className="bg-card rounded-2xl border p-4 shadow-soft">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="space-y-1.5">
               <Label htmlFor="att-date">التاريخ</Label>
               <Input
@@ -274,6 +285,22 @@ function AttendancePage() {
                 />
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label>الحالة</Label>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as "all" | "present" | "absent")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="present">الحاضرون</SelectItem>
+                  <SelectItem value="absent">الغائبون</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </section>
 
@@ -318,7 +345,7 @@ function AttendancePage() {
           <section className="bg-card rounded-2xl border shadow-soft p-12 text-center text-muted-foreground">
             جارٍ التحميل...
           </section>
-        ) : filteredStudents.length === 0 ? (
+        ) : displayStudents.length === 0 ? (
           <section className="bg-card rounded-2xl border shadow-soft p-12 text-center text-muted-foreground">
             لا يوجد طلاب لعرضهم.
           </section>
@@ -327,7 +354,7 @@ function AttendancePage() {
             {battalions
               .filter((b) => battalionId === "all" || b.id === battalionId)
               .map((b) => {
-                const battStudents = filteredStudents.filter(
+                const battStudents = displayStudents.filter(
                   (s) => s.battalion_id === b.id,
                 );
                 const battCompanies = companies.filter(
@@ -406,7 +433,7 @@ function AttendancePage() {
                 );
               })}
             {(() => {
-              const noBatt = filteredStudents.filter((s) => !s.battalion_id);
+              const noBatt = displayStudents.filter((s) => !s.battalion_id);
               if (noBatt.length === 0 || battalionId !== "all") return null;
               return (
                 <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
