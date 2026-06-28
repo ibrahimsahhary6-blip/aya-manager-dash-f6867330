@@ -255,6 +255,7 @@ function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <DepartmentSwitcher />
             <NotificationsBell />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/attendance">
@@ -285,7 +286,7 @@ function DashboardPage() {
           <StatCard
             icon={<Users className="h-5 w-5" />}
             label="إجمالي الطلاب"
-            value={students.length}
+            value={scopedStudents.length}
             highlight
           />
           <div className="sm:col-span-1 lg:col-span-3 rounded-2xl border bg-card p-4 shadow-soft flex items-center text-xs text-muted-foreground">
