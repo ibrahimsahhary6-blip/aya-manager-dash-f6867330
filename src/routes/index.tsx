@@ -50,6 +50,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useIsAdmin, useCanManageStudents } from "@/lib/roles";
