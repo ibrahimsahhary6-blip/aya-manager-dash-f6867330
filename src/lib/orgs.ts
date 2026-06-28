@@ -4,6 +4,22 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type Battalion = Tables<"battalions">;
 export type Company = Tables<"companies">;
+export type Department = Tables<"departments">;
+
+export function useDepartments() {
+  return useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as Department[];
+    },
+  });
+}
 
 export function useBattalions() {
   return useQuery({
