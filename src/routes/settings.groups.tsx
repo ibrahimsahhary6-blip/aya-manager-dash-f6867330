@@ -374,18 +374,21 @@ function GroupsPage() {
             }}
             className="p-4 grid gap-2 border-b bg-muted/20"
           >
-            <Select value={newBatDept} onValueChange={setNewBatDept}>
-              <SelectTrigger>
-                <SelectValue placeholder="اختر القسم" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!hideDeptPicker && (
+              <Select value={newBatDept} onValueChange={setNewBatDept}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر القسم" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             <div className="flex gap-2">
               <Input
                 value={newBat}
