@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { useBattalions, useCompanies, useDepartments } from "@/lib/orgs";
 import { useDepartmentContext } from "@/lib/department";
+import { useUserDepartmentAccess } from "@/lib/roles";
 
 export type StudentFormValues = {
   full_name: string;
@@ -35,10 +36,20 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
   const [companyId, setCompanyId] = useState(initial?.company_id ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
-  const { data: departments = [] } = useDepartments();
+  const { data: allDepartments = [] } = useDepartments();
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
   const { currentDepartmentId } = useDepartmentContext();
+  const { allowedIds, all } = useUserDepartmentAccess();
+
+  // Departments visible to this user (admin sees all, scoped user sees only allowed)
+  const departments = useMemo(
+    () => (all ? allDepartments : allDepartments.filter((d) => allowedIds.includes(d.id))),
+    [allDepartments, allowedIds, all],
+  );
+
+  // Hide the department selector when the user only has access to a single department
+  const hideDepartmentSelector = !all && departments.length === 1;
 
   // Initial department: from the initial battalion's department, or current
   // global department, or first department available.
@@ -127,21 +138,23 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="department">القسم</Label>
-        <Select value={departmentId} onValueChange={setDepartmentId}>
-          <SelectTrigger id="department">
-            <SelectValue placeholder="اختر القسم" />
-          </SelectTrigger>
-          <SelectContent>
-            {departments.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {!hideDepartmentSelector && (
+        <div className="space-y-2">
+          <Label htmlFor="department">القسم</Label>
+          <Select value={departmentId} onValueChange={setDepartmentId}>
+            <SelectTrigger id="department">
+              <SelectValue placeholder="اختر القسم" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
