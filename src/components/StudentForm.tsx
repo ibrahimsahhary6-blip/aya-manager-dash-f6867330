@@ -36,10 +36,20 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
   const [companyId, setCompanyId] = useState(initial?.company_id ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
-  const { data: departments = [] } = useDepartments();
+  const { data: allDepartments = [] } = useDepartments();
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
   const { currentDepartmentId } = useDepartmentContext();
+  const { allowedIds, all } = useUserDepartmentAccess();
+
+  // Departments visible to this user (admin sees all, scoped user sees only allowed)
+  const departments = useMemo(
+    () => (all ? allDepartments : allDepartments.filter((d) => allowedIds.includes(d.id))),
+    [allDepartments, allowedIds, all],
+  );
+
+  // Hide the department selector when the user only has access to a single department
+  const hideDepartmentSelector = !all && departments.length === 1;
 
   // Initial department: from the initial battalion's department, or current
   // global department, or first department available.
