@@ -43,9 +43,18 @@ function GroupsPage() {
   const qc = useQueryClient();
   const canManage = useCanManageStudents();
   const isAdmin = useIsAdmin();
-  const { data: departments = [] } = useDepartments();
+  const isSuper = useIsSuperAdmin();
+  const { allowedIds, all } = useUserDepartmentAccess();
+  const isManager = isAdmin || isSuper || all;
+  const { data: allDepartments = [] } = useDepartments();
+  const departments = isManager
+    ? allDepartments
+    : allDepartments.filter((d) => allowedIds.includes(d.id));
+  const hideDeptPicker = !isManager && departments.length <= 1;
+  const autoDeptId = !isManager && departments.length === 1 ? departments[0].id : "";
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["departments"] });
