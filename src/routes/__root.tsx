@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { AuthGate } from "@/components/AuthGate";
+import { DepartmentProvider } from "@/lib/department";
 
 import appCss from "../styles.css?url";
 
@@ -100,10 +101,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate>
-        <Outlet />
-      </AuthGate>
-      <Toaster position="top-center" dir="rtl" richColors />
+      <DepartmentProvider>
+        <AuthGate>
+          <Outlet />
+        </AuthGate>
+        <Toaster position="top-center" dir="rtl" richColors />
+      </DepartmentProvider>
     </QueryClientProvider>
 
   );
