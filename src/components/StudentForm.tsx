@@ -46,14 +46,19 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
   const isSuper = useIsSuperAdmin();
   const isManager = isAdmin || isSuper || all;
 
-  // Departments visible to this user (admin sees all, scoped user sees only allowed)
+  // Departments visible to this user (admin or unscoped user sees all,
+  // scoped user sees only the departments assigned to them)
   const departments = useMemo(
-    () => (isManager ? allDepartments : allDepartments.filter((d) => allowedIds.includes(d.id))),
+    () =>
+      isManager || allowedIds.length === 0
+        ? allDepartments
+        : allDepartments.filter((d) => allowedIds.includes(d.id)),
     [allDepartments, allowedIds, isManager],
   );
 
-  // Hide the department selector for non-admin users with ≤1 allowed dept
-  const hideDepartmentSelector = !isManager && departments.length <= 1;
+  // Hide the department selector only when the user is truly scoped to one dept
+  const hideDepartmentSelector = !isManager && allowedIds.length === 1;
+
 
 
   // Initial department: from the initial battalion's department, or current

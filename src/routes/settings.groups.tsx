@@ -47,11 +47,13 @@ function GroupsPage() {
   const { allowedIds, all } = useUserDepartmentAccess();
   const isManager = isAdmin || isSuper || all;
   const { data: allDepartments = [] } = useDepartments();
-  const departments = isManager
-    ? allDepartments
-    : allDepartments.filter((d) => allowedIds.includes(d.id));
-  const hideDeptPicker = !isManager && departments.length <= 1;
-  const autoDeptId = !isManager && departments.length === 1 ? departments[0].id : "";
+  const departments =
+    isManager || allowedIds.length === 0
+      ? allDepartments
+      : allDepartments.filter((d) => allowedIds.includes(d.id));
+  const hideDeptPicker = !isManager && allowedIds.length === 1;
+  const autoDeptId = !isManager && allowedIds.length === 1 ? allowedIds[0] : "";
+
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
 
