@@ -200,21 +200,27 @@ function DashboardPage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const scopedStudents = useMemo(() => {
+    if (scopedBattalionIds === null) return students;
+    const set = new Set(scopedBattalionIds);
+    return students.filter((s) => s.battalion_id && set.has(s.battalion_id));
+  }, [students, scopedBattalionIds]);
+
   const battalionCounts = useMemo(() => {
     const map = new Map<string, number>();
-    students.forEach((s) => {
+    scopedStudents.forEach((s) => {
       if (s.battalion_id) map.set(s.battalion_id, (map.get(s.battalion_id) ?? 0) + 1);
     });
     return map;
-  }, [students]);
+  }, [scopedStudents]);
 
   const companyCounts = useMemo(() => {
     const map = new Map<string, number>();
-    students.forEach((s) => {
+    scopedStudents.forEach((s) => {
       if (s.company_id) map.set(s.company_id, (map.get(s.company_id) ?? 0) + 1);
     });
     return map;
-  }, [students]);
+  }, [scopedStudents]);
 
   const companiesByBattalion = useMemo(() => {
     const map = new Map<string, typeof companies>();
