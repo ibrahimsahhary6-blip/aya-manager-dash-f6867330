@@ -116,6 +116,12 @@ function GroupsPage() {
   // ===== Battalions =====
   const [newBat, setNewBat] = useState("");
   const [newBatDept, setNewBatDept] = useState<string>("");
+  // Auto-pick the user's department when they only have access to one
+  if (!isManager && autoDeptId && newBatDept !== autoDeptId) {
+    // set inside render is fine because it triggers a single re-render
+    setNewBatDept(autoDeptId);
+  }
+
   const [editingBat, setEditingBat] = useState<Battalion | null>(null);
   const [editBatName, setEditBatName] = useState("");
   const [editBatDept, setEditBatDept] = useState<string>("");
