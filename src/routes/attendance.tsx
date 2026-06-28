@@ -224,6 +224,7 @@ function AttendancePage() {
             </Link>
           </Button>
           <div className="flex items-center gap-2">
+            <DepartmentSwitcher />
             <BrandLogo size="sm" />
             <span className="font-bold text-sm sm:text-base text-primary">سجل الحضور والغياب</span>
           </div>
