@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Check, X as XIcon, FileText, ChevronDown } from "lucide-react";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { BrandLogo } from "@/components/BrandLogo";
 
 type Student = Tables<"students">;
@@ -67,8 +68,17 @@ function AttendancePage() {
     }
   }, [battalionId, companyId, search, statusFilter]);
 
-  const { data: battalions = [] } = useBattalions();
-  const { data: companies = [] } = useCompanies();
+  const { data: battalionsAll = [] } = useBattalions();
+  const { data: companiesAll = [] } = useCompanies();
+  const { scopedBattalionIds } = useDepartmentContext();
+  const battalions = useMemo(
+    () => (scopedBattalionIds === null ? battalionsAll : battalionsAll.filter((b) => scopedBattalionIds.includes(b.id))),
+    [battalionsAll, scopedBattalionIds],
+  );
+  const companies = useMemo(
+    () => (scopedBattalionIds === null ? companiesAll : companiesAll.filter((c) => scopedBattalionIds.includes(c.battalion_id))),
+    [companiesAll, scopedBattalionIds],
+  );
 
   const availableCompanies = useMemo(
     () =>
