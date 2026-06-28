@@ -415,23 +415,34 @@ export type Database = {
       user_roles: {
         Row: {
           created_at: string
+          department_id: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
+          department_id?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
+          department_id?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -452,6 +463,14 @@ export type Database = {
       }
       is_approved_user: { Args: never; Returns: boolean }
       normalize_arabic: { Args: { input: string }; Returns: string }
+      user_allowed_department_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
+      user_has_department_access: {
+        Args: { _department_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "super_admin" | "moderator" | "viewer"

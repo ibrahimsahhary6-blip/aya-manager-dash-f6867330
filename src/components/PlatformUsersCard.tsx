@@ -1,10 +1,16 @@
 import { useIsSuperAdmin } from "@/lib/roles";
+import { useDepartments } from "@/lib/orgs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { setUserRole, removePlatformUser } from "@/lib/admin-users.functions";
+import {
+  setUserRole,
+  setUserApproval,
+  removePlatformUser,
+} from "@/lib/admin-users.functions";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -28,19 +34,26 @@ import { Users, Trash2, ShieldAlert } from "lucide-react";
 
 type AppRole = "admin" | "moderator" | "viewer" | "user" | "super_admin";
 
+// Role+scope encoded as a single dropdown value:
+//  - "super_admin"
+//  - "user"          (teacher, no dept)
+//  - "admin:<deptId>" (مشرف على قسم محدد)
+//  - "admin:all"      (مشرف لكل الأقسام — وصول كلي بدون لقب مدير عام)
 const ROLE_LABEL: Record<AppRole, string> = {
   super_admin: "مدير عام",
-  admin: "مدير",
+  admin: "مشرف",
   moderator: "مشرف",
   viewer: "قراءة فقط",
-  user: "مستخدم",
+  user: "معلم",
 };
 
 export function PlatformUsersCard() {
   const isSuperAdmin = useIsSuperAdmin();
   const qc = useQueryClient();
   const setRole = useServerFn(setUserRole);
+  const setApproval = useServerFn(setUserApproval);
   const removeUser = useServerFn(removePlatformUser);
+  const { data: departments = [] } = useDepartments();
   const [removing, setRemoving] = useState<{ id: string; email: string } | null>(null);
 
   const { data: users = [], isLoading } = useQuery({
@@ -52,40 +65,62 @@ export function PlatformUsersCard() {
           .from("profiles")
           .select("user_id, email, is_approved, first_login_at, created_at")
           .order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("user_id, role"),
+        supabase.from("user_roles").select("user_id, role, department_id" as never),
       ]);
       if (pErr) throw pErr;
       if (rErr) throw rErr;
-      const roleMap = new Map<string, AppRole[]>();
-      (roles ?? []).forEach((r) => {
-        const list = roleMap.get(r.user_id) ?? [];
-        list.push(r.role as AppRole);
-        roleMap.set(r.user_id, list);
+
+      type RoleRow = { user_id: string; role: AppRole; department_id: string | null };
+      const rowsByUser = new Map<string, RoleRow[]>();
+      ((roles ?? []) as unknown as RoleRow[]).forEach((r) => {
+        const list = rowsByUser.get(r.user_id) ?? [];
+        list.push(r);
+        rowsByUser.set(r.user_id, list);
       });
+
       return (profiles ?? []).map((p) => {
-        const userRoles = roleMap.get(p.user_id) ?? [];
-        const primary: AppRole = userRoles.includes("super_admin")
-          ? "super_admin"
-          : userRoles.includes("admin")
-          ? "admin"
-          : userRoles.includes("moderator")
-          ? "moderator"
-          : userRoles.includes("viewer")
-          ? "viewer"
-          : "user";
-        return { ...p, role: primary };
+        const userRows = rowsByUser.get(p.user_id) ?? [];
+        const isSuper = userRows.some((r) => r.role === "super_admin");
+        const adminRow = userRows.find((r) => r.role === "admin" || r.role === "moderator");
+        let selection: string;
+        if (isSuper) selection = "super_admin";
+        else if (adminRow) selection = `admin:${adminRow.department_id ?? "all"}`;
+        else selection = "user";
+        return { ...p, isSuper, selection };
       });
     },
   });
 
   const changeRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      await setRole({ data: { targetUserId: userId, role: role as Exclude<AppRole, "super_admin"> } });
+    mutationFn: async ({ userId, selection }: { userId: string; selection: string }) => {
+      if (selection === "user") {
+        await setRole({ data: { targetUserId: userId, role: "user", departmentId: null } });
+      } else if (selection.startsWith("admin:")) {
+        const dept = selection.slice("admin:".length);
+        await setRole({
+          data: {
+            targetUserId: userId,
+            role: "admin",
+            departmentId: dept === "all" ? null : dept,
+          },
+        });
+      }
     },
     onSuccess: () => {
       toast.success("تم تحديث الصلاحية");
       qc.invalidateQueries({ queryKey: ["platform_users"] });
       qc.invalidateQueries({ queryKey: ["audit_log"] });
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
+  const toggleApproval = useMutation({
+    mutationFn: async ({ userId, approved }: { userId: string; approved: boolean }) => {
+      await setApproval({ data: { targetUserId: userId, approved } });
+    },
+    onSuccess: () => {
+      toast.success("تم تحديث حالة الحساب");
+      qc.invalidateQueries({ queryKey: ["platform_users"] });
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
@@ -113,9 +148,9 @@ export function PlatformUsersCard() {
           <Users className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="font-bold">المستخدمون على المنصة</h2>
+          <h2 className="font-bold">إدارة الصلاحيات</h2>
           <p className="text-xs text-muted-foreground">
-            الإيميلات التي دخلت المنصة — يمكنك تعيين الصلاحية أو إزالتها
+            عيّن صلاحية كل مستخدم، اربطه بقسم محدد، فعّل أو عطّل دخوله
           </p>
         </div>
       </div>
@@ -127,7 +162,7 @@ export function PlatformUsersCard() {
       ) : (
         <ul className="divide-y border rounded-xl overflow-hidden">
           {users.map((u) => {
-            const isSuper = u.role === "super_admin";
+            const isSuper = u.isSuper;
             return (
               <li
                 key={u.user_id}
@@ -149,27 +184,44 @@ export function PlatformUsersCard() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border bg-muted/30">
+                    <span className="text-[11px] text-muted-foreground">
+                      {u.is_approved ? "مفعّل" : "موقوف"}
+                    </span>
+                    <Switch
+                      checked={!!u.is_approved}
+                      onCheckedChange={(v) =>
+                        !isSuper &&
+                        toggleApproval.mutate({ userId: u.user_id, approved: v })
+                      }
+                      disabled={isSuper || toggleApproval.isPending}
+                    />
+                  </div>
+
                   <Select
-                    value={u.role}
+                    value={u.selection}
                     onValueChange={(v) =>
-                      !isSuper && changeRole.mutate({ userId: u.user_id, role: v as AppRole })
+                      !isSuper && changeRole.mutate({ userId: u.user_id, selection: v })
                     }
                     disabled={isSuper || changeRole.isPending}
                   >
-                    <SelectTrigger className="w-36 h-9">
+                    <SelectTrigger className="w-52 h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
-                      <SelectItem value="moderator">{ROLE_LABEL.moderator}</SelectItem>
-                      <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
-                      <SelectItem value="user">{ROLE_LABEL.user}</SelectItem>
                       {isSuper && (
                         <SelectItem value="super_admin" disabled>
                           {ROLE_LABEL.super_admin}
                         </SelectItem>
                       )}
+                      <SelectItem value="admin:all">مشرف — وصول كلي</SelectItem>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={`admin:${d.id}`}>
+                          مشرف على {d.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="user">معلم</SelectItem>
                     </SelectContent>
                   </Select>
 

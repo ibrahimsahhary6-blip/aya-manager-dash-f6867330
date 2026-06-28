@@ -161,6 +161,7 @@ export const setUserRole = createServerFn({ method: "POST" })
     z.object({
       targetUserId: z.string().uuid(),
       role: z.enum(ROLE_VALUES),
+      departmentId: z.string().uuid().nullable().optional(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -185,11 +186,37 @@ export const setUserRole = createServerFn({ method: "POST" })
 
     const { error: insErr } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: data.targetUserId, role: data.role });
+      .insert({
+        user_id: data.targetUserId,
+        role: data.role,
+        department_id: data.departmentId ?? null,
+      } as never);
     if (insErr) throw new Error(insErr.message);
 
     return { ok: true };
   });
+
+export const setUserApproval = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      targetUserId: z.string().uuid(),
+      approved: z.boolean(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        is_approved: data.approved,
+        approved_at: data.approved ? new Date().toISOString() : null,
+      })
+      .eq("user_id", data.targetUserId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 export const removePlatformUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
