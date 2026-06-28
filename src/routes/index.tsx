@@ -133,7 +133,9 @@ function DashboardPage() {
 
   const filtered = useMemo(() => {
     const q = normalizeArabic(search);
+    const scopedSet = scopedBattalionIds === null ? null : new Set(scopedBattalionIds);
     return students.filter((s) => {
+      if (scopedSet && (!s.battalion_id || !scopedSet.has(s.battalion_id))) return false;
       if (battalionFilter !== "all" && s.battalion_id !== battalionFilter) return false;
       if (companyFilter !== "all" && s.company_id !== companyFilter) return false;
       if (!q) return true;
@@ -142,7 +144,7 @@ function DashboardPage() {
         s.student_code.toLowerCase().includes(q)
       );
     });
-  }, [students, search, battalionFilter, companyFilter]);
+  }, [students, search, battalionFilter, companyFilter, scopedBattalionIds]);
 
   useEffect(() => {
     setPage(1);
