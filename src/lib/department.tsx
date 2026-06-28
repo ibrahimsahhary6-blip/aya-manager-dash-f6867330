@@ -170,23 +170,3 @@ export function DepartmentSwitcher({ className }: { className?: string }) {
     </div>
   );
 }
-
-  return (
-    <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
-      <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-      <Select value={currentDepartmentId} onValueChange={setCurrentDepartmentId}>
-        <SelectTrigger className="h-9 w-[140px] sm:w-[160px] text-xs sm:text-sm">
-          <SelectValue placeholder="القسم" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>كل الأقسام</SelectItem>
-          {visible.map((d: Department) => (
-            <SelectItem key={d.id} value={d.id}>
-              {d.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
