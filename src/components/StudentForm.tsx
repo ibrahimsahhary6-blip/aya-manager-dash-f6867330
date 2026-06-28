@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/select";
 import { useBattalions, useCompanies, useDepartments } from "@/lib/orgs";
 import { useDepartmentContext } from "@/lib/department";
-import { useUserDepartmentAccess } from "@/lib/roles";
+import { useIsAdmin, useIsSuperAdmin, useUserDepartmentAccess } from "@/lib/roles";
+
 
 export type StudentFormValues = {
   full_name: string;
@@ -41,15 +42,19 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
   const { data: companies = [] } = useCompanies();
   const { currentDepartmentId } = useDepartmentContext();
   const { allowedIds, all } = useUserDepartmentAccess();
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  const isManager = isAdmin || isSuper || all;
 
   // Departments visible to this user (admin sees all, scoped user sees only allowed)
   const departments = useMemo(
-    () => (all ? allDepartments : allDepartments.filter((d) => allowedIds.includes(d.id))),
-    [allDepartments, allowedIds, all],
+    () => (isManager ? allDepartments : allDepartments.filter((d) => allowedIds.includes(d.id))),
+    [allDepartments, allowedIds, isManager],
   );
 
-  // Hide the department selector when the user only has access to a single department
-  const hideDepartmentSelector = !all && departments.length === 1;
+  // Hide the department selector for non-admin users with ≤1 allowed dept
+  const hideDepartmentSelector = !isManager && departments.length <= 1;
+
 
   // Initial department: from the initial battalion's department, or current
   // global department, or first department available.

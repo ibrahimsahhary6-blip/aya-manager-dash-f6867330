@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@/lib/errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ import {
   type Company,
   type Department,
 } from "@/lib/orgs";
-import { useCanManageStudents, useIsAdmin } from "@/lib/roles";
+import { useCanManageStudents, useIsAdmin, useIsSuperAdmin, useUserDepartmentAccess } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/groups")({
   component: GroupsPage,
@@ -43,9 +43,18 @@ function GroupsPage() {
   const qc = useQueryClient();
   const canManage = useCanManageStudents();
   const isAdmin = useIsAdmin();
-  const { data: departments = [] } = useDepartments();
+  const isSuper = useIsSuperAdmin();
+  const { allowedIds, all } = useUserDepartmentAccess();
+  const isManager = isAdmin || isSuper || all;
+  const { data: allDepartments = [] } = useDepartments();
+  const departments = isManager
+    ? allDepartments
+    : allDepartments.filter((d) => allowedIds.includes(d.id));
+  const hideDeptPicker = !isManager && departments.length <= 1;
+  const autoDeptId = !isManager && departments.length === 1 ? departments[0].id : "";
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["departments"] });
@@ -107,6 +116,11 @@ function GroupsPage() {
   // ===== Battalions =====
   const [newBat, setNewBat] = useState("");
   const [newBatDept, setNewBatDept] = useState<string>("");
+  useEffect(() => {
+    if (autoDeptId && newBatDept !== autoDeptId) setNewBatDept(autoDeptId);
+  }, [autoDeptId, newBatDept]);
+
+
   const [editingBat, setEditingBat] = useState<Battalion | null>(null);
   const [editBatName, setEditBatName] = useState("");
   const [editBatDept, setEditBatDept] = useState<string>("");
@@ -360,18 +374,21 @@ function GroupsPage() {
             }}
             className="p-4 grid gap-2 border-b bg-muted/20"
           >
-            <Select value={newBatDept} onValueChange={setNewBatDept}>
-              <SelectTrigger>
-                <SelectValue placeholder="اختر القسم" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!hideDeptPicker && (
+              <Select value={newBatDept} onValueChange={setNewBatDept}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر القسم" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             <div className="flex gap-2">
               <Input
                 value={newBat}
