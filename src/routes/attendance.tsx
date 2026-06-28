@@ -102,7 +102,9 @@ function AttendancePage() {
 
   const normalizedSearch = search.trim().toLowerCase();
   const filteredStudents = useMemo(() => {
+    const scopedSet = scopedBattalionIds === null ? null : new Set(scopedBattalionIds);
     return students.filter((s) => {
+      if (scopedSet && (!s.battalion_id || !scopedSet.has(s.battalion_id))) return false;
       if (battalionId !== "all" && s.battalion_id !== battalionId) return false;
       if (companyId !== "all" && s.company_id !== companyId) return false;
       if (
@@ -114,7 +116,7 @@ function AttendancePage() {
       }
       return true;
     });
-  }, [students, battalionId, companyId, normalizedSearch]);
+  }, [students, battalionId, companyId, normalizedSearch, scopedBattalionIds]);
 
   const { data: attendance = [] } = useQuery({
     queryKey: ["attendance", date],
