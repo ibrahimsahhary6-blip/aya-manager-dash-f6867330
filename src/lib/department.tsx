@@ -105,7 +105,9 @@ export function useDepartmentContext(): Ctx {
   return ctx;
 }
 
-export function useScopedBattalions<T extends { department_id?: string | null }>(items: T[]): T[] {
+export function useScopedBattalions<T extends { department_id?: string | null; id: string }>(
+  items: T[],
+): T[] {
   const { currentDepartmentId, scopedBattalionIds } = useDepartmentContext();
   return useMemo(() => {
     if (currentDepartmentId !== ALL) {
@@ -113,9 +115,10 @@ export function useScopedBattalions<T extends { department_id?: string | null }>
     }
     if (scopedBattalionIds === null) return items;
     const set = new Set(scopedBattalionIds);
-    return items.filter((b) => set.has((b as unknown as { id: string }).id));
+    return items.filter((b) => set.has(b.id));
   }, [items, currentDepartmentId, scopedBattalionIds]);
 }
+
 
 export function useScopedByBattalion<T extends { battalion_id: string | null }>(items: T[]): T[] {
   const { scopedBattalionIds } = useDepartmentContext();
