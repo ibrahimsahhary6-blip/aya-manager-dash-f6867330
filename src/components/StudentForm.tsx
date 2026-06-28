@@ -138,21 +138,23 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="department">القسم</Label>
-        <Select value={departmentId} onValueChange={setDepartmentId}>
-          <SelectTrigger id="department">
-            <SelectValue placeholder="اختر القسم" />
-          </SelectTrigger>
-          <SelectContent>
-            {departments.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {!hideDepartmentSelector && (
+        <div className="space-y-2">
+          <Label htmlFor="department">القسم</Label>
+          <Select value={departmentId} onValueChange={setDepartmentId}>
+            <SelectTrigger id="department">
+              <SelectValue placeholder="اختر القسم" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
