@@ -46,8 +46,7 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
   const isSuper = useIsSuperAdmin();
   const isManager = isAdmin || isSuper || all;
 
-  // Departments visible to this user (admin or unscoped user sees all,
-  // scoped user sees only the departments assigned to them)
+  // Departments visible to this user
   const departments = useMemo(
     () =>
       isManager || allowedIds.length === 0
@@ -56,19 +55,18 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
     [allDepartments, allowedIds, isManager],
   );
 
-  // Hide the department selector only when the user is truly scoped to one dept
+  // Hide the department selector when the user is scoped to exactly one dept
   const hideDepartmentSelector = !isManager && allowedIds.length === 1;
 
-
-
-  // Initial department: from the initial battalion's department, or current
-  // global department, or first department available.
+  // Initial department: from the initial battalion's department, or the user's
+  // single assigned department, or current global department.
   const initialBattalion = useMemo(
     () => battalions.find((b) => b.id === initial?.battalion_id),
     [battalions, initial?.battalion_id],
   );
   const [departmentId, setDepartmentId] = useState<string>(
     initialBattalion?.department_id
+      ?? (!isManager && allowedIds.length === 1 ? allowedIds[0] : "")
       ?? (currentDepartmentId !== "all" ? currentDepartmentId : "")
       ?? "",
   );
@@ -80,15 +78,17 @@ export function StudentForm({ initial, submitLabel = "حفظ", onSubmit, onCance
     setNotes(initial?.notes ?? "");
     const initBat = battalions.find((b) => b.id === initial?.battalion_id);
     if (initBat) setDepartmentId(initBat.department_id);
+    else if (!isManager && allowedIds.length === 1) setDepartmentId(allowedIds[0]);
     else if (currentDepartmentId !== "all") setDepartmentId(currentDepartmentId);
-  }, [initial, battalions, currentDepartmentId]);
+  }, [initial, battalions, currentDepartmentId, isManager, allowedIds]);
 
-  // Default to first department if none picked and only one exists
+  // Default to first department if none picked and only one exists in the list
   useEffect(() => {
     if (!departmentId && departments.length === 1) {
       setDepartmentId(departments[0].id);
     }
   }, [departmentId, departments]);
+
 
   const filteredBattalions = useMemo(
     () => (departmentId ? battalions.filter((b) => b.department_id === departmentId) : battalions),
