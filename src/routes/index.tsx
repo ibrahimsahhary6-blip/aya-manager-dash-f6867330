@@ -50,6 +50,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { StudentForm, type StudentFormValues } from "@/components/StudentForm";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useIsAdmin, useCanManageStudents } from "@/lib/roles";
@@ -99,8 +100,17 @@ function DashboardPage() {
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(1);
 
-  const { data: battalions = [] } = useBattalions();
-  const { data: companies = [] } = useCompanies();
+  const { data: battalionsAll = [] } = useBattalions();
+  const { data: companiesAll = [] } = useCompanies();
+  const { scopedBattalionIds } = useDepartmentContext();
+  const battalions = useMemo(
+    () => (scopedBattalionIds === null ? battalionsAll : battalionsAll.filter((b) => scopedBattalionIds.includes(b.id))),
+    [battalionsAll, scopedBattalionIds],
+  );
+  const companies = useMemo(
+    () => (scopedBattalionIds === null ? companiesAll : companiesAll.filter((c) => scopedBattalionIds.includes(c.battalion_id))),
+    [companiesAll, scopedBattalionIds],
+  );
 
   const battalionName = (id: string | null) =>
     battalions.find((b) => b.id === id)?.name ?? "—";
@@ -123,7 +133,9 @@ function DashboardPage() {
 
   const filtered = useMemo(() => {
     const q = normalizeArabic(search);
+    const scopedSet = scopedBattalionIds === null ? null : new Set(scopedBattalionIds);
     return students.filter((s) => {
+      if (scopedSet && (!s.battalion_id || !scopedSet.has(s.battalion_id))) return false;
       if (battalionFilter !== "all" && s.battalion_id !== battalionFilter) return false;
       if (companyFilter !== "all" && s.company_id !== companyFilter) return false;
       if (!q) return true;
@@ -132,7 +144,7 @@ function DashboardPage() {
         s.student_code.toLowerCase().includes(q)
       );
     });
-  }, [students, search, battalionFilter, companyFilter]);
+  }, [students, search, battalionFilter, companyFilter, scopedBattalionIds]);
 
   useEffect(() => {
     setPage(1);
@@ -188,21 +200,27 @@ function DashboardPage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const scopedStudents = useMemo(() => {
+    if (scopedBattalionIds === null) return students;
+    const set = new Set(scopedBattalionIds);
+    return students.filter((s) => s.battalion_id && set.has(s.battalion_id));
+  }, [students, scopedBattalionIds]);
+
   const battalionCounts = useMemo(() => {
     const map = new Map<string, number>();
-    students.forEach((s) => {
+    scopedStudents.forEach((s) => {
       if (s.battalion_id) map.set(s.battalion_id, (map.get(s.battalion_id) ?? 0) + 1);
     });
     return map;
-  }, [students]);
+  }, [scopedStudents]);
 
   const companyCounts = useMemo(() => {
     const map = new Map<string, number>();
-    students.forEach((s) => {
+    scopedStudents.forEach((s) => {
       if (s.company_id) map.set(s.company_id, (map.get(s.company_id) ?? 0) + 1);
     });
     return map;
-  }, [students]);
+  }, [scopedStudents]);
 
   const companiesByBattalion = useMemo(() => {
     const map = new Map<string, typeof companies>();
@@ -237,6 +255,7 @@ function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <DepartmentSwitcher />
             <NotificationsBell />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/attendance">
@@ -267,7 +286,7 @@ function DashboardPage() {
           <StatCard
             icon={<Users className="h-5 w-5" />}
             label="إجمالي الطلاب"
-            value={students.length}
+            value={scopedStudents.length}
             highlight
           />
           <div className="sm:col-span-1 lg:col-span-3 rounded-2xl border bg-card p-4 shadow-soft flex items-center text-xs text-muted-foreground">

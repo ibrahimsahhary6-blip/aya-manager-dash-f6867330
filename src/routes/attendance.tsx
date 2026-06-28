@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Check, X as XIcon, FileText, ChevronDown } from "lucide-react";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { BrandLogo } from "@/components/BrandLogo";
 
 type Student = Tables<"students">;
@@ -67,8 +68,17 @@ function AttendancePage() {
     }
   }, [battalionId, companyId, search, statusFilter]);
 
-  const { data: battalions = [] } = useBattalions();
-  const { data: companies = [] } = useCompanies();
+  const { data: battalionsAll = [] } = useBattalions();
+  const { data: companiesAll = [] } = useCompanies();
+  const { scopedBattalionIds } = useDepartmentContext();
+  const battalions = useMemo(
+    () => (scopedBattalionIds === null ? battalionsAll : battalionsAll.filter((b) => scopedBattalionIds.includes(b.id))),
+    [battalionsAll, scopedBattalionIds],
+  );
+  const companies = useMemo(
+    () => (scopedBattalionIds === null ? companiesAll : companiesAll.filter((c) => scopedBattalionIds.includes(c.battalion_id))),
+    [companiesAll, scopedBattalionIds],
+  );
 
   const availableCompanies = useMemo(
     () =>
@@ -92,7 +102,9 @@ function AttendancePage() {
 
   const normalizedSearch = search.trim().toLowerCase();
   const filteredStudents = useMemo(() => {
+    const scopedSet = scopedBattalionIds === null ? null : new Set(scopedBattalionIds);
     return students.filter((s) => {
+      if (scopedSet && (!s.battalion_id || !scopedSet.has(s.battalion_id))) return false;
       if (battalionId !== "all" && s.battalion_id !== battalionId) return false;
       if (companyId !== "all" && s.company_id !== companyId) return false;
       if (
@@ -104,7 +116,7 @@ function AttendancePage() {
       }
       return true;
     });
-  }, [students, battalionId, companyId, normalizedSearch]);
+  }, [students, battalionId, companyId, normalizedSearch, scopedBattalionIds]);
 
   const { data: attendance = [] } = useQuery({
     queryKey: ["attendance", date],
@@ -214,6 +226,7 @@ function AttendancePage() {
             </Link>
           </Button>
           <div className="flex items-center gap-2">
+            <DepartmentSwitcher />
             <BrandLogo size="sm" />
             <span className="font-bold text-sm sm:text-base text-primary">سجل الحضور والغياب</span>
           </div>

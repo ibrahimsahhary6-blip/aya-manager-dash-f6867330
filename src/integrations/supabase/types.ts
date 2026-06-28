@@ -193,23 +193,34 @@ export type Database = {
       battalions: {
         Row: {
           created_at: string
+          department_id: string
           id: string
           name: string
           sort_order: number
         }
         Insert: {
           created_at?: string
+          department_id: string
           id?: string
           name: string
           sort_order?: number
         }
         Update: {
           created_at?: string
+          department_id?: string
           id?: string
           name?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "battalions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {
@@ -242,6 +253,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      departments: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

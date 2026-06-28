@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import { BRAND_LOGO_URL, BRAND_NAME } from "@/components/BrandLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useBattalions, useCompanies } from "@/lib/orgs";
+import { useDepartmentContext } from "@/lib/department";
 import { getErrorMessage } from "@/lib/errors";
 import {
   buildRecitationDetail,
@@ -435,7 +436,12 @@ export function ExportReportDialog() {
   } | null>(null);
 
   const { data: battalions = [] } = useBattalions();
-  const { data: companies = [] } = useCompanies();
+  const { data: companiesAll = [] } = useCompanies();
+  const { scopedBattalionIds } = useDepartmentContext();
+  const companies = useMemo(
+    () => (scopedBattalionIds === null ? companiesAll : companiesAll.filter((c) => scopedBattalionIds.includes(c.battalion_id))),
+    [companiesAll, scopedBattalionIds],
+  );
 
   const companyOptions = useMemo(() => {
     const sorted = [...companies].sort((a, b) => {
