@@ -8,16 +8,16 @@ import {
   setUserApproval,
   removePlatformUser,
 } from "@/lib/admin-users.functions";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,21 +30,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/errors";
-import { Users, Trash2, ShieldAlert } from "lucide-react";
+import { Users, Trash2, ShieldAlert, ChevronDown, Save } from "lucide-react";
 
 type AppRole = "admin" | "moderator" | "viewer" | "user" | "super_admin";
+type SimpleRole = "admin" | "user";
 
-// Role+scope encoded as a single dropdown value:
-//  - "super_admin"
-//  - "user"          (teacher, no dept)
-//  - "admin:<deptId>" (مشرف على قسم محدد)
-//  - "admin:all"      (مشرف لكل الأقسام — وصول كلي بدون لقب مدير عام)
-const ROLE_LABEL: Record<AppRole, string> = {
-  super_admin: "مدير عام",
-  admin: "مشرف",
-  moderator: "مشرف",
-  viewer: "قراءة فقط",
-  user: "معلم",
+type UserRow = {
+  user_id: string;
+  email: string | null;
+  is_approved: boolean | null;
+  first_login_at: string | null;
+  created_at: string;
+  isSuper: boolean;
+  role: SimpleRole;
+  departmentIds: string[];
 };
 
 export function PlatformUsersCard() {
@@ -56,10 +55,13 @@ export function PlatformUsersCard() {
   const { data: departments = [] } = useDepartments();
   const [removing, setRemoving] = useState<{ id: string; email: string } | null>(null);
 
+  // Local draft state per-user for role + department selection
+  const [drafts, setDrafts] = useState<Record<string, { role: SimpleRole; departmentIds: string[] }>>({});
+
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["platform_users"],
     enabled: isSuperAdmin,
-    queryFn: async () => {
+    queryFn: async (): Promise<UserRow[]> => {
       const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
         supabase
           .from("profiles")
@@ -81,35 +83,76 @@ export function PlatformUsersCard() {
       return (profiles ?? []).map((p) => {
         const userRows = rowsByUser.get(p.user_id) ?? [];
         const isSuper = userRows.some((r) => r.role === "super_admin");
-        const adminRow = userRows.find((r) => r.role === "admin" || r.role === "moderator");
-        let selection: string;
-        if (isSuper) selection = "super_admin";
-        else if (adminRow) selection = `admin:${adminRow.department_id ?? "all"}`;
-        else selection = "user";
-        return { ...p, isSuper, selection };
+        // Admin = any row where role is admin/moderator AND department_id is null (global).
+        const isAdmin = userRows.some(
+          (r) => (r.role === "admin" || r.role === "moderator") && r.department_id === null,
+        );
+        const role: SimpleRole = isAdmin ? "admin" : "user";
+        const departmentIds = Array.from(
+          new Set(
+            userRows
+              .filter((r) => r.department_id !== null)
+              .map((r) => r.department_id as string),
+          ),
+        );
+        return {
+          user_id: p.user_id,
+          email: p.email,
+          is_approved: p.is_approved,
+          first_login_at: p.first_login_at,
+          created_at: p.created_at,
+          isSuper,
+          role,
+          departmentIds,
+        };
       });
     },
   });
 
-  const changeRole = useMutation({
-    mutationFn: async ({ userId, selection }: { userId: string; selection: string }) => {
-      if (selection === "user") {
-        await setRole({ data: { targetUserId: userId, role: "user", departmentId: null } });
-      } else if (selection.startsWith("admin:")) {
-        const dept = selection.slice("admin:".length);
-        await setRole({
-          data: {
-            targetUserId: userId,
-            role: "admin",
-            departmentId: dept === "all" ? null : dept,
-          },
-        });
-      }
+  const getDraft = (u: UserRow) =>
+    drafts[u.user_id] ?? { role: u.role, departmentIds: u.departmentIds };
+
+  const isDirty = (u: UserRow) => {
+    const d = drafts[u.user_id];
+    if (!d) return false;
+    if (d.role !== u.role) return true;
+    const a = [...d.departmentIds].sort().join(",");
+    const b = [...u.departmentIds].sort().join(",");
+    return a !== b;
+  };
+
+  const updateDraft = (
+    userId: string,
+    patch: Partial<{ role: SimpleRole; departmentIds: string[] }>,
+    base: { role: SimpleRole; departmentIds: string[] },
+  ) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [userId]: { ...base, ...(prev[userId] ?? {}), ...patch },
+    }));
+  };
+
+  const saveRole = useMutation({
+    mutationFn: async ({
+      userId,
+      role,
+      departmentIds,
+    }: {
+      userId: string;
+      role: SimpleRole;
+      departmentIds: string[];
+    }) => {
+      await setRole({ data: { targetUserId: userId, role, departmentIds } });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       toast.success("تم تحديث الصلاحية");
+      setDrafts((prev) => {
+        const { [vars.userId]: _, ...rest } = prev;
+        return rest;
+      });
       qc.invalidateQueries({ queryKey: ["platform_users"] });
       qc.invalidateQueries({ queryKey: ["audit_log"] });
+      qc.invalidateQueries({ queryKey: ["user-department-access"] });
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
@@ -150,7 +193,7 @@ export function PlatformUsersCard() {
         <div>
           <h2 className="font-bold">إدارة الصلاحيات</h2>
           <p className="text-xs text-muted-foreground">
-            عيّن صلاحية كل مستخدم، اربطه بقسم محدد، فعّل أو عطّل دخوله
+            عيّن دور كل مستخدم (مدير = وصول كلي، مستخدم = محدود بالأقسام المختارة)
           </p>
         </div>
       </div>
@@ -163,6 +206,8 @@ export function PlatformUsersCard() {
         <ul className="divide-y border rounded-xl overflow-hidden">
           {users.map((u) => {
             const isSuper = u.isSuper;
+            const draft = getDraft(u);
+            const dirty = isDirty(u);
             return (
               <li
                 key={u.user_id}
@@ -192,38 +237,64 @@ export function PlatformUsersCard() {
                     <Switch
                       checked={!!u.is_approved}
                       onCheckedChange={(v) =>
-                        !isSuper &&
-                        toggleApproval.mutate({ userId: u.user_id, approved: v })
+                        !isSuper && toggleApproval.mutate({ userId: u.user_id, approved: v })
                       }
                       disabled={isSuper || toggleApproval.isPending}
                     />
                   </div>
 
-                  <Select
-                    value={u.selection}
-                    onValueChange={(v) =>
-                      !isSuper && changeRole.mutate({ userId: u.user_id, selection: v })
+                  {/* Role buttons (admin / user) */}
+                  <div className="inline-flex rounded-md border overflow-hidden">
+                    <button
+                      type="button"
+                      className={`px-3 h-9 text-xs ${draft.role === "admin" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                      onClick={() =>
+                        !isSuper &&
+                        updateDraft(u.user_id, { role: "admin" }, { role: u.role, departmentIds: u.departmentIds })
+                      }
+                      disabled={isSuper}
+                    >
+                      مدير
+                    </button>
+                    <button
+                      type="button"
+                      className={`px-3 h-9 text-xs border-r ${draft.role === "user" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                      onClick={() =>
+                        !isSuper &&
+                        updateDraft(u.user_id, { role: "user" }, { role: u.role, departmentIds: u.departmentIds })
+                      }
+                      disabled={isSuper}
+                    >
+                      مستخدم
+                    </button>
+                  </div>
+
+                  {/* Departments multi-select (only meaningful when role=user) */}
+                  {draft.role === "user" && (
+                    <DepartmentPicker
+                      disabled={isSuper}
+                      departments={departments}
+                      selected={draft.departmentIds}
+                      onChange={(ids) =>
+                        updateDraft(u.user_id, { departmentIds: ids }, { role: u.role, departmentIds: u.departmentIds })
+                      }
+                    />
+                  )}
+
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      saveRole.mutate({
+                        userId: u.user_id,
+                        role: draft.role,
+                        departmentIds: draft.role === "admin" ? [] : draft.departmentIds,
+                      })
                     }
-                    disabled={isSuper || changeRole.isPending}
+                    disabled={isSuper || !dirty || saveRole.isPending}
                   >
-                    <SelectTrigger className="w-52 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {isSuper && (
-                        <SelectItem value="super_admin" disabled>
-                          {ROLE_LABEL.super_admin}
-                        </SelectItem>
-                      )}
-                      <SelectItem value="admin:all">مشرف — وصول كلي</SelectItem>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={`admin:${d.id}`}>
-                          مشرف على {d.name}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="user">معلم</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <Save className="h-4 w-4 ml-1" />
+                    حفظ
+                  </Button>
 
                   <Button
                     size="icon"
@@ -265,5 +336,71 @@ export function PlatformUsersCard() {
         </AlertDialogContent>
       </AlertDialog>
     </section>
+  );
+}
+
+function DepartmentPicker({
+  departments,
+  selected,
+  onChange,
+  disabled,
+}: {
+  departments: Array<{ id: string; name: string }>;
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  disabled?: boolean;
+}) {
+  const label = useMemo(() => {
+    if (selected.length === 0) return "اختر الأقسام";
+    if (selected.length === departments.length) return "كل الأقسام";
+    if (selected.length === 1) {
+      return departments.find((d) => d.id === selected[0])?.name ?? "قسم";
+    }
+    return `${selected.length} أقسام`;
+  }, [selected, departments]);
+
+  const toggle = (id: string) => {
+    if (selected.includes(id)) onChange(selected.filter((x) => x !== id));
+    else onChange([...selected, id]);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 justify-between min-w-[140px]"
+          disabled={disabled}
+        >
+          <span className="truncate">{label}</span>
+          <ChevronDown className="h-3.5 w-3.5 opacity-60 mr-1" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="end">
+        {departments.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-2 py-1">لا توجد أقسام</p>
+        ) : (
+          <ul className="space-y-1">
+            {departments.map((d) => {
+              const id = `dept-${d.id}`;
+              return (
+                <li key={d.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50">
+                  <Checkbox
+                    id={id}
+                    checked={selected.includes(d.id)}
+                    onCheckedChange={() => toggle(d.id)}
+                  />
+                  <Label htmlFor={id} className="text-sm cursor-pointer flex-1">
+                    {d.name}
+                  </Label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
