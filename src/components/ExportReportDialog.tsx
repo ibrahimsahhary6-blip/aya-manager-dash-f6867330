@@ -436,7 +436,7 @@ export function ExportReportDialog() {
   } | null>(null);
 
   const { data: battalions = [] } = useBattalions();
-  const { data: companies: companiesAll = [] } = useCompanies();
+  const { data: companiesAll = [] } = useCompanies();
   const { scopedBattalionIds } = useDepartmentContext();
   const companies = useMemo(
     () => (scopedBattalionIds === null ? companiesAll : companiesAll.filter((c) => scopedBattalionIds.includes(c.battalion_id))),
