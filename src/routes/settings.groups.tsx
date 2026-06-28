@@ -33,7 +33,7 @@ import {
   type Company,
   type Department,
 } from "@/lib/orgs";
-import { useCanManageStudents, useIsAdmin } from "@/lib/roles";
+import { useCanManageStudents, useIsAdmin, useIsSuperAdmin, useUserDepartmentAccess } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/groups")({
   component: GroupsPage,
