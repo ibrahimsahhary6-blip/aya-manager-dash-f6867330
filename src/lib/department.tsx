@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDepartments, useBattalions, type Department } from "@/lib/orgs";
-import { useUserDepartmentAccess, useIsSuperAdmin } from "@/lib/roles";
+import { useUserDepartmentAccess } from "@/lib/roles";
 import {
   Select,
   SelectContent,
