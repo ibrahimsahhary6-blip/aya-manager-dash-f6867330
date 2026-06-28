@@ -132,16 +132,15 @@ export function useScopedByBattalion<T extends { battalion_id: string | null }>(
 export function DepartmentSwitcher({ className }: { className?: string }) {
   const { data: departments = [] } = useDepartments();
   const { currentDepartmentId, setCurrentDepartmentId } = useDepartmentContext();
-  const isSuper = useIsSuperAdmin();
   const { allowedIds, all } = useUserDepartmentAccess();
 
-  // Visible options: super_admin sees all departments; scoped user only their allowed
+  // Visible options: full-access users see all departments; scoped users see only their allowed
   const visible = useMemo(() => {
     if (all) return departments;
     return departments.filter((d) => allowedIds.includes(d.id));
   }, [departments, allowedIds, all]);
 
-  // Only super_admin (or a user with access to >1 departments) can switch.
+  // Auto-lock if only one option
   useEffect(() => {
     if (visible.length === 1 && currentDepartmentId !== visible[0].id) {
       setCurrentDepartmentId(visible[0].id);
@@ -149,8 +148,28 @@ export function DepartmentSwitcher({ className }: { className?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible.length]);
 
-  if (!isSuper) return null;
+  // Hide switcher when user has access to only one (or zero) departments
   if (visible.length <= 1) return null;
+
+  return (
+    <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
+      <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+      <Select value={currentDepartmentId} onValueChange={setCurrentDepartmentId}>
+        <SelectTrigger className="h-9 w-[140px] sm:w-[160px] text-xs sm:text-sm">
+          <SelectValue placeholder="القسم" />
+        </SelectTrigger>
+        <SelectContent>
+          {all && <SelectItem value={ALL}>كل الأقسام</SelectItem>}
+          {visible.map((d: Department) => (
+            <SelectItem key={d.id} value={d.id}>
+              {d.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
   return (
     <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
