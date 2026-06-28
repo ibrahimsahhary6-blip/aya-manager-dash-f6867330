@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { useBattalions, useCompanies, useDepartments } from "@/lib/orgs";
 import { useDepartmentContext } from "@/lib/department";
+import { useUserDepartmentAccess } from "@/lib/roles";
 
 export type StudentFormValues = {
   full_name: string;
