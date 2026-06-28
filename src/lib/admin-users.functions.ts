@@ -153,15 +153,13 @@ export const notifyFirstLogin = createServerFn({ method: "POST" })
     return { ok: true, alreadyNotified: false };
   });
 
-const ROLE_VALUES = ["admin", "moderator", "viewer", "user"] as const;
-
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({
       targetUserId: z.string().uuid(),
-      role: z.enum(ROLE_VALUES),
-      departmentId: z.string().uuid().nullable().optional(),
+      role: z.enum(["admin", "user"]),
+      departmentIds: z.array(z.string().uuid()).default([]),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -184,13 +182,24 @@ export const setUserRole = createServerFn({ method: "POST" })
       .neq("role", "super_admin");
     if (delErr) throw new Error(delErr.message);
 
+    // Build rows:
+    //  - admin → one global row (full access to all departments)
+    //  - user with departmentIds → one row per department (scoped)
+    //  - user without departmentIds → one global row with no scope (no access)
+    const rows: Array<{ user_id: string; role: "admin" | "user"; department_id: string | null }> =
+      data.role === "admin"
+        ? [{ user_id: data.targetUserId, role: "admin", department_id: null }]
+        : data.departmentIds.length === 0
+          ? [{ user_id: data.targetUserId, role: "user", department_id: null }]
+          : data.departmentIds.map((id) => ({
+              user_id: data.targetUserId,
+              role: "user" as const,
+              department_id: id,
+            }));
+
     const { error: insErr } = await supabaseAdmin
       .from("user_roles")
-      .insert({
-        user_id: data.targetUserId,
-        role: data.role,
-        department_id: data.departmentId ?? null,
-      } as never);
+      .insert(rows as never);
     if (insErr) throw new Error(insErr.message);
 
     return { ok: true };
