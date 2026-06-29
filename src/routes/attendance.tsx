@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { runOrQueue } from "@/lib/offline-queue";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { ArrowRight, Users, UserCheck, UserX, Percent, FileWarning, Search } from "lucide-react";
@@ -182,27 +183,28 @@ function AttendancePage() {
       status: AttStatus;
     }) => {
       if (status === "none") {
-        const { error } = await supabase
-          .from("attendance")
-          .delete()
-          .eq("student_id", studentId)
-          .eq("attended_on", date);
-        if (error) throw error;
-        return;
+        const res = await runOrQueue({
+          kind: "attendance_delete",
+          payload: { student_id: studentId, attended_on: date },
+        });
+        return res;
       }
-      const payload = {
-        student_id: studentId,
-        attended_on: date,
-        present: status === "present",
-        excused: status === "excused",
-      };
-      const { error } = await supabase
-        .from("attendance")
-        .upsert(payload, { onConflict: "student_id,attended_on" });
-      if (error) throw error;
+      const res = await runOrQueue({
+        kind: "attendance_upsert",
+        payload: {
+          student_id: studentId,
+          attended_on: date,
+          present: status === "present",
+          excused: status === "excused",
+        },
+      });
+      return res;
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["attendance", date] });
+      if (res?.queued) {
+        toast.success("تم الحفظ محلياً — ستتم المزامنة عند عودة الاتصال");
+      }
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
