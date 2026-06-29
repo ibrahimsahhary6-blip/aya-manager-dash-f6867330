@@ -273,7 +273,7 @@ function GroupsPage() {
             </div>
           </div>
 
-          {isAdmin && (
+          {(isAdmin || isSuper) && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
