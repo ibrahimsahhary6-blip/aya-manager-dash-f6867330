@@ -9,6 +9,10 @@ import {
 import { Toaster } from "sonner";
 import { AuthGate } from "@/components/AuthGate";
 import { DepartmentProvider } from "@/lib/department";
+import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
+import { useEffect } from "react";
+import { registerPWA } from "@/lib/pwa-register";
+import { flushQueue } from "@/lib/offline-queue";
 
 import appCss from "../styles.css?url";
 
