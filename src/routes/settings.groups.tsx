@@ -273,7 +273,7 @@ function GroupsPage() {
             </div>
           </div>
 
-          {isAdmin && (
+          {(isAdmin || isSuper) && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -326,7 +326,7 @@ function GroupsPage() {
                     <>
                       <span className="flex-1 font-medium">{d.name}</span>
                       <span className="text-xs text-muted-foreground">{batCount} كتيبة</span>
-                      {isAdmin && (
+                      {(isAdmin || isSuper) && (
                         <>
                           <Button
                             size="icon"
