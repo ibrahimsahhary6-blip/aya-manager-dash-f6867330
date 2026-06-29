@@ -68,9 +68,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/91652bac-ce0a-4dc9-9e4d-0d2096e00ce9/id-preview-709d6bcf--c68e50a6-5d76-4dda-af56-6941754593a0.lovable.app-1779121126477.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
+      { name: "theme-color", content: "#1a6b5f" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "البناء القرآني" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/icons/favicon-32.png" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -103,15 +110,24 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    registerPWA();
+    // On mount, try flushing any queued offline writes (covers app re-open while online).
+    if (typeof navigator !== "undefined" && navigator.onLine) {
+      flushQueue().catch(() => undefined);
+    }
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <DepartmentProvider>
         <AuthGate>
           <Outlet />
         </AuthGate>
+        <NetworkStatusIndicator />
         <Toaster position="top-center" dir="rtl" richColors />
       </DepartmentProvider>
     </QueryClientProvider>
+
 
   );
 }
