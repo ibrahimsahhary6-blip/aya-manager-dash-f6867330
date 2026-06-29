@@ -54,8 +54,18 @@ function GroupsPage() {
   const hideDeptPicker = !isManager && allowedIds.length === 1;
   const autoDeptId = !isManager && allowedIds.length === 1 ? allowedIds[0] : "";
 
-  const { data: battalions = [] } = useBattalions();
-  const { data: companies = [] } = useCompanies();
+  const { data: allBattalions = [] } = useBattalions();
+  const { data: allCompanies = [] } = useCompanies();
+  // Restrict battalions/companies to the user's allowed departments
+  const battalions =
+    isManager || allowedIds.length === 0
+      ? allBattalions
+      : allBattalions.filter((b) => b.department_id && allowedIds.includes(b.department_id));
+  const allowedBatIds = new Set(battalions.map((b) => b.id));
+  const companies =
+    isManager || allowedIds.length === 0
+      ? allCompanies
+      : allCompanies.filter((c) => c.battalion_id && allowedBatIds.has(c.battalion_id));
 
 
   const invalidate = () => {
