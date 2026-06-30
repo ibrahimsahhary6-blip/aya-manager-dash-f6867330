@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Wifi, WifiOff, CloudUpload } from "lucide-react";
 import { flushQueue, pendingCount, subscribeQueue } from "@/lib/offline-queue";
 
@@ -24,33 +24,25 @@ async function probeOnline(): Promise<boolean> {
 }
 
 export function NetworkStatusIndicator() {
-  const [online, setOnline] = useState(
+  const [browserOnline, setBrowserOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
   const [pending, setPending] = useState(0);
-  const browserOffline = useRef(typeof navigator !== "undefined" && !navigator.onLine);
 
   useEffect(() => {
     let cancelled = false;
 
     const refresh = async () => {
-      browserOffline.current = typeof navigator !== "undefined" && !navigator.onLine;
+      const currentlyOnline = typeof navigator === "undefined" ? true : navigator.onLine;
+      setBrowserOnline(currentlyOnline);
 
       // Keep the UI online whenever the browser reports online. If the later
       // probe succeeds, we also flush the queue; if it fails, we avoid showing
       // a false "غير متصل" badge because writes can still queue on real errors.
-      if (!browserOffline.current) {
-        setOnline(true);
-      }
+      if (!currentlyOnline) return pendingCount().then((n) => !cancelled && setPending(n));
 
       const ok = await probeOnline();
       if (cancelled) return;
-
-      if (ok) {
-        setOnline(true);
-      } else if (browserOffline.current) {
-        setOnline(false);
-      }
 
       if (ok) {
         await flushQueue().catch(() => undefined);
@@ -60,8 +52,7 @@ export function NetworkStatusIndicator() {
 
     const handleOnline = () => refresh();
     const handleOffline = () => {
-      browserOffline.current = true;
-      setOnline(false);
+      setBrowserOnline(false);
     };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -81,21 +72,21 @@ export function NetworkStatusIndicator() {
     };
   }, []);
 
-  if (online && pending === 0) {
+  if (browserOnline && pending === 0) {
     // Hide when everything is fine to reduce visual noise.
     return null;
   }
 
-  const isSyncing = online && pending > 0;
+  const isSyncing = browserOnline && pending > 0;
   const color = isSyncing
     ? "bg-amber-500 text-white"
-    : online
+    : browserOnline
       ? "bg-emerald-600 text-white"
       : "bg-orange-500 text-white";
-  const Icon = isSyncing ? CloudUpload : online ? Wifi : WifiOff;
+  const Icon = isSyncing ? CloudUpload : browserOnline ? Wifi : WifiOff;
   const label = isSyncing
     ? `جاري المزامنة… (${pending})`
-    : online
+    : browserOnline
       ? "متصل"
       : pending > 0
         ? `غير متصل — ${pending} عملية محفوظة محلياً`
