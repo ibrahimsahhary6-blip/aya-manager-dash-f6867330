@@ -1,10 +1,13 @@
 import { getErrorMessage } from "@/lib/errors";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { useCachedQuery, writeCache } from "@/lib/local-cache";
+import { runOrQueue } from "@/lib/offline-queue";
+
 import {
   Plus,
   Search,
@@ -117,7 +120,7 @@ function DashboardPage() {
   const companyName = (id: string | null) =>
     companies.find((c) => c.id === id)?.name ?? "—";
 
-  const { data: students = [], isLoading } = useQuery({
+  const { data: students = [], isLoading } = useCachedQuery<Student[]>({
     queryKey: ["students"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -130,6 +133,7 @@ function DashboardPage() {
     },
     staleTime: 60_000,
   });
+
 
   const filtered = useMemo(() => {
     const q = normalizeArabic(search);
@@ -156,13 +160,37 @@ function DashboardPage() {
   const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
 
+  // Optimistically patch the cached students list + persist to IndexedDB so
+  // offline mutations are visible immediately and survive a page reload.
+  const patchStudentsCache = (mutator: (rows: Student[]) => Student[]) => {
+    const current = (qc.getQueryData<Student[]>(["students"]) ?? []) as Student[];
+    const next = mutator(current);
+    qc.setQueryData(["students"], next);
+    writeCache(["students"], next).catch(() => undefined);
+  };
+
   const addMutation = useMutation({
     mutationFn: async (values: StudentFormValues) => {
-      const { error } = await supabase.from("students").insert(values);
-      if (error) throw error;
+      // Optimistic local insert so UI updates instantly even when offline.
+      const tempId = `tmp_${crypto.randomUUID()}`;
+      const nowIso = new Date().toISOString();
+      const optimistic: Student = {
+        id: tempId,
+        full_name: values.full_name,
+        student_code: (values as { student_code?: string }).student_code ?? "",
+        battalion_id: values.battalion_id ?? null,
+        company_id: values.company_id ?? null,
+        created_at: nowIso,
+        updated_at: nowIso,
+        deleted_at: null,
+        notes: (values as { notes?: string | null }).notes ?? null,
+      } as Student;
+      patchStudentsCache((rows) => [optimistic, ...rows]);
+      const { queued } = await runOrQueue({ kind: "student_insert", payload: values });
+      return { queued };
     },
-    onSuccess: () => {
-      toast.success("تم إضافة الطالب بنجاح");
+    onSuccess: ({ queued }) => {
+      toast.success(queued ? "تم حفظ الطالب محلياً وسيتم رفعه عند عودة الاتصال" : "تم إضافة الطالب بنجاح");
       qc.invalidateQueries({ queryKey: ["students"] });
       setAddOpen(false);
     },
@@ -173,11 +201,17 @@ function DashboardPage() {
     mutationFn: async ({ id, values }: { id: string; values: StudentFormValues }) => {
       const payload: Partial<StudentFormValues> = { ...values };
       if (!isAdmin) delete payload.full_name;
-      const { error } = await supabase.from("students").update(payload).eq("id", id);
-      if (error) throw error;
+      patchStudentsCache((rows) =>
+        rows.map((r) => (r.id === id ? ({ ...r, ...payload, updated_at: new Date().toISOString() } as Student) : r)),
+      );
+      const { queued } = await runOrQueue({
+        kind: "student_update",
+        payload: { id, patch: payload as Record<string, unknown> },
+      });
+      return { queued };
     },
-    onSuccess: () => {
-      toast.success("تم تحديث بيانات الطالب");
+    onSuccess: ({ queued }) => {
+      toast.success(queued ? "تم حفظ التعديل محلياً وسيتم رفعه عند عودة الاتصال" : "تم تحديث بيانات الطالب");
       qc.invalidateQueries({ queryKey: ["students"] });
       setEditing(null);
     },
@@ -186,19 +220,18 @@ function DashboardPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("students")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
+      patchStudentsCache((rows) => rows.filter((r) => r.id !== id));
+      const { queued } = await runOrQueue({ kind: "student_soft_delete", payload: { id } });
+      return { queued };
     },
-    onSuccess: () => {
-      toast.success("تم نقل الطالب إلى سلة المحذوفات");
+    onSuccess: ({ queued }) => {
+      toast.success(queued ? "تم الحذف محلياً وسيتم تنفيذه عند عودة الاتصال" : "تم نقل الطالب إلى سلة المحذوفات");
       qc.invalidateQueries({ queryKey: ["students"] });
       setDeleting(null);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
+
 
   const scopedStudents = useMemo(() => {
     if (scopedBattalionIds === null) return students;
