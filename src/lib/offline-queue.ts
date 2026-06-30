@@ -20,9 +20,17 @@ export type QueuedOp =
     }
   | {
       kind: "recitation_insert";
-      // Loose payload because columns may evolve; the queue just replays it.
       payload: Record<string, unknown>;
+    }
+  | {
+      kind: "recitation_update";
+      payload: { id: string; patch: Record<string, unknown> };
+    }
+  | {
+      kind: "recitation_delete";
+      payload: { id: string };
     };
+
 
 type StoredOp = QueuedOp & { id?: number; queued_at: number };
 
