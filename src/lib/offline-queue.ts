@@ -29,7 +29,20 @@ export type QueuedOp =
   | {
       kind: "recitation_delete";
       payload: { id: string };
+    }
+  | {
+      kind: "student_insert";
+      payload: Record<string, unknown>;
+    }
+  | {
+      kind: "student_update";
+      payload: { id: string; patch: Record<string, unknown> };
+    }
+  | {
+      kind: "student_soft_delete";
+      payload: { id: string };
     };
+
 
 
 type StoredOp = QueuedOp & { id?: number; queued_at: number };
