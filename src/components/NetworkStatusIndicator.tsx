@@ -2,6 +2,25 @@ import { useEffect, useState } from "react";
 import { Wifi, WifiOff, CloudUpload } from "lucide-react";
 import { flushQueue, pendingCount, subscribeQueue } from "@/lib/offline-queue";
 
+// Verify real connectivity (navigator.onLine can be wrong on mobile/PWA).
+async function probeOnline(): Promise<boolean> {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    // Same-origin small asset; cache-bust to avoid SW cached response.
+    const res = await fetch(`/manifest.webmanifest?_=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store",
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    return res.ok || res.status === 304;
+  } catch {
+    return false;
+  }
+}
+
 export function NetworkStatusIndicator() {
   const [online, setOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
@@ -9,17 +28,31 @@ export function NetworkStatusIndicator() {
   const [pending, setPending] = useState(0);
 
   useEffect(() => {
-    const handleOnline = () => {
-      setOnline(true);
-      flushQueue().then(() => pendingCount().then(setPending));
+    let cancelled = false;
+
+    const refresh = async () => {
+      const ok = await probeOnline();
+      if (cancelled) return;
+      setOnline(ok);
+      if (ok) {
+        await flushQueue().catch(() => undefined);
+      }
+      pendingCount().then((n) => !cancelled && setPending(n));
     };
+
+    const handleOnline = () => refresh();
     const handleOffline = () => setOnline(false);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    pendingCount().then(setPending);
-    const unsub = subscribeQueue(() => pendingCount().then(setPending));
-    const interval = setInterval(() => pendingCount().then(setPending), 5000);
+
+    pendingCount().then((n) => !cancelled && setPending(n));
+    refresh();
+
+    const interval = setInterval(refresh, 8000);
+    const unsub = subscribeQueue(() => pendingCount().then((n) => !cancelled && setPending(n)));
+
     return () => {
+      cancelled = true;
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       unsub();
