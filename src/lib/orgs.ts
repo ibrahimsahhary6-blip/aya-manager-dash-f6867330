@@ -1,13 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { useCachedQuery } from "@/lib/local-cache";
 
 export type Battalion = Tables<"battalions">;
 export type Company = Tables<"companies">;
 export type Department = Tables<"departments">;
 
 export function useDepartments() {
-  return useQuery({
+  return useCachedQuery<Department[]>({
     queryKey: ["departments"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -22,7 +22,7 @@ export function useDepartments() {
 }
 
 export function useBattalions() {
-  return useQuery({
+  return useCachedQuery<Battalion[]>({
     queryKey: ["battalions"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -37,7 +37,7 @@ export function useBattalions() {
 }
 
 export function useCompanies() {
-  return useQuery({
+  return useCachedQuery<Company[]>({
     queryKey: ["companies"],
     queryFn: async () => {
       const { data, error } = await supabase
