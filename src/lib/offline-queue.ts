@@ -107,8 +107,24 @@ async function executeOp(op: QueuedOp): Promise<void> {
       .delete()
       .eq("id", op.payload.id);
     if (error) throw error;
+  } else if (op.kind === "student_insert") {
+    const { error } = await supabase.from("students").insert(op.payload as never);
+    if (error) throw error;
+  } else if (op.kind === "student_update") {
+    const { error } = await supabase
+      .from("students")
+      .update(op.payload.patch as never)
+      .eq("id", op.payload.id);
+    if (error) throw error;
+  } else if (op.kind === "student_soft_delete") {
+    const { error } = await supabase
+      .from("students")
+      .update({ deleted_at: new Date().toISOString() } as never)
+      .eq("id", op.payload.id);
+    if (error) throw error;
   }
 }
+
 
 /**
  * Run an operation immediately if online; otherwise queue it for later flush.
