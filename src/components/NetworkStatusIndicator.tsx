@@ -6,7 +6,7 @@ import { flushQueue, pendingCount, subscribeQueue } from "@/lib/offline-queue";
 // block no-store probes even while the app is online, so probe failure must not
 // by itself force the visible state to "offline".
 async function probeOnline(): Promise<boolean> {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+  if (typeof window !== "undefined" && !navigator.onLine) return false;
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5000);
@@ -25,7 +25,7 @@ async function probeOnline(): Promise<boolean> {
 
 export function NetworkStatusIndicator() {
   const [browserOnline, setBrowserOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
+    typeof window === "undefined" ? true : navigator.onLine,
   );
   const [pending, setPending] = useState(0);
 
@@ -33,7 +33,7 @@ export function NetworkStatusIndicator() {
     let cancelled = false;
 
     const refresh = async () => {
-      const currentlyOnline = typeof navigator === "undefined" ? true : navigator.onLine;
+      const currentlyOnline = typeof window === "undefined" ? true : navigator.onLine;
       setBrowserOnline(currentlyOnline);
 
       // Keep the UI online whenever the browser reports online. If the later
