@@ -7,6 +7,8 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
+const appShellRevision = String(Date.now());
+
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 // @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
 export default defineConfig({
@@ -21,6 +23,7 @@ export default defineConfig({
         filename: "sw.js",
         devOptions: { enabled: false },
         includeAssets: [
+          "manifest.webmanifest",
           "icons/icon-192.png",
           "icons/icon-512.png",
           "icons/apple-touch-icon.png",
@@ -28,9 +31,19 @@ export default defineConfig({
         ],
         manifest: false,
         workbox: {
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true,
+          maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+          additionalManifestEntries: [
+            // Cache the app shell itself during SW install so the installed app
+            // can open from airplane mode after it was opened once online.
+            { url: "/", revision: appShellRevision },
+            { url: "/manifest.webmanifest", revision: appShellRevision },
+          ],
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
-          globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff,woff2}"],
+          globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff,woff2,webmanifest,json}"],
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.mode === "navigate",
@@ -38,7 +51,8 @@ export default defineConfig({
               options: {
                 cacheName: "html-pages",
                 networkTimeoutSeconds: 5,
-                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+                expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheableResponse: { statuses: [0, 200] },
               },
             },
             {
@@ -47,6 +61,7 @@ export default defineConfig({
               handler: "CacheFirst",
               options: {
                 cacheName: "static-assets",
+                cacheableResponse: { statuses: [0, 200] },
                 expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
@@ -56,6 +71,7 @@ export default defineConfig({
               handler: "CacheFirst",
               options: {
                 cacheName: "images",
+                cacheableResponse: { statuses: [0, 200] },
                 expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
@@ -64,6 +80,7 @@ export default defineConfig({
               handler: "CacheFirst",
               options: {
                 cacheName: "google-fonts",
+                cacheableResponse: { statuses: [0, 200] },
                 expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
               },
             },
