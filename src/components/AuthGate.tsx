@@ -13,6 +13,37 @@ import { getErrorMessage } from "@/lib/errors";
 
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
+const APPROVAL_CACHE_PREFIX = "approved-user-v1:";
+
+function approvalCacheKey(userId: string) {
+  return `${APPROVAL_CACHE_PREFIX}${userId}`;
+}
+
+function readCachedApproval(userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(approvalCacheKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeCachedApproval(userId: string, approved: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (approved) window.localStorage.setItem(approvalCacheKey(userId), "1");
+    else window.localStorage.removeItem(approvalCacheKey(userId));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function isOfflineLikeError(error: unknown): boolean {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  const msg = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
+  return msg.includes("failed to fetch") || msg.includes("network") || msg.includes("fetch");
+}
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isPublicRoute = pathname.startsWith("/reset-password") || pathname.startsWith("/lookup");
@@ -46,10 +77,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         .eq("user_id", session.user.id)
         .maybeSingle();
       if (error) {
+        if (readCachedApproval(session.user.id) && isOfflineLikeError(error)) {
+          setApproval("approved");
+          return;
+        }
         setApproval("error");
         return;
       }
-      setApproval(data?.is_approved ? "approved" : "pending");
+      const approved = Boolean(data?.is_approved);
+      writeCachedApproval(session.user.id, approved);
+      setApproval(approved ? "approved" : "pending");
       notify({}).catch(() => {});
     })();
   }, [session, notify]);
@@ -75,10 +112,33 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (approval !== "approved") {
+    if (approval === "error") {
+      return <OfflineApprovalError />;
+    }
     return <PendingScreen email={session.user.email ?? ""} />;
   }
 
   return <>{children}</>;
+}
+
+function OfflineApprovalError() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-md text-center">
+        <CardHeader>
+          <CardTitle>تعذر فتح الحساب بدون اتصال</CardTitle>
+          <CardDescription>
+            افتح التطبيق مرة واحدة وأنت متصل حتى يتم حفظ صلاحية الحساب، ثم سيعمل لاحقاً بدون إنترنت.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
+            إعادة المحاولة
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function PendingScreen({ email }: { email: string }) {
