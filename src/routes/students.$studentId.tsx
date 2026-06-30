@@ -292,26 +292,27 @@ function StudentProfilePage() {
 
   const addMutation = useMutation({
     mutationFn: async (values: RecitationFormValues) => {
-      const { error } = await supabase.from("recitations").insert({
-        student_id: studentId,
-        ...values,
+      const recRes = await runOrQueue({
+        kind: "recitation_insert",
+        payload: { student_id: studentId, ...values },
       });
-      if (error) throw error;
-      const { error: attErr } = await supabase
-        .from("attendance")
-        .upsert(
-          {
-            student_id: studentId,
-            attended_on: values.recited_on,
-            present: true,
-            excused: false,
-          },
-          { onConflict: "student_id,attended_on" },
-        );
-      if (attErr) throw attErr;
+      const attRes = await runOrQueue({
+        kind: "attendance_upsert",
+        payload: {
+          student_id: studentId,
+          attended_on: values.recited_on,
+          present: true,
+          excused: false,
+        },
+      });
+      return { queued: recRes.queued || attRes.queued };
     },
-    onSuccess: () => {
-      toast.success("تم حفظ التسميع وتسجيل الحضور تلقائياً");
+    onSuccess: (res) => {
+      toast.success(
+        res.queued
+          ? "تم الحفظ محلياً وسيُزامَن عند عودة الاتصال"
+          : "تم حفظ التسميع وتسجيل الحضور تلقائياً",
+      );
       qc.invalidateQueries({ queryKey: ["recitations", studentId] });
       qc.invalidateQueries({ queryKey: ["attendance"] });
       setAddOpen(false);
@@ -321,26 +322,23 @@ function StudentProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: RecitationFormValues }) => {
-      const { error } = await supabase
-        .from("recitations")
-        .update(values)
-        .eq("id", id);
-      if (error) throw error;
-      const { error: attErr } = await supabase
-        .from("attendance")
-        .upsert(
-          {
-            student_id: studentId,
-            attended_on: values.recited_on,
-            present: true,
-            excused: false,
-          },
-          { onConflict: "student_id,attended_on" },
-        );
-      if (attErr) throw attErr;
+      const r1 = await runOrQueue({
+        kind: "recitation_update",
+        payload: { id, patch: values as unknown as Record<string, unknown> },
+      });
+      const r2 = await runOrQueue({
+        kind: "attendance_upsert",
+        payload: {
+          student_id: studentId,
+          attended_on: values.recited_on,
+          present: true,
+          excused: false,
+        },
+      });
+      return { queued: r1.queued || r2.queued };
     },
-    onSuccess: () => {
-      toast.success("تم تحديث التسميع");
+    onSuccess: (res) => {
+      toast.success(res.queued ? "تم الحفظ محلياً وسيُزامَن لاحقاً" : "تم تحديث التسميع");
       qc.invalidateQueries({ queryKey: ["recitations", studentId] });
       qc.invalidateQueries({ queryKey: ["attendance"] });
       setEditing(null);
@@ -350,8 +348,10 @@ function StudentProfilePage() {
 
   const inlineMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Recitation> }) => {
-      const { error } = await supabase.from("recitations").update(patch).eq("id", id);
-      if (error) throw error;
+      await runOrQueue({
+        kind: "recitation_update",
+        payload: { id, patch: patch as unknown as Record<string, unknown> },
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["recitations", studentId] });
@@ -361,16 +361,16 @@ function StudentProfilePage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("recitations").delete().eq("id", id);
-      if (error) throw error;
+      return runOrQueue({ kind: "recitation_delete", payload: { id } });
     },
-    onSuccess: () => {
-      toast.success("تم حذف التسميع");
+    onSuccess: (res) => {
+      toast.success(res.queued ? "تم الحذف محلياً وسيُزامَن لاحقاً" : "تم حذف التسميع");
       qc.invalidateQueries({ queryKey: ["recitations", studentId] });
       setDeleting(null);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
+
 
   const juzMutation = useMutation({
     mutationFn: async (extra_juz: number[]) => {
