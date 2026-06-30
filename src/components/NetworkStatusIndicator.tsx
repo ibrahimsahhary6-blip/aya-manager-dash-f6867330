@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Wifi, WifiOff, CloudUpload } from "lucide-react";
 import { flushQueue, pendingCount, subscribeQueue } from "@/lib/offline-queue";
 
-// Verify real connectivity (navigator.onLine can be wrong on mobile/PWA).
+// Verify real connectivity when possible. Some mobile/PWA/preview environments
+// block no-store probes even while the app is online, so probe failure must not
+// by itself force the visible state to "offline".
 async function probeOnline(): Promise<boolean> {
   if (typeof navigator !== "undefined" && !navigator.onLine) return false;
   try {
@@ -26,15 +28,18 @@ export function NetworkStatusIndicator() {
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
   const [pending, setPending] = useState(0);
-  const failedChecks = useRef(0);
+  const browserOffline = useRef(typeof navigator !== "undefined" && !navigator.onLine);
 
   useEffect(() => {
     let cancelled = false;
 
     const refresh = async () => {
-      // If the browser itself says we are online, do not leave a stale
-      // "offline" badge visible while the stronger network probe is running.
-      if (typeof navigator !== "undefined" && navigator.onLine) {
+      browserOffline.current = typeof navigator !== "undefined" && !navigator.onLine;
+
+      // Keep the UI online whenever the browser reports online. If the later
+      // probe succeeds, we also flush the queue; if it fails, we avoid showing
+      // a false "غير متصل" badge because writes can still queue on real errors.
+      if (!browserOffline.current) {
         setOnline(true);
       }
 
@@ -42,15 +47,9 @@ export function NetworkStatusIndicator() {
       if (cancelled) return;
 
       if (ok) {
-        failedChecks.current = 0;
         setOnline(true);
-      } else {
-        failedChecks.current += 1;
-        // Avoid false "offline" on mobile/PWA/preview when a single probe is blocked
-        // or slow. Show offline immediately only when the browser confirms it.
-        if ((typeof navigator !== "undefined" && !navigator.onLine) || failedChecks.current >= 2) {
-          setOnline(false);
-        }
+      } else if (browserOffline.current) {
+        setOnline(false);
       }
 
       if (ok) {
@@ -61,7 +60,7 @@ export function NetworkStatusIndicator() {
 
     const handleOnline = () => refresh();
     const handleOffline = () => {
-      failedChecks.current = 2;
+      browserOffline.current = true;
       setOnline(false);
     };
     window.addEventListener("online", handleOnline);
