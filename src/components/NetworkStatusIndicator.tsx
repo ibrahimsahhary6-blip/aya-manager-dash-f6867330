@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Wifi, WifiOff, CloudUpload } from "lucide-react";
 import { flushQueue, pendingCount, subscribeQueue } from "@/lib/offline-queue";
 
-// Verify real connectivity (navigator.onLine can be wrong on mobile/PWA).
+// Verify real connectivity when possible. Some mobile/PWA/preview environments
+// block no-store probes even while the app is online, so probe failure must not
+// by itself force the visible state to "offline".
 async function probeOnline(): Promise<boolean> {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+  if (typeof window !== "undefined" && !navigator.onLine) return false;
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5000);
@@ -22,36 +24,25 @@ async function probeOnline(): Promise<boolean> {
 }
 
 export function NetworkStatusIndicator() {
-  const [online, setOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
+  const [browserOnline, setBrowserOnline] = useState(
+    typeof window === "undefined" ? true : navigator.onLine,
   );
   const [pending, setPending] = useState(0);
-  const failedChecks = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
 
     const refresh = async () => {
-      // If the browser itself says we are online, do not leave a stale
-      // "offline" badge visible while the stronger network probe is running.
-      if (typeof navigator !== "undefined" && navigator.onLine) {
-        setOnline(true);
-      }
+      const currentlyOnline = typeof window === "undefined" ? true : navigator.onLine;
+      setBrowserOnline(currentlyOnline);
+
+      // Keep the UI online whenever the browser reports online. If the later
+      // probe succeeds, we also flush the queue; if it fails, we avoid showing
+      // a false "غير متصل" badge because writes can still queue on real errors.
+      if (!currentlyOnline) return pendingCount().then((n) => !cancelled && setPending(n));
 
       const ok = await probeOnline();
       if (cancelled) return;
-
-      if (ok) {
-        failedChecks.current = 0;
-        setOnline(true);
-      } else {
-        failedChecks.current += 1;
-        // Avoid false "offline" on mobile/PWA/preview when a single probe is blocked
-        // or slow. Show offline immediately only when the browser confirms it.
-        if ((typeof navigator !== "undefined" && !navigator.onLine) || failedChecks.current >= 2) {
-          setOnline(false);
-        }
-      }
 
       if (ok) {
         await flushQueue().catch(() => undefined);
@@ -61,8 +52,7 @@ export function NetworkStatusIndicator() {
 
     const handleOnline = () => refresh();
     const handleOffline = () => {
-      failedChecks.current = 2;
-      setOnline(false);
+      setBrowserOnline(false);
     };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -82,21 +72,21 @@ export function NetworkStatusIndicator() {
     };
   }, []);
 
-  if (online && pending === 0) {
+  if (browserOnline && pending === 0) {
     // Hide when everything is fine to reduce visual noise.
     return null;
   }
 
-  const isSyncing = online && pending > 0;
+  const isSyncing = browserOnline && pending > 0;
   const color = isSyncing
     ? "bg-amber-500 text-white"
-    : online
+    : browserOnline
       ? "bg-emerald-600 text-white"
       : "bg-orange-500 text-white";
-  const Icon = isSyncing ? CloudUpload : online ? Wifi : WifiOff;
+  const Icon = isSyncing ? CloudUpload : browserOnline ? Wifi : WifiOff;
   const label = isSyncing
     ? `جاري المزامنة… (${pending})`
-    : online
+    : browserOnline
       ? "متصل"
       : pending > 0
         ? `غير متصل — ${pending} عملية محفوظة محلياً`
