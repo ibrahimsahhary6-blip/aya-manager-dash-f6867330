@@ -194,7 +194,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         );
         const { data, error } = result;
         if (error) {
-          if (cachedApproval && isOfflineLikeError(error)) {
+          if (isOfflineLikeError(error)) {
             await seedOfflineDefaults(session.user.id).catch(() => undefined);
             setApproval("approved");
             return;
@@ -212,7 +212,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
         setApproval(approved ? "approved" : "pending");
       } catch (error) {
-        if (cachedApproval && isOfflineLikeError(error)) {
+        if (isOfflineLikeError(error)) {
           await seedOfflineDefaults(session.user.id).catch(() => undefined);
           setApproval("approved");
           return;
