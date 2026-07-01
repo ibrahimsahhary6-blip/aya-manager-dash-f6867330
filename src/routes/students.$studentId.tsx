@@ -161,15 +161,19 @@ function StudentProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
-    readCache<Student[]>(["students"]).then((rows) => {
-      if (cancelled || student || !rows) return;
-      const cached = rows.find((s) => s.id === studentId);
-      if (cached) qc.setQueryData(["student", studentId], cached);
-    });
-    readCache<Recitation[]>(["recitations", studentId]).then((cached) => {
-      if (cancelled || !cached) return;
-      const existing = qc.getQueryData<Recitation[]>(["recitations", studentId]);
-      if (!existing || existing.length === 0) qc.setQueryData(["recitations", studentId], cached);
+    Promise.all([
+      readCache<Student[]>(["students"]).then((rows) => {
+        if (cancelled || student || !rows) return;
+        const cached = rows.find((s) => s.id === studentId);
+        if (cached) qc.setQueryData(["student", studentId], cached);
+      }),
+      readCache<Recitation[]>(["recitations", studentId]).then((cached) => {
+        if (cancelled || !cached) return;
+        const existing = qc.getQueryData<Recitation[]>(["recitations", studentId]);
+        if (!existing || existing.length === 0) qc.setQueryData(["recitations", studentId], cached);
+      }),
+    ]).finally(() => {
+      if (!cancelled) setLocalStudentCheckKey(studentId);
     });
     return () => {
       cancelled = true;
