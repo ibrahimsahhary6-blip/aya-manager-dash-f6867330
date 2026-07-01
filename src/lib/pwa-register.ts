@@ -1,7 +1,9 @@
 // Guarded service-worker registration wrapper.
 // Never registers in dev, Lovable preview, iframes, or when ?sw=off is set;
 // unregisters any stale registration in those contexts.
-const SW_URL = "/sw.js";
+const APP_SW_URL = "/app-sw.js";
+const LEGACY_SW_URL = "/sw.js";
+const KNOWN_SW_URLS = [APP_SW_URL, LEGACY_SW_URL];
 
 function isPreviewHost(hostname: string): boolean {
   if (hostname.startsWith("id-preview--") || hostname.startsWith("preview--")) return true;
@@ -18,7 +20,19 @@ async function unregisterMatching() {
   await Promise.all(
     regs.map((r) => {
       const url = r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "";
-      if (url.endsWith(SW_URL)) return r.unregister();
+      if (KNOWN_SW_URLS.some((swUrl) => url.endsWith(swUrl))) return r.unregister();
+      return Promise.resolve();
+    }),
+  );
+}
+
+async function unregisterLegacyWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  const regs = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(
+    regs.map((r) => {
+      const url = r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "";
+      if (url.endsWith(LEGACY_SW_URL)) return r.unregister();
       return Promise.resolve();
     }),
   );
@@ -41,8 +55,9 @@ export async function registerPWA() {
   }
 
   try {
+    await unregisterLegacyWorker().catch(() => undefined);
     const { Workbox } = await import("workbox-window");
-    const wb = new Workbox(SW_URL);
+    const wb = new Workbox(APP_SW_URL);
     wb.addEventListener("waiting", () => {
       wb.messageSkipWaiting();
     });

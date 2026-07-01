@@ -2,8 +2,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useServerFn } from "@tanstack/react-start";
-import { notifyFirstLogin } from "@/lib/admin-users.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,12 +114,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState<ApprovalStatus>("checking");
-  const notifyFn = useServerFn(notifyFirstLogin);
-  const notify = async (payload: Record<string, never>) => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session?.access_token) return;
-    return notifyFn(payload);
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -188,7 +180,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           })
           .catch(() => undefined);
         syncAllOfflineData().catch(() => undefined);
-        notify({}).catch(() => {});
         return;
       }
       try {
@@ -203,7 +194,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         );
         const { data, error } = result;
         if (error) {
-          if (cachedApproval && isOfflineLikeError(error)) {
+          if (isOfflineLikeError(error)) {
             await seedOfflineDefaults(session.user.id).catch(() => undefined);
             setApproval("approved");
             return;
@@ -220,9 +211,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }
         setApproval(approved ? "approved" : "pending");
-        notify({}).catch(() => {});
       } catch (error) {
-        if (cachedApproval && isOfflineLikeError(error)) {
+        if (isOfflineLikeError(error)) {
           await seedOfflineDefaults(session.user.id).catch(() => undefined);
           setApproval("approved");
           return;
@@ -231,7 +221,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         return;
       }
     })();
-  }, [session, notify]);
+  }, [session]);
 
   if (isPublicRoute) return <>{children}</>;
 
