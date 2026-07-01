@@ -2,7 +2,7 @@ import logoUrl from "@/assets/logo.jpg";
 
 export const BRAND_LOGO_URL = logoUrl;
 export const BRAND_NAME = "منصة البناء القرآني";
-export const BRAND_SUBTITLE = "وشؤون المساجد — اللواء 642";
+export const BRAND_SUBTITLE = "وشؤون المساجد — الفرقة 64";
 
 type Size = "sm" | "md" | "lg";
 

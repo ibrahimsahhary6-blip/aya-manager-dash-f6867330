@@ -294,7 +294,7 @@ function GroupsPage() {
               <Input
                 value={newDept}
                 onChange={(e) => setNewDept(e.target.value)}
-                placeholder="اسم القسم الجديد (مثلاً: 642)..."
+                placeholder="اسم القسم الجديد (مثلاً: 64)..."
                 maxLength={100}
               />
               <Button type="submit" disabled={!newDept.trim() || addDept.isPending} className="gap-1">

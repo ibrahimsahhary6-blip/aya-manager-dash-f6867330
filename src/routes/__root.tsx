@@ -59,10 +59,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "منصة إدارة حلقات القرآن في اللواء 642" },
+      { title: "منصة إدارة حلقات القرآن في الفرقة 64" },
       { name: "description", content: "لوحة تحكم لإدارة بيانات طلاب الحلقات القرآنية" },
-      { property: "og:title", content: "منصة إدارة حلقات القرآن في اللواء 642" },
-      { name: "twitter:title", content: "منصة إدارة حلقات القرآن في اللواء 642" },
+      { property: "og:title", content: "منصة إدارة حلقات القرآن في الفرقة 64" },
+      { name: "twitter:title", content: "منصة إدارة حلقات القرآن في الفرقة 64" },
       { property: "og:description", content: "لوحة تحكم لإدارة بيانات طلاب الحلقات القرآنية" },
       { name: "twitter:description", content: "لوحة تحكم لإدارة بيانات طلاب الحلقات القرآنية" },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/91652bac-ce0a-4dc9-9e4d-0d2096e00ce9/id-preview-709d6bcf--c68e50a6-5d76-4dda-af56-6941754593a0.lovable.app-1779121126477.png" },
