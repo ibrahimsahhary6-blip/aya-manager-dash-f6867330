@@ -120,15 +120,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const initialCachedSession = readCachedSession();
     const finishSessionCheck = (nextSession: Session | null) => {
       if (cancelled) return;
       if (nextSession) writeCachedSession(nextSession);
-      const cached = readCachedSession();
+      const cached = initialCachedSession ?? readCachedSession();
       setSession(nextSession ?? cached);
       setLoading(false);
     };
 
-    const fallbackTimer = window.setTimeout(() => finishSessionCheck(readCachedSession()), 2500);
+    const fallbackTimer = window.setTimeout(() => finishSessionCheck(initialCachedSession), 2500);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       clearTimeout(fallbackTimer);
       finishSessionCheck(s);
@@ -138,7 +139,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         clearTimeout(fallbackTimer);
         finishSessionCheck(data.session);
       })
-      .catch(() => finishSessionCheck(readCachedSession()))
+      .catch(() => finishSessionCheck(initialCachedSession))
       .finally(() => {
         clearTimeout(fallbackTimer);
       });
