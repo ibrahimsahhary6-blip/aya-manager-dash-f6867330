@@ -499,7 +499,7 @@ function StudentProfilePage() {
     juzMutation.mutate(next);
   };
 
-  if (isLoading) {
+  if (isLoading || (!student && localStudentCheckKey !== studentId)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         جارٍ التحميل...
