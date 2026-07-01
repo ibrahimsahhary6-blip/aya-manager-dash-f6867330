@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/errors";
 import { seedCacheIfMissing } from "@/lib/local-cache";
+import { syncAllOfflineData } from "@/lib/offline-sync";
 
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
@@ -59,7 +60,21 @@ async function seedOfflineDefaults(userId: string) {
 function isOfflineLikeError(error: unknown): boolean {
   if (typeof navigator !== "undefined" && !navigator.onLine) return true;
   const msg = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
-  return msg.includes("failed to fetch") || msg.includes("network") || msg.includes("fetch");
+  return msg.includes("failed to fetch") || msg.includes("network") || msg.includes("timeout") || msg.includes("fetch");
+}
+
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("network timeout")), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -71,15 +86,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const notify = useServerFn(notifyFirstLogin);
 
   useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => setLoading(false), 3000);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      clearTimeout(fallbackTimer);
       setSession(s);
       setLoading(false);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-    return () => subscription.unsubscribe();
+    withTimeout(supabase.auth.getSession(), 2500)
+      .then(({ data }) => {
+        clearTimeout(fallbackTimer);
+        setSession(data.session);
+      })
+      .catch(() => setSession(null))
+      .finally(() => {
+        clearTimeout(fallbackTimer);
+        setLoading(false);
+      });
+    return () => {
+      clearTimeout(fallbackTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -89,28 +115,51 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
     setApproval("checking");
     (async () => {
-      if (typeof navigator !== "undefined" && !navigator.onLine && readCachedApproval(session.user.id)) {
+      const cachedApproval = readCachedApproval(session.user.id);
+      if (typeof navigator !== "undefined" && !navigator.onLine && cachedApproval) {
+        await seedOfflineDefaults(session.user.id).catch(() => undefined);
         setApproval("approved");
         return;
       }
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("is_approved")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      if (error) {
-        if (readCachedApproval(session.user.id) && isOfflineLikeError(error)) {
+      try {
+        const result = await withTimeout(
+          supabase
+            .from("profiles")
+            .select("is_approved")
+            .eq("user_id", session.user.id)
+            .maybeSingle()
+            .then(({ data, error }) => ({ data, error })),
+          4500,
+        );
+        const { data, error } = result;
+        if (error) {
+          if (cachedApproval && isOfflineLikeError(error)) {
+            await seedOfflineDefaults(session.user.id).catch(() => undefined);
+            setApproval("approved");
+            return;
+          }
+          setApproval("error");
+          return;
+        }
+        const approved = Boolean(data?.is_approved);
+        writeCachedApproval(session.user.id, approved);
+        if (approved) {
+          seedOfflineDefaults(session.user.id).catch(() => undefined);
+          if (typeof navigator === "undefined" || navigator.onLine) {
+            syncAllOfflineData().catch(() => undefined);
+          }
+        }
+        setApproval(approved ? "approved" : "pending");
+        notify({}).catch(() => {});
+      } catch (error) {
+        if (cachedApproval && isOfflineLikeError(error)) {
+          await seedOfflineDefaults(session.user.id).catch(() => undefined);
           setApproval("approved");
           return;
         }
         setApproval("error");
         return;
       }
-      const approved = Boolean(data?.is_approved);
-      writeCachedApproval(session.user.id, approved);
-      if (approved) seedOfflineDefaults(session.user.id).catch(() => undefined);
-      setApproval(approved ? "approved" : "pending");
-      notify({}).catch(() => {});
     })();
   }, [session, notify]);
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Wifi, WifiOff, CloudUpload } from "lucide-react";
 import { flushQueue, pendingCount, subscribeQueue } from "@/lib/offline-queue";
+import { subscribeOfflineSync, syncAllOfflineData, type OfflineSyncState } from "@/lib/offline-sync";
 
 // Verify real connectivity when possible. Some mobile/PWA/preview environments
 // block no-store probes even while the app is online, so probe failure must not
@@ -28,6 +29,13 @@ export function NetworkStatusIndicator() {
     typeof window === "undefined" ? true : navigator.onLine,
   );
   const [pending, setPending] = useState(0);
+  const [syncState, setSyncState] = useState<OfflineSyncState>({
+    status: "idle",
+    message: "",
+    progress: 0,
+    total: 0,
+    lastSyncedAt: null,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +54,7 @@ export function NetworkStatusIndicator() {
 
       if (ok) {
         await flushQueue().catch(() => undefined);
+        await syncAllOfflineData().catch(() => undefined);
       }
       pendingCount().then((n) => !cancelled && setPending(n));
     };
@@ -62,22 +71,24 @@ export function NetworkStatusIndicator() {
 
     const interval = setInterval(refresh, 5000);
     const unsub = subscribeQueue(() => pendingCount().then((n) => !cancelled && setPending(n)));
+    const unsubSync = subscribeOfflineSync((next) => !cancelled && setSyncState(next));
 
     return () => {
       cancelled = true;
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       unsub();
+      unsubSync();
       clearInterval(interval);
     };
   }, []);
 
-  if (browserOnline && pending === 0) {
+  if (browserOnline && pending === 0 && syncState.status !== "syncing") {
     // Hide when everything is fine to reduce visual noise.
     return null;
   }
 
-  const isSyncing = browserOnline && pending > 0;
+  const isSyncing = browserOnline && (pending > 0 || syncState.status === "syncing");
   const color = isSyncing
     ? "bg-amber-500 text-white"
     : browserOnline
@@ -85,7 +96,9 @@ export function NetworkStatusIndicator() {
       : "bg-orange-500 text-white";
   const Icon = isSyncing ? CloudUpload : browserOnline ? Wifi : WifiOff;
   const label = isSyncing
-    ? `جاري المزامنة… (${pending})`
+    ? syncState.status === "syncing"
+      ? syncState.message || "جاري تجهيز البيانات بدون إنترنت…"
+      : `جاري المزامنة… (${pending})`
     : browserOnline
       ? "متصل"
       : pending > 0

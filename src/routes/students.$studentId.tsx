@@ -31,6 +31,7 @@ import { Switch } from "@/components/ui/switch";
 
 import { Button } from "@/components/ui/button";
 import { BrandLogo, BRAND_LOGO_URL, BRAND_NAME } from "@/components/BrandLogo";
+import { OfflineSyncButton } from "@/components/OfflineSyncButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -559,6 +560,7 @@ function StudentProfilePage() {
             <span className="font-bold text-sm text-primary truncate">منصة البناء القرآني</span>
           </div>
           <div className="flex items-center gap-2">
+            <OfflineSyncButton compact />
             <Button
               variant="outline"
               size="sm"

@@ -30,6 +30,7 @@ import { Check, X as XIcon, FileText, ChevronDown } from "lucide-react";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { BrandLogo } from "@/components/BrandLogo";
+import { OfflineSyncButton } from "@/components/OfflineSyncButton";
 
 type Student = Tables<"students">;
 type Attendance = Tables<"attendance">;
@@ -262,6 +263,7 @@ function AttendancePage() {
           </Button>
           <div className="flex items-center gap-2">
             <DepartmentSwitcher />
+            <OfflineSyncButton compact />
             <BrandLogo size="sm" />
             <span className="font-bold text-sm sm:text-base text-primary">سجل الحضور والغياب</span>
           </div>
