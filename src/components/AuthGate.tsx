@@ -106,6 +106,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     (async () => {
       const cachedApproval = readCachedApproval(session.user.id);
       if (typeof navigator !== "undefined" && !navigator.onLine && cachedApproval) {
+        await seedOfflineDefaults(session.user.id).catch(() => undefined);
         setApproval("approved");
         return;
       }
