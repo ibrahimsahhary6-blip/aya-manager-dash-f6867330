@@ -10,10 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/errors";
+import { seedCacheIfMissing } from "@/lib/local-cache";
 
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
 const APPROVAL_CACHE_PREFIX = "approved-user-v1:";
+const DEFAULT_DEPARTMENT_ID = "offline-default-department";
 
 function approvalCacheKey(userId: string) {
   return `${APPROVAL_CACHE_PREFIX}${userId}`;
@@ -36,6 +38,22 @@ function writeCachedApproval(userId: string, approved: boolean) {
   } catch {
     // ignore storage failures
   }
+}
+
+async function seedOfflineDefaults(userId: string) {
+  await Promise.all([
+    seedCacheIfMissing(["departments"], [
+      { id: DEFAULT_DEPARTMENT_ID, name: "القسم الافتراضي", sort_order: 1, created_at: new Date().toISOString() },
+    ]),
+    seedCacheIfMissing(["battalions"], []),
+    seedCacheIfMissing(["companies"], []),
+    seedCacheIfMissing(["students"], []),
+    seedCacheIfMissing(["is-admin", userId], false),
+    seedCacheIfMissing(["is-super-admin", userId], false),
+    seedCacheIfMissing(["setting", "admins_can_manage_students"], true),
+    seedCacheIfMissing(["setting", "users_can_manage_students"], true),
+    seedCacheIfMissing(["user-department-access", userId], { allowedIds: [] as string[], all: true }),
+  ]);
 }
 
 function isOfflineLikeError(error: unknown): boolean {
@@ -90,6 +108,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
       const approved = Boolean(data?.is_approved);
       writeCachedApproval(session.user.id, approved);
+      if (approved) seedOfflineDefaults(session.user.id).catch(() => undefined);
       setApproval(approved ? "approved" : "pending");
       notify({}).catch(() => {});
     })();
