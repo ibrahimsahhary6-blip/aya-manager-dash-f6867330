@@ -71,6 +71,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
     setApproval("checking");
     (async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine && readCachedApproval(session.user.id)) {
+        setApproval("approved");
+        return;
+      }
       const { data, error } = await supabase
         .from("profiles")
         .select("is_approved")
