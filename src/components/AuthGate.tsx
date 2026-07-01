@@ -86,15 +86,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const notify = useServerFn(notifyFirstLogin);
 
   useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => setLoading(false), 3000);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      clearTimeout(fallbackTimer);
       setSession(s);
       setLoading(false);
     });
     withTimeout(supabase.auth.getSession(), 2500)
-      .then(({ data }) => setSession(data.session))
+      .then(({ data }) => {
+        clearTimeout(fallbackTimer);
+        setSession(data.session);
+      })
       .catch(() => setSession(null))
-      .finally(() => setLoading(false));
-    return () => subscription.unsubscribe();
+      .finally(() => {
+        clearTimeout(fallbackTimer);
+        setLoading(false);
+      });
+    return () => {
+      clearTimeout(fallbackTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
