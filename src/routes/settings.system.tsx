@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { BackupRestore } from "@/components/BackupRestore";
 import { AuditLogCard } from "@/components/AuditLogCard";
+import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/system")({
   component: SystemSettingsPage,
