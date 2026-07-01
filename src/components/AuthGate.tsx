@@ -116,7 +116,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState<ApprovalStatus>("checking");
-  const notify = useServerFn(notifyFirstLogin);
+  const notifyFn = useServerFn(notifyFirstLogin);
+  const notify = async (payload: Record<string, never>) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.access_token) return;
+    return notifyFn(payload);
+  };
 
   useEffect(() => {
     let cancelled = false;
