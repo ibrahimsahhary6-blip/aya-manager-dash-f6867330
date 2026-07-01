@@ -53,7 +53,7 @@ function SystemSettingsPage() {
         </section>
 
         <AuditLogCard />
-        <BackupRestore />
+        {canSeeBackups && <BackupRestore />}
       </main>
     </div>
   );
