@@ -407,6 +407,7 @@ function StudentProfilePage() {
         ...values,
       } as Recitation;
       patchRecitationsCache((rows) => [optimistic, ...rows]);
+      markLocalPresent(values.recited_on);
       const recRes = await runOrQueue({
         kind: "recitation_insert",
         payload: {
@@ -449,6 +450,7 @@ function StudentProfilePage() {
       patchRecitationsCache((rows) =>
         rows.map((r) => (r.id === id ? ({ ...r, ...values, updated_at: new Date().toISOString() } as Recitation) : r)),
       );
+      markLocalPresent(values.recited_on);
       const r1 = await runOrQueue({
         kind: "recitation_update",
         payload: { id, patch: values as unknown as Record<string, unknown> },
