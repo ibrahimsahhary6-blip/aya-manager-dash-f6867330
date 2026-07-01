@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { runOrQueue } from "@/lib/offline-queue";
+import { useCachedQuery, writeCache } from "@/lib/local-cache";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { ArrowRight, Users, UserCheck, UserX, Percent, FileWarning, Search } from "lucide-react";
@@ -89,16 +90,18 @@ function AttendancePage() {
     [companies, battalionId],
   );
 
-  const { data: students = [], isLoading: studentsLoading } = useQuery({
+  const { data: students = [], isLoading: studentsLoading } = useCachedQuery<Student[]>({
     queryKey: ["students"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
         .select("*")
+        .is("deleted_at", null)
         .order("full_name");
       if (error) throw error;
       return data as Student[];
     },
+    staleTime: 60_000,
   });
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -121,27 +124,52 @@ function AttendancePage() {
 
   const { data: attendance = [] } = useQuery({
     queryKey: ["attendance", date],
+    networkMode: "always",
+    initialData: () => qc.getQueryData<Attendance[]>(["attendance", date]) ?? [],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance")
         .select("*")
         .eq("attended_on", date);
       if (error) throw error;
+      writeCache(["attendance", date], data as Attendance[]).catch(() => undefined);
       return data as Attendance[];
+    },
+    retry: (failureCount, error) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+      const msg = error instanceof Error ? error.message.toLowerCase() : "";
+      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
+      return failureCount < 2;
     },
   });
 
   const { data: dayRecitations = [] } = useQuery({
     queryKey: ["recitations-by-day", date],
+    networkMode: "always",
+    initialData: () => qc.getQueryData<{ student_id: string }[]>(["recitations-by-day", date]) ?? [],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recitations")
         .select("student_id")
         .eq("recited_on", date);
       if (error) throw error;
+      writeCache(["recitations-by-day", date], data as { student_id: string }[]).catch(() => undefined);
       return data as { student_id: string }[];
     },
+    retry: (failureCount, error) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+      const msg = error instanceof Error ? error.message.toLowerCase() : "";
+      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
+      return failureCount < 2;
+    },
   });
+
+  const patchAttendanceCache = (mutator: (rows: Attendance[]) => Attendance[]) => {
+    const current = (qc.getQueryData<Attendance[]>(["attendance", date]) ?? []) as Attendance[];
+    const next = mutator(current);
+    qc.setQueryData(["attendance", date], next);
+    writeCache(["attendance", date], next).catch(() => undefined);
+  };
 
   const attendanceMap = useMemo(() => {
     const map = new Map<string, Attendance>();
@@ -183,12 +211,31 @@ function AttendancePage() {
       status: AttStatus;
     }) => {
       if (status === "none") {
+        patchAttendanceCache((rows) => rows.filter((a) => a.student_id !== studentId));
         const res = await runOrQueue({
           kind: "attendance_delete",
           payload: { student_id: studentId, attended_on: date },
         });
         return res;
       }
+      const nowIso = new Date().toISOString();
+      patchAttendanceCache((rows) => {
+        const existing = rows.find((a) => a.student_id === studentId);
+        const next = {
+          id: existing?.id ?? `tmp_${studentId}_${date}`,
+          student_id: studentId,
+          attended_on: date,
+          present: status === "present",
+          excused: status === "excused",
+          rating: existing?.rating ?? null,
+          created_by: existing?.created_by ?? null,
+          created_at: existing?.created_at ?? nowIso,
+          updated_at: nowIso,
+        } as Attendance;
+        return existing
+          ? rows.map((a) => (a.student_id === studentId ? next : a))
+          : [next, ...rows];
+      });
       const res = await runOrQueue({
         kind: "attendance_upsert",
         payload: {
@@ -201,7 +248,9 @@ function AttendancePage() {
       return res;
     },
     onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ["attendance", date] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["attendance", date] });
+      }
       if (res?.queued) {
         toast.success("تم الحفظ محلياً — ستتم المزامنة عند عودة الاتصال");
       }
