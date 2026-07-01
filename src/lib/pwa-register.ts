@@ -64,7 +64,18 @@ export async function registerPWA() {
     wb.addEventListener("controlling", () => {
       window.location.reload();
     });
-    await wb.register();
+    const registration = await wb.register();
+    // Actively poll for a new service worker so users get updates without
+    // needing to clear the browser cache after each Publish. Checks on tab
+    // focus, on reconnect, and every 60s while the tab is open.
+    const checkForUpdate = () => {
+      registration?.update().catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checkForUpdate();
+    });
+    window.addEventListener("online", checkForUpdate);
+    setInterval(checkForUpdate, 60_000);
   } catch (e) {
     console.warn("[pwa] registration failed", e);
   }

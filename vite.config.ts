@@ -7,7 +7,7 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
-const appShellRevision = String(Date.now());
+
 
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 // @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
@@ -44,11 +44,11 @@ export default defineConfig({
             "client/": "",
           },
           maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-          additionalManifestEntries: [
-            // Cache the app shell itself during SW install so the installed app
-            // can open from airplane mode after it was opened once online.
-            { url: "/", revision: appShellRevision },
-          ],
+          // NOTE: intentionally NOT precaching "/" — precache always wins over
+          // runtime handlers, which would force users to hard-refresh after
+          // every Publish. NetworkFirst on navigations below serves fresh HTML
+          // when online and falls back to the runtime `html-pages` cache
+          // (populated on first visit) when offline.
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
           globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff,woff2,webmanifest,json}"],
