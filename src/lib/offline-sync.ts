@@ -124,7 +124,7 @@ async function fetchStudents(): Promise<Student[]> {
       .order("created_at", { ascending: false })
       .range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
-    rows.push(...(((data ?? []) as Student[]) ?? []));
+    rows.push(...((data ?? []) as Student[]));
     if (!data || data.length < PAGE_SIZE) break;
   }
   return rows;
@@ -142,7 +142,7 @@ async function fetchRecitations(studentIds: string[]): Promise<Recitation[]> {
         .order("created_at", { ascending: false })
         .range(from, from + PAGE_SIZE - 1);
       if (error) throw error;
-      rows.push(...(((data ?? []) as Recitation[]) ?? []));
+      rows.push(...((data ?? []) as Recitation[]));
       if (!data || data.length < PAGE_SIZE) break;
     }
   }
@@ -160,7 +160,7 @@ async function fetchAttendance(studentIds: string[]): Promise<Attendance[]> {
         .order("attended_on", { ascending: false })
         .range(from, from + PAGE_SIZE - 1);
       if (error) throw error;
-      rows.push(...(((data ?? []) as Attendance[]) ?? []));
+      rows.push(...((data ?? []) as Attendance[]));
       if (!data || data.length < PAGE_SIZE) break;
     }
   }

@@ -109,14 +109,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         setApproval("approved");
         return;
       }
-      let result: Awaited<ReturnType<typeof supabase.from<"profiles">>> | null = null;
+      let result: { data: { is_approved: boolean } | null; error: unknown } | null = null;
       try {
         result = await withTimeout(
           supabase
             .from("profiles")
             .select("is_approved")
             .eq("user_id", session.user.id)
-            .maybeSingle(),
+            .maybeSingle()
+            .then(({ data, error }) => ({ data, error })),
           4500,
         );
       } catch (error) {

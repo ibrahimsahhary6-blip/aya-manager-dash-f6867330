@@ -17,7 +17,12 @@ export function OfflineSyncButton({ compact = false }: { compact?: boolean }) {
   const qc = useQueryClient();
   const [syncState, setSyncState] = useState<OfflineSyncState>(() => getOfflineSyncState());
 
-  useEffect(() => subscribeOfflineSync(setSyncState), []);
+  useEffect(() => {
+    const unsubscribe = subscribeOfflineSync(setSyncState);
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const syncing = syncState.status === "syncing";
   const value = syncState.total > 0 ? Math.round((syncState.progress / syncState.total) * 100) : 0;
