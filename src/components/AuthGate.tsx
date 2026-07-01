@@ -52,7 +52,7 @@ async function seedOfflineDefaults(userId: string) {
     seedCacheIfMissing(["is-super-admin", userId], false),
     seedCacheIfMissing(["setting", "admins_can_manage_students"], true),
     seedCacheIfMissing(["setting", "users_can_manage_students"], true),
-    seedCacheIfMissing(["user-department-access", userId], { allowedIds: [] as string[], all: true }),
+    seedCacheIfMissing(["user-department-access", userId], { allowedIds: [] as string[], all: false }),
   ]);
 }
 
