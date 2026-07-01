@@ -13,6 +13,7 @@ import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { useEffect } from "react";
 import { registerPWA } from "@/lib/pwa-register";
 import { flushQueue } from "@/lib/offline-queue";
+import { syncAllOfflineData } from "@/lib/offline-sync";
 
 import appCss from "../styles.css?url";
 
@@ -114,8 +115,17 @@ function RootComponent() {
     registerPWA();
     // On mount, try flushing any queued offline writes (covers app re-open while online).
     if (typeof navigator !== "undefined" && navigator.onLine) {
-      flushQueue().catch(() => undefined);
+      flushQueue()
+        .then(() => syncAllOfflineData())
+        .catch(() => undefined);
     }
+    const handleOnline = () => {
+      flushQueue()
+        .then(() => syncAllOfflineData({ force: true }))
+        .catch(() => undefined);
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
   }, []);
   return (
     <QueryClientProvider client={queryClient}>

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/errors";
 import { seedCacheIfMissing } from "@/lib/local-cache";
+import { syncAllOfflineData } from "@/lib/offline-sync";
 
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
@@ -59,7 +60,21 @@ async function seedOfflineDefaults(userId: string) {
 function isOfflineLikeError(error: unknown): boolean {
   if (typeof navigator !== "undefined" && !navigator.onLine) return true;
   const msg = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
-  return msg.includes("failed to fetch") || msg.includes("network") || msg.includes("fetch");
+  return msg.includes("failed to fetch") || msg.includes("network") || msg.includes("timeout") || msg.includes("fetch");
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("network timeout")), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -75,10 +90,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       setSession(s);
       setLoading(false);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    withTimeout(supabase.auth.getSession(), 2500)
+      .then(({ data }) => setSession(data.session))
+      .catch(() => setSession(null))
+      .finally(() => setLoading(false));
     return () => subscription.unsubscribe();
   }, []);
 
@@ -89,17 +104,34 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
     setApproval("checking");
     (async () => {
-      if (typeof navigator !== "undefined" && !navigator.onLine && readCachedApproval(session.user.id)) {
+      const cachedApproval = readCachedApproval(session.user.id);
+      if (typeof navigator !== "undefined" && !navigator.onLine && cachedApproval) {
         setApproval("approved");
         return;
       }
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("is_approved")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
+      let result: Awaited<ReturnType<typeof supabase.from<"profiles">>> | null = null;
+      try {
+        result = await withTimeout(
+          supabase
+            .from("profiles")
+            .select("is_approved")
+            .eq("user_id", session.user.id)
+            .maybeSingle(),
+          4500,
+        );
+      } catch (error) {
+        if (cachedApproval || isOfflineLikeError(error)) {
+          await seedOfflineDefaults(session.user.id).catch(() => undefined);
+          setApproval("approved");
+          return;
+        }
+        setApproval("error");
+        return;
+      }
+      const { data, error } = result;
       if (error) {
-        if (readCachedApproval(session.user.id) && isOfflineLikeError(error)) {
+        if (cachedApproval || isOfflineLikeError(error)) {
+          await seedOfflineDefaults(session.user.id).catch(() => undefined);
           setApproval("approved");
           return;
         }
@@ -108,7 +140,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
       const approved = Boolean(data?.is_approved);
       writeCachedApproval(session.user.id, approved);
-      if (approved) seedOfflineDefaults(session.user.id).catch(() => undefined);
+      if (approved) {
+        seedOfflineDefaults(session.user.id).catch(() => undefined);
+        if (typeof navigator === "undefined" || navigator.onLine) {
+          syncAllOfflineData().catch(() => undefined);
+        }
+      }
       setApproval(approved ? "approved" : "pending");
       notify({}).catch(() => {});
     })();

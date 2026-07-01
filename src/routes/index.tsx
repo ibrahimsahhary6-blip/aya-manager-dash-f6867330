@@ -56,6 +56,7 @@ import { useBattalions, useCompanies } from "@/lib/orgs";
 import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
+import { OfflineSyncButton } from "@/components/OfflineSyncButton";
 import { useIsAdmin, useCanManageStudents } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
@@ -300,6 +301,7 @@ function DashboardPage() {
           <div className="flex items-center gap-2 shrink-0">
             <DepartmentSwitcher />
             <NotificationsBell />
+            <OfflineSyncButton compact />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/attendance">
                 <ClipboardCheck className="h-4 w-4" />

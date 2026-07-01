@@ -37,6 +37,20 @@ export async function writeCache<T>(queryKey: QueryKey, value: T): Promise<void>
   await db.put(STORE, value, keyOf(queryKey));
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("network timeout")), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export async function seedCacheIfMissing<T>(queryKey: QueryKey, value: T): Promise<void> {
   const existing = await readCache<T>(queryKey);
   if (existing === undefined) await writeCache(queryKey, value);
@@ -77,10 +91,11 @@ export function useCachedQuery<T>(opts: {
       // last locally-saved data immediately and keep writes in the queue.
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         if (cached !== undefined) return cached;
+        throw new Error("offline cache miss");
       }
 
       try {
-        const data = await opts.queryFn();
+        const data = await withTimeout(opts.queryFn(), 8000);
         writeCache(opts.queryKey, data).catch(() => undefined);
         return data;
       } catch (error) {
@@ -93,6 +108,7 @@ export function useCachedQuery<T>(opts: {
           (typeof navigator !== "undefined" && !navigator.onLine ||
             msg.includes("failed to fetch") ||
             msg.includes("network") ||
+            msg.includes("timeout") ||
             msg.includes("fetch"))
         ) {
           return cached;
