@@ -65,6 +65,7 @@ export function useCachedQuery<T>(opts: {
 
   const q = useQuery({
     queryKey: opts.queryKey,
+    networkMode: "always",
     queryFn: async () => {
       const data = await opts.queryFn();
       writeCache(opts.queryKey, data).catch(() => undefined);
