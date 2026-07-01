@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@/lib/errors";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
