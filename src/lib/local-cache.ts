@@ -37,6 +37,11 @@ export async function writeCache<T>(queryKey: QueryKey, value: T): Promise<void>
   await db.put(STORE, value, keyOf(queryKey));
 }
 
+export async function seedCacheIfMissing<T>(queryKey: QueryKey, value: T): Promise<void> {
+  const existing = await readCache<T>(queryKey);
+  if (existing === undefined) await writeCache(queryKey, value);
+}
+
 /**
  * useQuery wrapper that hydrates from IndexedDB on mount and persists the
  * latest network result back to IndexedDB. Pages load instantly offline.
