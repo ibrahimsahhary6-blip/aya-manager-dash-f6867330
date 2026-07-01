@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Wifi, WifiOff, CloudUpload } from "lucide-react";
+import { CheckCircle2, RefreshCw, Wifi, WifiOff, CloudUpload } from "lucide-react";
 import { flushQueue, pendingCount, subscribeQueue } from "@/lib/offline-queue";
 import { subscribeOfflineSync, syncAllOfflineData, type OfflineSyncState } from "@/lib/offline-sync";
 
@@ -83,24 +83,41 @@ export function NetworkStatusIndicator() {
     };
   }, []);
 
-  if (browserOnline && pending === 0 && syncState.status !== "syncing") {
-    // Hide when everything is fine to reduce visual noise.
-    return null;
-  }
+  const [manualSyncing, setManualSyncing] = useState(false);
 
-  const isSyncing = browserOnline && (pending > 0 || syncState.status === "syncing");
+  const runManualSync = async () => {
+    if (manualSyncing || syncState.status === "syncing") return;
+    setManualSyncing(true);
+    try {
+      await flushQueue().catch(() => undefined);
+      await syncAllOfflineData({ force: true });
+      pendingCount().then(setPending).catch(() => undefined);
+    } catch {
+      pendingCount().then(setPending).catch(() => undefined);
+    } finally {
+      setManualSyncing(false);
+    }
+  };
+
+  const isSyncing = browserOnline && (manualSyncing || pending > 0 || syncState.status === "syncing");
+  const isReady = browserOnline && pending === 0 && syncState.status !== "syncing";
+  const lastSyncedLabel = syncState.lastSyncedAt
+    ? new Date(syncState.lastSyncedAt).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })
+    : null;
   const color = isSyncing
     ? "bg-amber-500 text-white"
-    : browserOnline
+    : isReady
       ? "bg-emerald-600 text-white"
       : "bg-orange-500 text-white";
-  const Icon = isSyncing ? CloudUpload : browserOnline ? Wifi : WifiOff;
+  const Icon = isSyncing ? CloudUpload : browserOnline ? CheckCircle2 : WifiOff;
   const label = isSyncing
     ? syncState.status === "syncing"
       ? syncState.message || "جاري تجهيز البيانات بدون إنترنت…"
       : `جاري المزامنة… (${pending})`
     : browserOnline
-      ? "متصل"
+      ? lastSyncedLabel
+        ? `جاهز بدون إنترنت — آخر مزامنة ${lastSyncedLabel}`
+        : "متصل — اضغط مزامنة الآن لتجهيز الأوفلاين"
       : pending > 0
         ? `غير متصل — ${pending} عملية محفوظة محلياً`
         : "غير متصل";
@@ -111,12 +128,23 @@ export function NetworkStatusIndicator() {
       dir="rtl"
     >
       <div
-        className={`pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold shadow-lg ${color}`}
+        className={`pointer-events-auto flex max-w-[calc(100vw-1rem)] items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold shadow-lg ${color}`}
         role="status"
         aria-live="polite"
       >
         <Icon className="h-4 w-4" />
-        <span>{label}</span>
+        <span className="min-w-0 truncate">{label}</span>
+        {browserOnline && (
+          <button
+            type="button"
+            onClick={runManualSync}
+            disabled={isSyncing}
+            className="mr-1 inline-flex shrink-0 items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-bold hover:bg-white/30 disabled:opacity-70"
+          >
+            {isSyncing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Wifi className="h-3.5 w-3.5" />}
+            مزامنة الآن
+          </button>
+        )}
       </div>
     </div>
   );

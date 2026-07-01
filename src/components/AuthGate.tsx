@@ -16,6 +16,7 @@ import { syncAllOfflineData } from "@/lib/offline-sync";
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
 const APPROVAL_CACHE_PREFIX = "approved-user-v1:";
+const OFFLINE_SESSION_KEY = "offline-auth-session-v1";
 const DEFAULT_DEPARTMENT_ID = "offline-default-department";
 
 function approvalCacheKey(userId: string) {
@@ -36,6 +37,38 @@ function writeCachedApproval(userId: string, approved: boolean) {
   try {
     if (approved) window.localStorage.setItem(approvalCacheKey(userId), "1");
     else window.localStorage.removeItem(approvalCacheKey(userId));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function readCachedSession(): Session | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(OFFLINE_SESSION_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Session | null;
+      if (parsed?.user?.id) return parsed;
+    }
+
+    // Older installed versions only have the backend auth cache. Read it as a
+    // fallback so returning users can open the app offline immediately after update.
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i) ?? "";
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+      const stored = JSON.parse(window.localStorage.getItem(key) ?? "null") as Session | null;
+      if (stored?.user?.id) return stored;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedSession(session: Session | null) {
+  if (typeof window === "undefined" || !session?.user?.id) return;
+  try {
+    window.localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify(session));
   } catch {
     // ignore storage failures
   }
@@ -86,23 +119,32 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const notify = useServerFn(notifyFirstLogin);
 
   useEffect(() => {
-    const fallbackTimer = window.setTimeout(() => setLoading(false), 3000);
+    let cancelled = false;
+    const initialCachedSession = readCachedSession();
+    const finishSessionCheck = (nextSession: Session | null) => {
+      if (cancelled) return;
+      if (nextSession) writeCachedSession(nextSession);
+      const cached = initialCachedSession ?? readCachedSession();
+      setSession(nextSession ?? cached);
+      setLoading(false);
+    };
+
+    const fallbackTimer = window.setTimeout(() => finishSessionCheck(initialCachedSession), 2500);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       clearTimeout(fallbackTimer);
-      setSession(s);
-      setLoading(false);
+      finishSessionCheck(s);
     });
     withTimeout(supabase.auth.getSession(), 2500)
       .then(({ data }) => {
         clearTimeout(fallbackTimer);
-        setSession(data.session);
+        finishSessionCheck(data.session);
       })
-      .catch(() => setSession(null))
+      .catch(() => finishSessionCheck(initialCachedSession))
       .finally(() => {
         clearTimeout(fallbackTimer);
-        setLoading(false);
       });
     return () => {
+      cancelled = true;
       clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
@@ -116,9 +158,32 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setApproval("checking");
     (async () => {
       const cachedApproval = readCachedApproval(session.user.id);
-      if (typeof navigator !== "undefined" && !navigator.onLine && cachedApproval) {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
         await seedOfflineDefaults(session.user.id).catch(() => undefined);
         setApproval("approved");
+        return;
+      }
+      if (cachedApproval) {
+        await seedOfflineDefaults(session.user.id).catch(() => undefined);
+        setApproval("approved");
+        // Let the app open immediately from the local approval cache, then
+        // refresh the real approval status in the background when online.
+        Promise.resolve(
+          supabase
+            .from("profiles")
+            .select("is_approved")
+            .eq("user_id", session.user.id)
+            .maybeSingle(),
+        )
+          .then(({ data, error }) => {
+            if (error) return;
+            const approved = Boolean(data?.is_approved);
+            writeCachedApproval(session.user.id, approved);
+            if (!approved) setApproval("pending");
+          })
+          .catch(() => undefined);
+        syncAllOfflineData().catch(() => undefined);
+        notify({}).catch(() => {});
         return;
       }
       try {
