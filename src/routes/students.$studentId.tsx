@@ -1052,7 +1052,7 @@ function PrintableReport({
             التقرير الفردي للطالب
           </h1>
           <div style={{ fontSize: "11px", color: "#555", marginTop: "4px" }}>
-            وشؤون المساجد — اللواء 642 · تاريخ الطباعة: {printedAt}
+            وشؤون المساجد — الفرقة 64 · تاريخ الطباعة: {printedAt}
           </div>
           {rangeText && (
             <div style={{

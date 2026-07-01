@@ -294,7 +294,7 @@ function DashboardPage() {
                 منصة البناء القرآني
               </h1>
               <p className="text-[11px] sm:text-xs text-muted-foreground hidden sm:block truncate">
-                وشؤون المساجد — إدارة حلقات اللواء 642
+                وشؤون المساجد — إدارة حلقات الفرقة 64
               </p>
             </div>
           </div>
