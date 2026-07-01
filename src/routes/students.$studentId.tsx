@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { readCache, writeCache } from "@/lib/local-cache";
 import { runOrQueue } from "@/lib/offline-queue";
 import {
   ArrowRight,
@@ -91,6 +92,11 @@ function StudentProfilePage() {
 
   const { data: student, isLoading } = useQuery({
     queryKey: ["student", studentId],
+    networkMode: "always",
+    initialData: () => {
+      const rows = qc.getQueryData<Student[]>(["students"]);
+      return rows?.find((s) => s.id === studentId) ?? undefined;
+    },
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
@@ -98,12 +104,28 @@ function StudentProfilePage() {
         .eq("id", studentId)
         .maybeSingle();
       if (error) throw error;
+      if (data) {
+        const rows = qc.getQueryData<Student[]>(["students"]) ?? [];
+        const nextRows = rows.some((s) => s.id === studentId)
+          ? rows.map((s) => (s.id === studentId ? (data as Student) : s))
+          : [data as Student, ...rows];
+        qc.setQueryData(["students"], nextRows);
+        writeCache(["students"], nextRows).catch(() => undefined);
+      }
       return data as Student | null;
+    },
+    retry: (failureCount, error) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+      const msg = error instanceof Error ? error.message.toLowerCase() : "";
+      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
+      return failureCount < 2;
     },
   });
 
   const { data: recitations = [] } = useQuery({
     queryKey: ["recitations", studentId],
+    networkMode: "always",
+    initialData: () => qc.getQueryData<Recitation[]>(["recitations", studentId]) ?? [],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recitations")
@@ -112,9 +134,47 @@ function StudentProfilePage() {
         .order("recited_on", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
+      writeCache(["recitations", studentId], data as Recitation[]).catch(() => undefined);
       return data as Recitation[];
     },
+    retry: (failureCount, error) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+      const msg = error instanceof Error ? error.message.toLowerCase() : "";
+      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
+      return failureCount < 2;
+    },
   });
+
+  const patchRecitationsCache = (mutator: (rows: Recitation[]) => Recitation[]) => {
+    const current = (qc.getQueryData<Recitation[]>(["recitations", studentId]) ?? []) as Recitation[];
+    const next = mutator(current);
+    qc.setQueryData(["recitations", studentId], next);
+    writeCache(["recitations", studentId], next).catch(() => undefined);
+  };
+
+  const patchStudentsCache = (mutator: (rows: Student[]) => Student[]) => {
+    const current = (qc.getQueryData<Student[]>(["students"]) ?? []) as Student[];
+    const next = mutator(current);
+    qc.setQueryData(["students"], next);
+    writeCache(["students"], next).catch(() => undefined);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    readCache<Student[]>(["students"]).then((rows) => {
+      if (cancelled || student || !rows) return;
+      const cached = rows.find((s) => s.id === studentId);
+      if (cached) qc.setQueryData(["student", studentId], cached);
+    });
+    readCache<Recitation[]>(["recitations", studentId]).then((cached) => {
+      if (cancelled || !cached) return;
+      const existing = qc.getQueryData<Recitation[]>(["recitations", studentId]);
+      if (!existing || existing.length === 0) qc.setQueryData(["recitations", studentId], cached);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [qc, student, studentId]);
 
   // Cumulative recitation rating from recitations (per-surah)
   const ratingStats = (() => {
@@ -292,6 +352,17 @@ function StudentProfilePage() {
 
   const addMutation = useMutation({
     mutationFn: async (values: RecitationFormValues) => {
+      const nowIso = new Date().toISOString();
+      const tempId = `tmp_${crypto.randomUUID()}`;
+      const optimistic = {
+        id: tempId,
+        student_id: studentId,
+        created_at: nowIso,
+        updated_at: nowIso,
+        created_by: currentUserId,
+        ...values,
+      } as Recitation;
+      patchRecitationsCache((rows) => [optimistic, ...rows]);
       const recRes = await runOrQueue({
         kind: "recitation_insert",
         payload: { student_id: studentId, ...values },
@@ -313,8 +384,10 @@ function StudentProfilePage() {
           ? "تم الحفظ محلياً وسيُزامَن عند عودة الاتصال"
           : "تم حفظ التسميع وتسجيل الحضور تلقائياً",
       );
-      qc.invalidateQueries({ queryKey: ["recitations", studentId] });
-      qc.invalidateQueries({ queryKey: ["attendance"] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+        qc.invalidateQueries({ queryKey: ["attendance"] });
+      }
       setAddOpen(false);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
@@ -322,6 +395,9 @@ function StudentProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: RecitationFormValues }) => {
+      patchRecitationsCache((rows) =>
+        rows.map((r) => (r.id === id ? ({ ...r, ...values, updated_at: new Date().toISOString() } as Recitation) : r)),
+      );
       const r1 = await runOrQueue({
         kind: "recitation_update",
         payload: { id, patch: values as unknown as Record<string, unknown> },
@@ -339,8 +415,10 @@ function StudentProfilePage() {
     },
     onSuccess: (res) => {
       toast.success(res.queued ? "تم الحفظ محلياً وسيُزامَن لاحقاً" : "تم تحديث التسميع");
-      qc.invalidateQueries({ queryKey: ["recitations", studentId] });
-      qc.invalidateQueries({ queryKey: ["attendance"] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+        qc.invalidateQueries({ queryKey: ["attendance"] });
+      }
       setEditing(null);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
@@ -348,24 +426,32 @@ function StudentProfilePage() {
 
   const inlineMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Recitation> }) => {
+      patchRecitationsCache((rows) =>
+        rows.map((r) => (r.id === id ? ({ ...r, ...patch, updated_at: new Date().toISOString() } as Recitation) : r)),
+      );
       await runOrQueue({
         kind: "recitation_update",
         payload: { id, patch: patch as unknown as Record<string, unknown> },
       });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+      }
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      patchRecitationsCache((rows) => rows.filter((r) => r.id !== id));
       return runOrQueue({ kind: "recitation_delete", payload: { id } });
     },
     onSuccess: (res) => {
       toast.success(res.queued ? "تم الحذف محلياً وسيُزامَن لاحقاً" : "تم حذف التسميع");
-      qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["recitations", studentId] });
+      }
       setDeleting(null);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
@@ -374,15 +460,21 @@ function StudentProfilePage() {
 
   const juzMutation = useMutation({
     mutationFn: async (extra_juz: number[]) => {
-      const { error } = await supabase
-        .from("students")
-        .update({ extra_juz })
-        .eq("id", studentId);
-      if (error) throw error;
+      qc.setQueryData(["student", studentId], student ? ({ ...student, extra_juz } as Student) : student);
+      patchStudentsCache((rows) =>
+        rows.map((r) => (r.id === studentId ? ({ ...r, extra_juz, updated_at: new Date().toISOString() } as Student) : r)),
+      );
+      const { queued } = await runOrQueue({
+        kind: "student_update",
+        payload: { id: studentId, patch: { extra_juz } },
+      });
+      return { queued };
     },
-    onSuccess: () => {
-      toast.success("تم تحديث الأجزاء المتاحة");
-      qc.invalidateQueries({ queryKey: ["student", studentId] });
+    onSuccess: (res) => {
+      toast.success(res.queued ? "تم حفظ الأجزاء محلياً وسيُزامَن لاحقاً" : "تم تحديث الأجزاء المتاحة");
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["student", studentId] });
+      }
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
