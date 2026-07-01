@@ -5,20 +5,23 @@ import {
   Users,
   Wrench,
   UserCircle,
+  QrCode,
   ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
+import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/")({
   component: SettingsMenuPage,
 });
 
 type MenuItem = {
-  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account";
+  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr";
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
 };
 
 const items: MenuItem[] = [
@@ -33,6 +36,13 @@ const items: MenuItem[] = [
     title: "إدارة المستخدمين",
     description: "الموافقة على المستخدمين الجدد وإعدادات الإدارة",
     icon: Users,
+    adminOnly: true,
+  },
+  {
+    to: "/settings/qr",
+    title: "باركود الطلاب",
+    description: "توليد وتنزيل رمز QR لبوابة الطلاب",
+    icon: QrCode,
   },
   {
     to: "/settings/system",
@@ -49,6 +59,9 @@ const items: MenuItem[] = [
 ];
 
 function SettingsMenuPage() {
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  const visibleItems = items.filter((i) => !i.adminOnly || isAdmin || isSuper);
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
@@ -68,7 +81,7 @@ function SettingsMenuPage() {
 
       <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <ul className="grid gap-3 sm:gap-4">
-          {items.map(({ to, title, description, icon: Icon }) => (
+          {visibleItems.map(({ to, title, description, icon: Icon }) => (
             <li key={to}>
               <Link
                 to={to}
