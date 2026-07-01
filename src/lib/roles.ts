@@ -28,7 +28,7 @@ export function useIsAdmin() {
         .maybeSingle();
       if (error) {
         console.error("[useIsAdmin]", error);
-        return false;
+        throw error;
       }
       return !!data;
     },
@@ -50,7 +50,7 @@ export function useIsSuperAdmin() {
         .maybeSingle();
       if (error) {
         console.error("[useIsSuperAdmin]", error);
-        return false;
+        throw error;
       }
       return !!data;
     },
@@ -69,7 +69,7 @@ export function usePermissionFlag(key: "admins_can_manage_students" | "users_can
         .maybeSingle();
       if (error) {
         console.error(`[setting ${key}]`, error);
-        return false;
+        throw error;
       }
       return data?.value === "true";
     },
@@ -113,7 +113,7 @@ export function useUserDepartmentAccess() {
         .eq("user_id", userId);
       if (error) {
         console.error("[useUserDepartmentAccess]", error);
-        return { allowedIds: [] as string[], all: false };
+        throw error;
       }
       const rows = (data ?? []) as Array<{ role: string; department_id: string | null }>;
       const adminRows = rows.filter(
