@@ -152,11 +152,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (typeof navigator !== "undefined" && !navigator.onLine) return;
         // Let the app open immediately from the local approval cache, then
         // refresh the real approval status in the background when online.
-        supabase
-          .from("profiles")
-          .select("is_approved")
-          .eq("user_id", session.user.id)
-          .maybeSingle()
+        Promise.resolve(
+          supabase
+            .from("profiles")
+            .select("is_approved")
+            .eq("user_id", session.user.id)
+            .maybeSingle(),
+        )
           .then(({ data, error }) => {
             if (error) return;
             const approved = Boolean(data?.is_approved);
