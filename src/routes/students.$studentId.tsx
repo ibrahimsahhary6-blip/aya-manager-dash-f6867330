@@ -191,6 +191,7 @@ function StudentProfilePage() {
   const [editing, setEditing] = useState<Recitation | null>(null);
   const [deleting, setDeleting] = useState<Recitation | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [localStudentCheckKey, setLocalStudentCheckKey] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
 
   // Export date-range dialog
