@@ -92,6 +92,8 @@ export function NetworkStatusIndicator() {
       await flushQueue().catch(() => undefined);
       await syncAllOfflineData({ force: true });
       pendingCount().then(setPending).catch(() => undefined);
+    } catch {
+      pendingCount().then(setPending).catch(() => undefined);
     } finally {
       setManualSyncing(false);
     }
