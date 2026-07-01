@@ -16,6 +16,7 @@ import { syncAllOfflineData } from "@/lib/offline-sync";
 type ApprovalStatus = "checking" | "approved" | "pending" | "error";
 
 const APPROVAL_CACHE_PREFIX = "approved-user-v1:";
+const OFFLINE_SESSION_KEY = "offline-auth-session-v1";
 const DEFAULT_DEPARTMENT_ID = "offline-default-department";
 
 function approvalCacheKey(userId: string) {
@@ -36,6 +37,27 @@ function writeCachedApproval(userId: string, approved: boolean) {
   try {
     if (approved) window.localStorage.setItem(approvalCacheKey(userId), "1");
     else window.localStorage.removeItem(approvalCacheKey(userId));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function readCachedSession(): Session | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(OFFLINE_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Session | null;
+    return parsed?.user?.id ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedSession(session: Session | null) {
+  if (typeof window === "undefined" || !session?.user?.id) return;
+  try {
+    window.localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify(session));
   } catch {
     // ignore storage failures
   }
@@ -86,23 +108,31 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const notify = useServerFn(notifyFirstLogin);
 
   useEffect(() => {
-    const fallbackTimer = window.setTimeout(() => setLoading(false), 3000);
+    let cancelled = false;
+    const finishSessionCheck = (nextSession: Session | null) => {
+      if (cancelled) return;
+      if (nextSession) writeCachedSession(nextSession);
+      const cached = readCachedSession();
+      setSession(nextSession ?? cached);
+      setLoading(false);
+    };
+
+    const fallbackTimer = window.setTimeout(() => finishSessionCheck(readCachedSession()), 2500);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       clearTimeout(fallbackTimer);
-      setSession(s);
-      setLoading(false);
+      finishSessionCheck(s);
     });
     withTimeout(supabase.auth.getSession(), 2500)
       .then(({ data }) => {
         clearTimeout(fallbackTimer);
-        setSession(data.session);
+        finishSessionCheck(data.session);
       })
-      .catch(() => setSession(null))
+      .catch(() => finishSessionCheck(readCachedSession()))
       .finally(() => {
         clearTimeout(fallbackTimer);
-        setLoading(false);
       });
     return () => {
+      cancelled = true;
       clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
@@ -116,9 +146,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setApproval("checking");
     (async () => {
       const cachedApproval = readCachedApproval(session.user.id);
-      if (typeof navigator !== "undefined" && !navigator.onLine && cachedApproval) {
+      if (cachedApproval) {
         await seedOfflineDefaults(session.user.id).catch(() => undefined);
         setApproval("approved");
+        if (typeof navigator !== "undefined" && !navigator.onLine) return;
+        // Let the app open immediately from the local approval cache, then
+        // refresh the real approval status in the background when online.
+        supabase
+          .from("profiles")
+          .select("is_approved")
+          .eq("user_id", session.user.id)
+          .maybeSingle()
+          .then(({ data, error }) => {
+            if (error) return;
+            const approved = Boolean(data?.is_approved);
+            writeCachedApproval(session.user.id, approved);
+            if (!approved) setApproval("pending");
+          })
+          .catch(() => undefined);
+        syncAllOfflineData().catch(() => undefined);
+        notify({}).catch(() => {});
         return;
       }
       try {
