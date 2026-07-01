@@ -46,9 +46,20 @@ function readCachedSession(): Session | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(OFFLINE_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Session | null;
-    return parsed?.user?.id ? parsed : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Session | null;
+      if (parsed?.user?.id) return parsed;
+    }
+
+    // Older installed versions only have the backend auth cache. Read it as a
+    // fallback so returning users can open the app offline immediately after update.
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i) ?? "";
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+      const stored = JSON.parse(window.localStorage.getItem(key) ?? "null") as Session | null;
+      if (stored?.user?.id) return stored;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -146,10 +157,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setApproval("checking");
     (async () => {
       const cachedApproval = readCachedApproval(session.user.id);
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await seedOfflineDefaults(session.user.id).catch(() => undefined);
+        setApproval("approved");
+        return;
+      }
       if (cachedApproval) {
         await seedOfflineDefaults(session.user.id).catch(() => undefined);
         setApproval("approved");
-        if (typeof navigator !== "undefined" && !navigator.onLine) return;
         // Let the app open immediately from the local approval cache, then
         // refresh the real approval status in the background when online.
         Promise.resolve(
