@@ -11,6 +11,9 @@ export const Route = createFileRoute("/settings/system")({
 });
 
 function SystemSettingsPage() {
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  const canSeeBackups = isAdmin || isSuper;
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
