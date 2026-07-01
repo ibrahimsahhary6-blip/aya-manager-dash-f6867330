@@ -34,6 +34,13 @@ export default defineConfig({
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
+          // TanStack/Cloud build emits client assets under a "client/" folder at
+          // build time, but Lovable serves those files from the site root in
+          // production. Strip that prefix from the Workbox precache URLs so the
+          // service worker caches real, reachable files instead of /client/* 404s.
+          modifyURLPrefix: {
+            "client/": "",
+          },
           maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
           additionalManifestEntries: [
             // Cache the app shell itself during SW install so the installed app
