@@ -31,6 +31,7 @@ export default defineConfig({
         ],
         manifest: false,
         workbox: {
+          inlineWorkboxRuntime: true,
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
@@ -46,7 +47,6 @@ export default defineConfig({
             // Cache the app shell itself during SW install so the installed app
             // can open from airplane mode after it was opened once online.
             { url: "/", revision: appShellRevision },
-            { url: "/manifest.webmanifest", revision: appShellRevision },
           ],
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
