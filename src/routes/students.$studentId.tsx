@@ -63,6 +63,7 @@ import {
 
 type Student = Tables<"students">;
 type Recitation = Tables<"recitations">;
+type Attendance = Tables<"attendance">;
 
 export const Route = createFileRoute("/students/$studentId")({
   component: StudentProfilePage,
@@ -157,6 +158,44 @@ function StudentProfilePage() {
     const next = mutator(current);
     qc.setQueryData(["students"], next);
     writeCache(["students"], next).catch(() => undefined);
+  };
+
+  const markLocalPresent = (day: string) => {
+    const nowIso = new Date().toISOString();
+    const attendanceKey = ["attendance", day] as const;
+    const currentAttendance = (qc.getQueryData<Attendance[]>(attendanceKey) ?? []) as Attendance[];
+    const existing = currentAttendance.find((a) => a.student_id === studentId);
+    const nextAttendance = existing
+      ? currentAttendance.map((a) =>
+          a.student_id === studentId
+            ? ({ ...a, present: true, excused: false, updated_at: nowIso } as Attendance)
+            : a,
+        )
+      : [
+          {
+            id: `tmp_${studentId}_${day}`,
+            student_id: studentId,
+            attended_on: day,
+            present: true,
+            excused: false,
+            rating: null,
+            created_by: currentUserId,
+            created_at: nowIso,
+            updated_at: nowIso,
+          } as Attendance,
+          ...currentAttendance,
+        ];
+    qc.setQueryData(attendanceKey, nextAttendance);
+    writeCache(attendanceKey, nextAttendance).catch(() => undefined);
+
+    const recitationDayKey = ["recitations-by-day", day] as const;
+    const currentDayRecitations =
+      (qc.getQueryData<{ student_id: string }[]>(recitationDayKey) ?? []) as { student_id: string }[];
+    const nextDayRecitations = currentDayRecitations.some((r) => r.student_id === studentId)
+      ? currentDayRecitations
+      : [{ student_id: studentId }, ...currentDayRecitations];
+    qc.setQueryData(recitationDayKey, nextDayRecitations);
+    writeCache(recitationDayKey, nextDayRecitations).catch(() => undefined);
   };
 
   useEffect(() => {
