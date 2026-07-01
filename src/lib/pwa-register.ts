@@ -26,6 +26,18 @@ async function unregisterMatching() {
   );
 }
 
+async function unregisterLegacyWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  const regs = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(
+    regs.map((r) => {
+      const url = r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "";
+      if (url.endsWith(LEGACY_SW_URL)) return r.unregister();
+      return Promise.resolve();
+    }),
+  );
+}
+
 export async function registerPWA() {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator)) return;
@@ -43,6 +55,7 @@ export async function registerPWA() {
   }
 
   try {
+    await unregisterLegacyWorker().catch(() => undefined);
     const { Workbox } = await import("workbox-window");
     const wb = new Workbox(APP_SW_URL);
     wb.addEventListener("waiting", () => {
