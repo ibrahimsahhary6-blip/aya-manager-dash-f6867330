@@ -6,9 +6,10 @@ import { AccessRequestsCard } from "@/components/AccessRequestsCard";
 import { CreateUserCard } from "@/components/CreateUserCard";
 import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
-import { StudentQrCard } from "@/components/StudentQrCard";
 import { ManageStudentsPermissionCard } from "@/components/ManageStudentsPermissionCard";
 import { StudentJuzManagerCard } from "@/components/StudentJuzManagerCard";
+import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { Navigate } from "@tanstack/react-router";
 
 
 
@@ -17,6 +18,11 @@ export const Route = createFileRoute("/settings/users")({
 });
 
 function UsersSettingsPage() {
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  if (!isAdmin && !isSuper) {
+    return <Navigate to="/settings" />;
+  }
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
@@ -40,7 +46,6 @@ function UsersSettingsPage() {
         
         <CreateUserCard />
         <PlatformUsersCard />
-        <StudentQrCard />
         <TransferSuperAdminCard />
       </main>
     </div>
