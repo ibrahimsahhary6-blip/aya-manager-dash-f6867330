@@ -1,7 +1,7 @@
 import { getErrorMessage } from "@/lib/errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { runOrQueue } from "@/lib/offline-queue";
 import { useCachedQuery, writeCache } from "@/lib/local-cache";
@@ -122,10 +122,8 @@ function AttendancePage() {
     });
   }, [students, battalionId, companyId, normalizedSearch, scopedBattalionIds]);
 
-  const { data: attendance = [] } = useQuery({
+  const { data: attendance = [] } = useCachedQuery<Attendance[]>({
     queryKey: ["attendance", date],
-    networkMode: "always",
-    initialData: () => qc.getQueryData<Attendance[]>(["attendance", date]) ?? [],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance")
@@ -135,18 +133,10 @@ function AttendancePage() {
       writeCache(["attendance", date], data as Attendance[]).catch(() => undefined);
       return data as Attendance[];
     },
-    retry: (failureCount, error) => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-      const msg = error instanceof Error ? error.message.toLowerCase() : "";
-      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
-      return failureCount < 2;
-    },
   });
 
-  const { data: dayRecitations = [] } = useQuery({
+  const { data: dayRecitations = [] } = useCachedQuery<{ student_id: string }[]>({
     queryKey: ["recitations-by-day", date],
-    networkMode: "always",
-    initialData: () => qc.getQueryData<{ student_id: string }[]>(["recitations-by-day", date]) ?? [],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recitations")
@@ -155,12 +145,6 @@ function AttendancePage() {
       if (error) throw error;
       writeCache(["recitations-by-day", date], data as { student_id: string }[]).catch(() => undefined);
       return data as { student_id: string }[];
-    },
-    retry: (failureCount, error) => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-      const msg = error instanceof Error ? error.message.toLowerCase() : "";
-      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
-      return failureCount < 2;
     },
   });
 
