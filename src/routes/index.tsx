@@ -189,7 +189,7 @@ function DashboardPage() {
       patchStudentsCache((rows) => [optimistic, ...rows]);
       const { queued } = await runOrQueue({
         kind: "student_insert",
-        payload: { id: tempId, created_at: nowIso, updated_at: nowIso, extra_juz: [], ...values },
+        payload: { ...values, id: tempId, created_at: nowIso, updated_at: nowIso, extra_juz: [] },
       });
       return { queued };
     },
