@@ -353,7 +353,7 @@ function StudentProfilePage() {
   const addMutation = useMutation({
     mutationFn: async (values: RecitationFormValues) => {
       const nowIso = new Date().toISOString();
-      const tempId = `tmp_${crypto.randomUUID()}`;
+      const tempId = crypto.randomUUID();
       const optimistic = {
         id: tempId,
         student_id: studentId,
@@ -365,7 +365,14 @@ function StudentProfilePage() {
       patchRecitationsCache((rows) => [optimistic, ...rows]);
       const recRes = await runOrQueue({
         kind: "recitation_insert",
-        payload: { student_id: studentId, ...values },
+        payload: {
+          id: tempId,
+          student_id: studentId,
+          created_at: nowIso,
+          updated_at: nowIso,
+          created_by: currentUserId,
+          ...values,
+        },
       });
       const attRes = await runOrQueue({
         kind: "attendance_upsert",
