@@ -35,14 +35,30 @@ function SystemSettingsPage() {
               <Download className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-bold">التقارير وسلة المحذوفات</h2>
+              <h2 className="font-bold">التقارير</h2>
               <p className="text-xs text-muted-foreground">
-                تصدير بيانات السرايا وإدارة المحذوفات
+                تصدير بيانات السرايا والطلاب
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
             <ExportReportDialog />
+          </div>
+        </section>
+
+        <section className="bg-card rounded-2xl border shadow-soft p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Trash className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold">سلة المحذوفات</h2>
+              <p className="text-xs text-muted-foreground">
+                إدارة السجلات المحذوفة واستعادتها
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to="/trash">
                 <Trash className="h-4 w-4" />
