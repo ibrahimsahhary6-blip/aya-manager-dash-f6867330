@@ -3,11 +3,11 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { readCache, writeCache } from "@/lib/local-cache";
+import { readCache, useCachedQuery, writeCache } from "@/lib/local-cache";
 import { runOrQueue } from "@/lib/offline-queue";
 import {
   ArrowRight,
@@ -91,14 +91,14 @@ function StudentProfilePage() {
   const { data: battalions = [] } = useBattalions();
   const { data: companies = [] } = useCompanies();
 
-  const { data: student, isLoading } = useQuery({
+  const { data: student, isLoading } = useCachedQuery<Student | null>({
     queryKey: ["student", studentId],
-    networkMode: "always",
-    initialData: () => {
-      const rows = qc.getQueryData<Student[]>(["students"]);
-      return rows?.find((s) => s.id === studentId) ?? undefined;
-    },
     queryFn: async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const cachedRows = (qc.getQueryData<Student[]>(["students"]) ?? (await readCache<Student[]>(["students"]))) ?? [];
+        const cachedStudent = cachedRows.find((s) => s.id === studentId) ?? null;
+        if (cachedStudent) return cachedStudent;
+      }
       const { data, error } = await supabase
         .from("students")
         .select("*")
@@ -106,6 +106,7 @@ function StudentProfilePage() {
         .maybeSingle();
       if (error) throw error;
       if (data) {
+        writeCache(["student", studentId], data as Student).catch(() => undefined);
         const rows = qc.getQueryData<Student[]>(["students"]) ?? [];
         const nextRows = rows.some((s) => s.id === studentId)
           ? rows.map((s) => (s.id === studentId ? (data as Student) : s))
@@ -115,18 +116,10 @@ function StudentProfilePage() {
       }
       return data as Student | null;
     },
-    retry: (failureCount, error) => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-      const msg = error instanceof Error ? error.message.toLowerCase() : "";
-      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
-      return failureCount < 2;
-    },
   });
 
-  const { data: recitations = [] } = useQuery({
+  const { data: recitations = [] } = useCachedQuery<Recitation[]>({
     queryKey: ["recitations", studentId],
-    networkMode: "always",
-    initialData: () => qc.getQueryData<Recitation[]>(["recitations", studentId]) ?? [],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recitations")
@@ -137,12 +130,6 @@ function StudentProfilePage() {
       if (error) throw error;
       writeCache(["recitations", studentId], data as Recitation[]).catch(() => undefined);
       return data as Recitation[];
-    },
-    retry: (failureCount, error) => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-      const msg = error instanceof Error ? error.message.toLowerCase() : "";
-      if (msg.includes("failed to fetch") || msg.includes("network")) return false;
-      return failureCount < 2;
     },
   });
 
