@@ -63,7 +63,7 @@ function isOfflineLikeError(error: unknown): boolean {
   return msg.includes("failed to fetch") || msg.includes("network") || msg.includes("timeout") || msg.includes("fetch");
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
@@ -109,9 +109,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         setApproval("approved");
         return;
       }
-      let result: { data: { is_approved: boolean } | null; error: unknown } | null = null;
       try {
-        result = await withTimeout(
+        const result = await withTimeout(
           supabase
             .from("profiles")
             .select("is_approved")
@@ -120,6 +119,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             .then(({ data, error }) => ({ data, error })),
           4500,
         );
+        const { data, error } = result;
+        if (error) {
+          if (cachedApproval || isOfflineLikeError(error)) {
+            await seedOfflineDefaults(session.user.id).catch(() => undefined);
+            setApproval("approved");
+            return;
+          }
+          setApproval("error");
+          return;
+        }
+        const approved = Boolean(data?.is_approved);
+        writeCachedApproval(session.user.id, approved);
+        if (approved) {
+          seedOfflineDefaults(session.user.id).catch(() => undefined);
+          if (typeof navigator === "undefined" || navigator.onLine) {
+            syncAllOfflineData().catch(() => undefined);
+          }
+        }
+        setApproval(approved ? "approved" : "pending");
+        notify({}).catch(() => {});
       } catch (error) {
         if (cachedApproval || isOfflineLikeError(error)) {
           await seedOfflineDefaults(session.user.id).catch(() => undefined);
@@ -129,26 +148,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         setApproval("error");
         return;
       }
-      const { data, error } = result;
-      if (error) {
-        if (cachedApproval || isOfflineLikeError(error)) {
-          await seedOfflineDefaults(session.user.id).catch(() => undefined);
-          setApproval("approved");
-          return;
-        }
-        setApproval("error");
-        return;
-      }
-      const approved = Boolean(data?.is_approved);
-      writeCachedApproval(session.user.id, approved);
-      if (approved) {
-        seedOfflineDefaults(session.user.id).catch(() => undefined);
-        if (typeof navigator === "undefined" || navigator.onLine) {
-          syncAllOfflineData().catch(() => undefined);
-        }
-      }
-      setApproval(approved ? "approved" : "pending");
-      notify({}).catch(() => {});
     })();
   }, [session, notify]);
 
