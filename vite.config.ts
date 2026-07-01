@@ -20,7 +20,7 @@ export default defineConfig({
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: null,
-        filename: "sw.js",
+        filename: "app-sw.js",
         devOptions: { enabled: false },
         includeAssets: [
           "manifest.webmanifest",
@@ -32,6 +32,7 @@ export default defineConfig({
         manifest: false,
         workbox: {
           inlineWorkboxRuntime: true,
+          cacheId: "aya-manager-offline-v4",
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
