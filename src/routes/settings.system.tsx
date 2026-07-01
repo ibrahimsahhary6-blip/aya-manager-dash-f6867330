@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { BackupRestore } from "@/components/BackupRestore";
 import { AuditLogCard } from "@/components/AuditLogCard";
+import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/system")({
   component: SystemSettingsPage,
 });
 
 function SystemSettingsPage() {
+  const isAdmin = useIsAdmin();
+  const isSuper = useIsSuperAdmin();
+  const canSeeBackups = isAdmin || isSuper;
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
@@ -49,7 +53,7 @@ function SystemSettingsPage() {
         </section>
 
         <AuditLogCard />
-        <BackupRestore />
+        {canSeeBackups && <BackupRestore />}
       </main>
     </div>
   );
