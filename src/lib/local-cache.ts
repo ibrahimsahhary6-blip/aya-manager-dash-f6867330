@@ -37,6 +37,11 @@ export async function writeCache<T>(queryKey: QueryKey, value: T): Promise<void>
   await db.put(STORE, value, keyOf(queryKey));
 }
 
+export async function seedCacheIfMissing<T>(queryKey: QueryKey, value: T): Promise<void> {
+  const existing = await readCache<T>(queryKey);
+  if (existing === undefined) await writeCache(queryKey, value);
+}
+
 /**
  * useQuery wrapper that hydrates from IndexedDB on mount and persists the
  * latest network result back to IndexedDB. Pages load instantly offline.
@@ -65,10 +70,35 @@ export function useCachedQuery<T>(opts: {
 
   const q = useQuery({
     queryKey: opts.queryKey,
+    networkMode: "always",
     queryFn: async () => {
-      const data = await opts.queryFn();
-      writeCache(opts.queryKey, data).catch(() => undefined);
-      return data;
+      const cached = await readCache<T>(opts.queryKey);
+      // When the device is offline, never wait for Supabase/fetch. Render the
+      // last locally-saved data immediately and keep writes in the queue.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        if (cached !== undefined) return cached;
+      }
+
+      try {
+        const data = await opts.queryFn();
+        writeCache(opts.queryKey, data).catch(() => undefined);
+        return data;
+      } catch (error) {
+        // If the network drops while the query is running, keep the offline UI
+        // usable by falling back to IndexedDB instead of putting the page in an
+        // error/loading state.
+        const msg = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
+        if (
+          cached !== undefined &&
+          (typeof navigator !== "undefined" && !navigator.onLine ||
+            msg.includes("failed to fetch") ||
+            msg.includes("network") ||
+            msg.includes("fetch"))
+        ) {
+          return cached;
+        }
+        throw error;
+      }
     },
     staleTime: opts.staleTime ?? 60_000,
     // Never throw on offline failure if we have something cached.

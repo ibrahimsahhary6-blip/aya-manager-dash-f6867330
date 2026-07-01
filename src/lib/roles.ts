@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCachedQuery } from "@/lib/local-cache";
 
 export function useCurrentUserId() {
   const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) =>
       setUserId(s?.user?.id ?? null),
     );
@@ -16,9 +16,8 @@ export function useCurrentUserId() {
 
 export function useIsAdmin() {
   const userId = useCurrentUserId();
-  const q = useQuery({
+  const q = useCachedQuery<boolean>({
     queryKey: ["is-admin", userId],
-    enabled: !!userId,
     queryFn: async () => {
       if (!userId) return false;
       const { data, error } = await supabase
@@ -29,7 +28,7 @@ export function useIsAdmin() {
         .maybeSingle();
       if (error) {
         console.error("[useIsAdmin]", error);
-        return false;
+        throw error;
       }
       return !!data;
     },
@@ -39,9 +38,8 @@ export function useIsAdmin() {
 
 export function useIsSuperAdmin() {
   const userId = useCurrentUserId();
-  const q = useQuery({
+  const q = useCachedQuery<boolean>({
     queryKey: ["is-super-admin", userId],
-    enabled: !!userId,
     queryFn: async () => {
       if (!userId) return false;
       const { data, error } = await supabase
@@ -52,7 +50,7 @@ export function useIsSuperAdmin() {
         .maybeSingle();
       if (error) {
         console.error("[useIsSuperAdmin]", error);
-        return false;
+        throw error;
       }
       return !!data;
     },
@@ -61,7 +59,7 @@ export function useIsSuperAdmin() {
 }
 
 export function usePermissionFlag(key: "admins_can_manage_students" | "users_can_manage_students") {
-  return useQuery({
+  return useCachedQuery<boolean>({
     queryKey: ["setting", key],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -71,7 +69,7 @@ export function usePermissionFlag(key: "admins_can_manage_students" | "users_can
         .maybeSingle();
       if (error) {
         console.error(`[setting ${key}]`, error);
-        return false;
+        throw error;
       }
       return data?.value === "true";
     },
@@ -105,9 +103,8 @@ export function useCanManageStudents() {
 export function useUserDepartmentAccess() {
   const userId = useCurrentUserId();
   const isSuper = useIsSuperAdmin();
-  const q = useQuery({
+  const q = useCachedQuery<{ allowedIds: string[]; all: boolean }>({
     queryKey: ["user-department-access", userId],
-    enabled: !!userId,
     queryFn: async () => {
       if (!userId) return { allowedIds: [] as string[], all: false };
       const { data, error } = await supabase
@@ -116,7 +113,7 @@ export function useUserDepartmentAccess() {
         .eq("user_id", userId);
       if (error) {
         console.error("[useUserDepartmentAccess]", error);
-        return { allowedIds: [] as string[], all: false };
+        throw error;
       }
       const rows = (data ?? []) as Array<{ role: string; department_id: string | null }>;
       const adminRows = rows.filter(

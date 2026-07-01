@@ -125,7 +125,7 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("id, full_name, student_code, battalion_id, company_id, created_at, deleted_at, notes, updated_at")
+        .select("id, full_name, student_code, battalion_id, company_id, created_at, deleted_at, notes, updated_at, extra_juz")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -172,7 +172,7 @@ function DashboardPage() {
   const addMutation = useMutation({
     mutationFn: async (values: StudentFormValues) => {
       // Optimistic local insert so UI updates instantly even when offline.
-      const tempId = `tmp_${crypto.randomUUID()}`;
+      const tempId = crypto.randomUUID();
       const nowIso = new Date().toISOString();
       const optimistic: Student = {
         id: tempId,
@@ -183,15 +183,21 @@ function DashboardPage() {
         created_at: nowIso,
         updated_at: nowIso,
         deleted_at: null,
+        extra_juz: [],
         notes: (values as { notes?: string | null }).notes ?? null,
       } as Student;
       patchStudentsCache((rows) => [optimistic, ...rows]);
-      const { queued } = await runOrQueue({ kind: "student_insert", payload: values });
+      const { queued } = await runOrQueue({
+        kind: "student_insert",
+        payload: { ...values, id: tempId, created_at: nowIso, updated_at: nowIso, extra_juz: [] },
+      });
       return { queued };
     },
     onSuccess: ({ queued }) => {
       toast.success(queued ? "تم حفظ الطالب محلياً وسيتم رفعه عند عودة الاتصال" : "تم إضافة الطالب بنجاح");
-      qc.invalidateQueries({ queryKey: ["students"] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["students"] });
+      }
       setAddOpen(false);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
@@ -212,7 +218,9 @@ function DashboardPage() {
     },
     onSuccess: ({ queued }) => {
       toast.success(queued ? "تم حفظ التعديل محلياً وسيتم رفعه عند عودة الاتصال" : "تم تحديث بيانات الطالب");
-      qc.invalidateQueries({ queryKey: ["students"] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["students"] });
+      }
       setEditing(null);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
@@ -226,7 +234,9 @@ function DashboardPage() {
     },
     onSuccess: ({ queued }) => {
       toast.success(queued ? "تم الحذف محلياً وسيتم تنفيذه عند عودة الاتصال" : "تم نقل الطالب إلى سلة المحذوفات");
-      qc.invalidateQueries({ queryKey: ["students"] });
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["students"] });
+      }
       setDeleting(null);
     },
     onError: (e: Error) => toast.error(getErrorMessage(e)),
