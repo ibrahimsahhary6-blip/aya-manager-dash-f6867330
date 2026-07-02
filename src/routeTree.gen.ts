@@ -19,6 +19,7 @@ import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as StudentsStudentIdRouteImport } from './routes/students.$studentId'
 import { Route as SettingsUsersRouteImport } from './routes/settings.users'
 import { Route as SettingsSystemRouteImport } from './routes/settings.system'
+import { Route as SettingsSurahSearchRouteImport } from './routes/settings.surah-search'
 import { Route as SettingsQrRouteImport } from './routes/settings.qr'
 import { Route as SettingsGroupsRouteImport } from './routes/settings.groups'
 import { Route as SettingsAccountRouteImport } from './routes/settings.account'
@@ -74,6 +75,11 @@ const SettingsSystemRoute = SettingsSystemRouteImport.update({
   path: '/system',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSurahSearchRoute = SettingsSurahSearchRouteImport.update({
+  id: '/surah-search',
+  path: '/surah-search',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsQrRoute = SettingsQrRouteImport.update({
   id: '/qr',
   path: '/qr',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof SettingsAccountRoute
   '/settings/groups': typeof SettingsGroupsRoute
   '/settings/qr': typeof SettingsQrRoute
+  '/settings/surah-search': typeof SettingsSurahSearchRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
   '/students/$studentId': typeof StudentsStudentIdRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof SettingsAccountRoute
   '/settings/groups': typeof SettingsGroupsRoute
   '/settings/qr': typeof SettingsQrRoute
+  '/settings/surah-search': typeof SettingsSurahSearchRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
   '/students/$studentId': typeof StudentsStudentIdRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/settings/account': typeof SettingsAccountRoute
   '/settings/groups': typeof SettingsGroupsRoute
   '/settings/qr': typeof SettingsQrRoute
+  '/settings/surah-search': typeof SettingsSurahSearchRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
   '/students/$studentId': typeof StudentsStudentIdRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/groups'
     | '/settings/qr'
+    | '/settings/surah-search'
     | '/settings/system'
     | '/settings/users'
     | '/students/$studentId'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/groups'
     | '/settings/qr'
+    | '/settings/surah-search'
     | '/settings/system'
     | '/settings/users'
     | '/students/$studentId'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/groups'
     | '/settings/qr'
+    | '/settings/surah-search'
     | '/settings/system'
     | '/settings/users'
     | '/students/$studentId'
@@ -277,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSystemRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/surah-search': {
+      id: '/settings/surah-search'
+      path: '/surah-search'
+      fullPath: '/settings/surah-search'
+      preLoaderRoute: typeof SettingsSurahSearchRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/qr': {
       id: '/settings/qr'
       path: '/qr'
@@ -312,6 +331,7 @@ interface SettingsRouteChildren {
   SettingsAccountRoute: typeof SettingsAccountRoute
   SettingsGroupsRoute: typeof SettingsGroupsRoute
   SettingsQrRoute: typeof SettingsQrRoute
+  SettingsSurahSearchRoute: typeof SettingsSurahSearchRoute
   SettingsSystemRoute: typeof SettingsSystemRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -321,6 +341,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountRoute: SettingsAccountRoute,
   SettingsGroupsRoute: SettingsGroupsRoute,
   SettingsQrRoute: SettingsQrRoute,
+  SettingsSurahSearchRoute: SettingsSurahSearchRoute,
   SettingsSystemRoute: SettingsSystemRoute,
   SettingsUsersRoute: SettingsUsersRoute,
   SettingsIndexRoute: SettingsIndexRoute,
