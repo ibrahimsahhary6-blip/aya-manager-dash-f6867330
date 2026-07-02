@@ -123,6 +123,8 @@ async function checkApprovalOnline(userId: string, email: string): Promise<boole
     .eq("email", normalized)
     .maybeSingle();
   return Boolean(allowed);
+}
+
 
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
