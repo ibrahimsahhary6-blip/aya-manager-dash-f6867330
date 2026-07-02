@@ -6,6 +6,7 @@ import {
   Wrench,
   UserCircle,
   QrCode,
+  Search,
   ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/settings/")({
 });
 
 type MenuItem = {
-  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr";
+  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr" | "/settings/surah-search";
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
