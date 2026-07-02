@@ -46,6 +46,12 @@ const items: MenuItem[] = [
     icon: QrCode,
   },
   {
+    to: "/settings/surah-search",
+    title: "البحث بالسورة",
+    description: "اكتب اسم السورة لعرض الطلاب الذين سمّعوها",
+    icon: Search,
+  },
+  {
     to: "/settings/system",
     title: "أدوات النظام",
     description: "تصدير التقارير، سلة المحذوفات، النسخ الاحتياطي",
