@@ -108,6 +108,25 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
   }
 }
 
+async function checkApprovalOnline(userId: string, email: string): Promise<boolean> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_approved")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (profile?.is_approved) return true;
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const { data: allowed } = await supabase
+    .from("allowed_emails")
+    .select("email")
+    .eq("email", normalized)
+    .maybeSingle();
+  return Boolean(allowed);
+}
+
+
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isPublicRoute = pathname.startsWith("/reset-password") || pathname.startsWith("/lookup");
@@ -163,18 +182,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       if (cachedApproval) {
         await seedOfflineDefaults(session.user.id).catch(() => undefined);
         setApproval("approved");
-        // Let the app open immediately from the local approval cache, then
-        // refresh the real approval status in the background when online.
+        // Background refresh — but only downgrade to "pending" if BOTH the
+        // profile flag is false AND the email is not in allowed_emails.
         Promise.resolve(
-          supabase
-            .from("profiles")
-            .select("is_approved")
-            .eq("user_id", session.user.id)
-            .maybeSingle(),
+          checkApprovalOnline(session.user.id, session.user.email ?? ""),
         )
-          .then(({ data, error }) => {
-            if (error) return;
-            const approved = Boolean(data?.is_approved);
+          .then((approved) => {
             writeCachedApproval(session.user.id, approved);
             if (!approved) setApproval("pending");
           })
@@ -183,26 +196,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        const result = await withTimeout(
-          supabase
-            .from("profiles")
-            .select("is_approved")
-            .eq("user_id", session.user.id)
-            .maybeSingle()
-            .then(({ data, error }) => ({ data, error })),
-          4500,
+        const approved = await withTimeout(
+          checkApprovalOnline(session.user.id, session.user.email ?? ""),
+          6000,
         );
-        const { data, error } = result;
-        if (error) {
-          if (isOfflineLikeError(error)) {
-            await seedOfflineDefaults(session.user.id).catch(() => undefined);
-            setApproval("approved");
-            return;
-          }
-          setApproval("error");
-          return;
-        }
-        const approved = Boolean(data?.is_approved);
         writeCachedApproval(session.user.id, approved);
         if (approved) {
           seedOfflineDefaults(session.user.id).catch(() => undefined);
@@ -222,6 +219,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
     })();
   }, [session]);
+
 
   if (isPublicRoute) return <>{children}</>;
 
