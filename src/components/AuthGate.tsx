@@ -108,6 +108,23 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
   }
 }
 
+async function checkApprovalOnline(userId: string, email: string): Promise<boolean> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_approved")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (profile?.is_approved) return true;
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const { data: allowed } = await supabase
+    .from("allowed_emails")
+    .select("email")
+    .eq("email", normalized)
+    .maybeSingle();
+  return Boolean(allowed);
+
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isPublicRoute = pathname.startsWith("/reset-password") || pathname.startsWith("/lookup");
