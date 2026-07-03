@@ -8,7 +8,7 @@ import { PlatformUsersCard } from "@/components/PlatformUsersCard";
 import { TransferSuperAdminCard } from "@/components/TransferSuperAdminCard";
 import { ManageStudentsPermissionCard } from "@/components/ManageStudentsPermissionCard";
 import { StudentJuzManagerCard } from "@/components/StudentJuzManagerCard";
-import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { useAdminAccess } from "@/lib/roles";
 import { Navigate } from "@tanstack/react-router";
 
 
@@ -18,9 +18,15 @@ export const Route = createFileRoute("/settings/users")({
 });
 
 function UsersSettingsPage() {
-  const isAdmin = useIsAdmin();
-  const isSuper = useIsSuperAdmin();
-  if (!isAdmin && !isSuper) {
+  const { allowed, isLoading } = useAdminAccess();
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+      </div>
+    );
+  }
+  if (!allowed) {
     return <Navigate to="/settings" />;
   }
   return (
