@@ -74,7 +74,7 @@ function StudentProfilePage() {
   const { studentId } = Route.useParams();
   const router = useRouter();
   const qc = useQueryClient();
-  const currentUserId = useCurrentUserId();
+  const { userId: currentUserId } = useCurrentUserId();
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
   const isManager = isAdmin || isSuper;

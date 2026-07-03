@@ -4,18 +4,30 @@ import { useCachedQuery } from "@/lib/local-cache";
 
 export function useCurrentUserId() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      setUserId(data.session?.user?.id ?? null);
+      setIsLoading(false);
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) =>
-      setUserId(s?.user?.id ?? null),
+      {
+        setUserId(s?.user?.id ?? null);
+        setIsLoading(false);
+      },
     );
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
-  return userId;
+  return { userId, isLoading };
 }
 
 function useIsAdminQuery() {
-  const userId = useCurrentUserId();
+  const { userId, isLoading: isUserLoading } = useCurrentUserId();
   return useCachedQuery<boolean>({
     queryKey: ["is-admin", userId],
     queryFn: async () => {
@@ -25,13 +37,14 @@ function useIsAdminQuery() {
         .select("role")
         .eq("user_id", userId)
         .eq("role", "admin")
-        .maybeSingle();
+        .limit(1);
       if (error) {
         console.error("[useIsAdmin]", error);
         throw error;
       }
-      return !!data;
+      return (data ?? []).length > 0;
     },
+    enabled: !isUserLoading && !!userId,
   });
 }
 
@@ -40,7 +53,7 @@ export function useIsAdmin() {
 }
 
 function useIsSuperAdminQuery() {
-  const userId = useCurrentUserId();
+  const { userId, isLoading: isUserLoading } = useCurrentUserId();
   return useCachedQuery<boolean>({
     queryKey: ["is-super-admin", userId],
     queryFn: async () => {
@@ -50,13 +63,14 @@ function useIsSuperAdminQuery() {
         .select("role")
         .eq("user_id", userId)
         .eq("role", "super_admin")
-        .maybeSingle();
+        .limit(1);
       if (error) {
         console.error("[useIsSuperAdmin]", error);
         throw error;
       }
-      return !!data;
+      return (data ?? []).length > 0;
     },
+    enabled: !isUserLoading && !!userId,
   });
 }
 
@@ -72,9 +86,17 @@ export function useIsSuperAdmin() {
 export function useAdminAccess() {
   const adminQ = useIsAdminQuery();
   const superQ = useIsSuperAdminQuery();
+  const allowed = adminQ.data === true || superQ.data === true;
   return {
-    allowed: adminQ.data === true || superQ.data === true,
-    isLoading: adminQ.isLoading || superQ.isLoading,
+    allowed,
+    isLoading:
+      !allowed &&
+      (adminQ.isLoading ||
+        adminQ.isPending ||
+        adminQ.isFetching ||
+        superQ.isLoading ||
+        superQ.isPending ||
+        superQ.isFetching),
   };
 }
 
@@ -122,7 +144,7 @@ export function useCanManageStudents() {
  * `[]` means the user has no department access (regular user).
  */
 export function useUserDepartmentAccess() {
-  const userId = useCurrentUserId();
+  const { userId, isLoading: isUserLoading } = useCurrentUserId();
   const isSuper = useIsSuperAdmin();
   const q = useCachedQuery<{ allowedIds: string[]; all: boolean }>({
     queryKey: ["user-department-access", userId],
@@ -147,6 +169,7 @@ export function useUserDepartmentAccess() {
       );
       return { allowedIds: ids, all: false };
     },
+    enabled: !isUserLoading && !!userId,
   });
   if (isSuper) return { allowedIds: [] as string[], all: true, isLoading: false };
   return {

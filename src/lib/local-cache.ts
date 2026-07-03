@@ -64,6 +64,7 @@ export function useCachedQuery<T>(opts: {
   queryKey: QueryKey;
   queryFn: () => Promise<T>;
   staleTime?: number;
+  enabled?: boolean;
 }) {
   const qc = useQueryClient();
 
@@ -84,6 +85,7 @@ export function useCachedQuery<T>(opts: {
 
   const q = useQuery({
     queryKey: opts.queryKey,
+    enabled: opts.enabled ?? true,
     networkMode: "always",
     queryFn: async () => {
       const cached = await readCache<T>(opts.queryKey);
