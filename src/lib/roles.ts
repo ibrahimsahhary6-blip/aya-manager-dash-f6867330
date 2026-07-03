@@ -14,9 +14,9 @@ export function useCurrentUserId() {
   return userId;
 }
 
-export function useIsAdmin() {
+function useIsAdminQuery() {
   const userId = useCurrentUserId();
-  const q = useCachedQuery<boolean>({
+  return useCachedQuery<boolean>({
     queryKey: ["is-admin", userId],
     queryFn: async () => {
       if (!userId) return false;
