@@ -4,18 +4,30 @@ import { useCachedQuery } from "@/lib/local-cache";
 
 export function useCurrentUserId() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      setUserId(data.session?.user?.id ?? null);
+      setIsLoading(false);
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) =>
-      setUserId(s?.user?.id ?? null),
+      {
+        setUserId(s?.user?.id ?? null);
+        setIsLoading(false);
+      },
     );
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
-  return userId;
+  return { userId, isLoading };
 }
 
 function useIsAdminQuery() {
-  const userId = useCurrentUserId();
+  const { userId, isLoading: isUserLoading } = useCurrentUserId();
   return useCachedQuery<boolean>({
     queryKey: ["is-admin", userId],
     queryFn: async () => {
@@ -32,6 +44,7 @@ function useIsAdminQuery() {
       }
       return !!data;
     },
+    enabled: !isUserLoading && !!userId,
   });
 }
 
@@ -40,7 +53,7 @@ export function useIsAdmin() {
 }
 
 function useIsSuperAdminQuery() {
-  const userId = useCurrentUserId();
+  const { userId, isLoading: isUserLoading } = useCurrentUserId();
   return useCachedQuery<boolean>({
     queryKey: ["is-super-admin", userId],
     queryFn: async () => {
@@ -57,6 +70,7 @@ function useIsSuperAdminQuery() {
       }
       return !!data;
     },
+    enabled: !isUserLoading && !!userId,
   });
 }
 
@@ -74,7 +88,7 @@ export function useAdminAccess() {
   const superQ = useIsSuperAdminQuery();
   return {
     allowed: adminQ.data === true || superQ.data === true,
-    isLoading: adminQ.isLoading || superQ.isLoading,
+    isLoading: adminQ.isLoading || adminQ.isPending || superQ.isLoading || superQ.isPending,
   };
 }
 
@@ -122,7 +136,7 @@ export function useCanManageStudents() {
  * `[]` means the user has no department access (regular user).
  */
 export function useUserDepartmentAccess() {
-  const userId = useCurrentUserId();
+  const { userId, isLoading: isUserLoading } = useCurrentUserId();
   const isSuper = useIsSuperAdmin();
   const q = useCachedQuery<{ allowedIds: string[]; all: boolean }>({
     queryKey: ["user-department-access", userId],
@@ -147,6 +161,7 @@ export function useUserDepartmentAccess() {
       );
       return { allowedIds: ids, all: false };
     },
+    enabled: !isUserLoading && !!userId,
   });
   if (isSuper) return { allowedIds: [] as string[], all: true, isLoading: false };
   return {
