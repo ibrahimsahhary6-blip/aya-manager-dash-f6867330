@@ -86,9 +86,17 @@ export function useIsSuperAdmin() {
 export function useAdminAccess() {
   const adminQ = useIsAdminQuery();
   const superQ = useIsSuperAdminQuery();
+  const allowed = adminQ.data === true || superQ.data === true;
   return {
-    allowed: adminQ.data === true || superQ.data === true,
-    isLoading: adminQ.isLoading || adminQ.isPending || superQ.isLoading || superQ.isPending,
+    allowed,
+    isLoading:
+      !allowed &&
+      (adminQ.isLoading ||
+        adminQ.isPending ||
+        adminQ.isFetching ||
+        superQ.isLoading ||
+        superQ.isPending ||
+        superQ.isFetching),
   };
 }
 
