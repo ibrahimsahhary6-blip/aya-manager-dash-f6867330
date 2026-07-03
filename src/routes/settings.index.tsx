@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
-import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { useAdminAccess } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/")({
   component: SettingsMenuPage,
@@ -66,9 +66,8 @@ const items: MenuItem[] = [
 ];
 
 function SettingsMenuPage() {
-  const isAdmin = useIsAdmin();
-  const isSuper = useIsSuperAdmin();
-  const visibleItems = items.filter((i) => !i.adminOnly || isAdmin || isSuper);
+  const { allowed: isAdmin, isLoading } = useAdminAccess();
+  const visibleItems = items.filter((i) => !i.adminOnly || isAdmin);
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
@@ -87,8 +86,13 @@ function SettingsMenuPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <ul className="grid gap-3 sm:gap-4">
-          {visibleItems.map(({ to, title, description, icon: Icon }) => (
+        {isLoading ? (
+          <div className="flex min-h-[240px] items-center justify-center">
+            <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+          </div>
+        ) : (
+          <ul className="grid gap-3 sm:gap-4">
+            {visibleItems.map(({ to, title, description, icon: Icon }) => (
             <li key={to}>
               <Link
                 to={to}
@@ -106,8 +110,9 @@ function SettingsMenuPage() {
                 <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
               </Link>
             </li>
-          ))}
-        </ul>
+            ))}
+          </ul>
+        )}
       </main>
     </div>
   );
