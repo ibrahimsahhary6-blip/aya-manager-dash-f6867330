@@ -37,12 +37,12 @@ function useIsAdminQuery() {
         .select("role")
         .eq("user_id", userId)
         .eq("role", "admin")
-        .maybeSingle();
+        .limit(1);
       if (error) {
         console.error("[useIsAdmin]", error);
         throw error;
       }
-      return !!data;
+      return (data ?? []).length > 0;
     },
     enabled: !isUserLoading && !!userId,
   });
@@ -63,12 +63,12 @@ function useIsSuperAdminQuery() {
         .select("role")
         .eq("user_id", userId)
         .eq("role", "super_admin")
-        .maybeSingle();
+        .limit(1);
       if (error) {
         console.error("[useIsSuperAdmin]", error);
         throw error;
       }
-      return !!data;
+      return (data ?? []).length > 0;
     },
     enabled: !isUserLoading && !!userId,
   });
