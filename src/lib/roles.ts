@@ -33,12 +33,15 @@ function useIsAdminQuery() {
       return !!data;
     },
   });
-  return q.data === true;
 }
 
-export function useIsSuperAdmin() {
+export function useIsAdmin() {
+  return useIsAdminQuery().data === true;
+}
+
+function useIsSuperAdminQuery() {
   const userId = useCurrentUserId();
-  const q = useCachedQuery<boolean>({
+  return useCachedQuery<boolean>({
     queryKey: ["is-super-admin", userId],
     queryFn: async () => {
       if (!userId) return false;
@@ -55,8 +58,26 @@ export function useIsSuperAdmin() {
       return !!data;
     },
   });
-  return q.data === true;
 }
+
+export function useIsSuperAdmin() {
+  return useIsSuperAdminQuery().data === true;
+}
+
+/**
+ * Admin-gate helper: returns { allowed, isLoading } so route guards can wait
+ * for the role queries to settle instead of redirecting on the initial
+ * `false` value.
+ */
+export function useAdminAccess() {
+  const adminQ = useIsAdminQuery();
+  const superQ = useIsSuperAdminQuery();
+  return {
+    allowed: adminQ.data === true || superQ.data === true,
+    isLoading: adminQ.isLoading || superQ.isLoading,
+  };
+}
+
 
 export function usePermissionFlag(key: "admins_can_manage_students" | "users_can_manage_students") {
   return useCachedQuery<boolean>({
