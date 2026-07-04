@@ -62,7 +62,7 @@ export function PlatformUsersCard() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["platform_users"],
-    enabled: isSuperAdmin,
+    enabled: canView,
     queryFn: async (): Promise<UserRow[]> => {
       const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
         supabase
