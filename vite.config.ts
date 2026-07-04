@@ -20,7 +20,7 @@ export default defineConfig({
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: null,
-        filename: "app-sw.js",
+        filename: "sw.js",
         devOptions: { enabled: false },
         includeAssets: [
           "manifest.webmanifest",
@@ -62,6 +62,7 @@ export default defineConfig({
               options: {
                 cacheName: "html-pages",
                 networkTimeoutSeconds: 5,
+                precacheFallback: { fallbackURL: "/" },
                 expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 365 },
                 cacheableResponse: { statuses: [0, 200] },
               },
