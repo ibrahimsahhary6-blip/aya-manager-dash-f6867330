@@ -57,6 +57,17 @@ function readMemory<T>(queryKey: QueryKey): T | undefined {
   return memory.get(keyOf(queryKey)) as T | undefined;
 }
 
+export async function clearAllCache(): Promise<void> {
+  memory.clear();
+  const db = await getDB();
+  if (!db) return;
+  try {
+    await db.clear(STORE);
+  } catch {
+    // ignore
+  }
+}
+
 export async function readCache<T>(queryKey: QueryKey): Promise<T | undefined> {
   const mem = readMemory<T>(queryKey);
   if (mem !== undefined) return mem;
