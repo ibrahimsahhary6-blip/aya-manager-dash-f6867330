@@ -2,9 +2,29 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCachedQuery } from "@/lib/local-cache";
 
+function readInitialUserId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem("offline-auth-session-v1");
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s?.user?.id) return s.user.id;
+    }
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const k = window.localStorage.key(i) ?? "";
+      if (!k.startsWith("sb-") || !k.endsWith("-auth-token")) continue;
+      const s = JSON.parse(window.localStorage.getItem(k) ?? "null");
+      if (s?.user?.id) return s.user.id;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export function useCurrentUserId() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(() => readInitialUserId());
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getSession().then(({ data }) => {

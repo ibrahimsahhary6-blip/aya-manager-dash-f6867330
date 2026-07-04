@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/errors";
-import { seedCacheIfMissing, warmMemoryCache } from "@/lib/local-cache";
+import { seedCacheIfMissing, warmMemoryCache, clearAllCache } from "@/lib/local-cache";
 import { syncAllOfflineData } from "@/lib/offline-sync";
 
 const OFFLINE_SESSION_KEY = "offline-auth-session-v1";
@@ -81,11 +82,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const isPublicRoute = pathname.startsWith("/reset-password") || pathname.startsWith("/lookup");
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let signedOut = false;
     const initialCachedSession = readCachedSession();
+    lastUserIdRef.current = initialCachedSession?.user?.id ?? null;
     const finishSessionCheck = (nextSession: Session | null) => {
       if (cancelled) return;
       if (nextSession) writeCachedSession(nextSession);
@@ -106,15 +110,28 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const fallbackTimer = window.setTimeout(() => finishSessionCheck(initialCachedSession), 1500);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       clearTimeout(fallbackTimer);
+      const nextUserId = s?.user?.id ?? null;
       if (event === "SIGNED_OUT") {
         signedOut = true;
         try { window.localStorage.removeItem(OFFLINE_SESSION_KEY); } catch { /* ignore */ }
+        // Wipe all per-user caches so the next account starts clean.
+        queryClient.cancelQueries().catch(() => undefined);
+        queryClient.clear();
+        clearAllCache().catch(() => undefined);
+        lastUserIdRef.current = null;
+      } else if (nextUserId && lastUserIdRef.current && nextUserId !== lastUserIdRef.current) {
+        // Account switched without an explicit sign-out — clear stale caches.
+        queryClient.cancelQueries().catch(() => undefined);
+        queryClient.clear();
+        clearAllCache().catch(() => undefined);
       }
+      if (nextUserId) lastUserIdRef.current = nextUserId;
       finishSessionCheck(s);
     });
     withTimeout(supabase.auth.getSession(), 1500)
       .then(({ data }) => {
         clearTimeout(fallbackTimer);
+        if (data.session?.user?.id) lastUserIdRef.current = data.session.user.id;
         finishSessionCheck(data.session);
       })
       .catch(() => finishSessionCheck(initialCachedSession))
@@ -126,7 +143,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
