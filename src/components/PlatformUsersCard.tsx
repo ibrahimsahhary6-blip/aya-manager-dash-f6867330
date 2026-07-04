@@ -209,7 +209,7 @@ export function PlatformUsersCard() {
       ) : (
         <ul className="divide-y border rounded-xl overflow-hidden">
           {users.map((u) => {
-            const isSuper = u.isSuper;
+            const isSuper = u.isSuper || !isSuperAdmin;
             const draft = getDraft(u);
             const dirty = isDirty(u);
             return (
