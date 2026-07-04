@@ -71,13 +71,18 @@ export const createPlatformUser = createServerFn({ method: "POST" })
           );
         if (profileErr) throw new Error(profileErr.message);
 
-        const { error: roleErr } = await supabaseAdmin
+        const { data: existingRoles, error: readRoleErr } = await supabaseAdmin
           .from("user_roles")
-          .upsert(
-            { user_id: existing.id, role: "user", department_id: null },
-            { onConflict: "user_id,role" },
-          );
-        if (roleErr) throw new Error(roleErr.message);
+          .select("id")
+          .eq("user_id", existing.id)
+          .limit(1);
+        if (readRoleErr) throw new Error(readRoleErr.message);
+        if ((existingRoles ?? []).length === 0) {
+          const { error: roleErr } = await supabaseAdmin
+            .from("user_roles")
+            .insert({ user_id: existing.id, role: "user", department_id: null });
+          if (roleErr) throw new Error(roleErr.message);
+        }
         return { ok: true, updated: true };
       }
       throw new Error(cErr.message);
@@ -94,13 +99,18 @@ export const createPlatformUser = createServerFn({ method: "POST" })
         );
       if (profileErr) throw new Error(profileErr.message);
 
-      const { error: roleErr } = await supabaseAdmin
+      const { data: existingRoles, error: readRoleErr } = await supabaseAdmin
         .from("user_roles")
-        .upsert(
-          { user_id: created.user.id, role: "user", department_id: null },
-          { onConflict: "user_id,role" },
-        );
-      if (roleErr) throw new Error(roleErr.message);
+        .select("id")
+        .eq("user_id", created.user.id)
+        .limit(1);
+      if (readRoleErr) throw new Error(readRoleErr.message);
+      if ((existingRoles ?? []).length === 0) {
+        const { error: roleErr } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id: created.user.id, role: "user", department_id: null });
+        if (roleErr) throw new Error(roleErr.message);
+      }
     }
 
     return { ok: true, updated: false };
