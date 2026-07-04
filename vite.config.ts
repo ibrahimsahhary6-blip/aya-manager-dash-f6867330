@@ -44,11 +44,14 @@ export default defineConfig({
             "client/": "",
           },
           maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-          // NOTE: intentionally NOT precaching "/" — precache always wins over
-          // runtime handlers, which would force users to hard-refresh after
-          // every Publish. NetworkFirst on navigations below serves fresh HTML
-          // when online and falls back to the runtime `html-pages` cache
-          // (populated on first visit) when offline.
+          // Precache "/" so the installed app opens instantly offline. The
+          // NetworkFirst runtime handler below still runs first for navigation
+          // requests, so online users always get fresh HTML after each Publish;
+          // this precache entry is only used as the offline fallback when the
+          // 5s network timeout expires and the runtime cache is empty.
+          additionalManifestEntries: [
+            { url: "/", revision: `build-${Date.now()}` },
+          ],
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
           globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff,woff2,webmanifest,json}"],
