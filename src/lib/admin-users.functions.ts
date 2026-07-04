@@ -28,7 +28,7 @@ export const createPlatformUser = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({
       email: z.string().trim().email().max(255),
-      password: z.string().min(8).max(100),
+      password: z.string().min(3).max(100),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -62,10 +62,27 @@ export const createPlatformUser = createServerFn({ method: "POST" })
           email_confirm: true,
         });
         if (uErr) throw new Error(uErr.message);
-        await supabaseAdmin
+        const now = new Date().toISOString();
+        const { error: profileErr } = await supabaseAdmin
           .from("profiles")
-          .update({ is_approved: true, approved_at: new Date().toISOString() })
-          .eq("user_id", existing.id);
+          .upsert(
+            { user_id: existing.id, email, is_approved: true, approved_at: now },
+            { onConflict: "user_id" },
+          );
+        if (profileErr) throw new Error(profileErr.message);
+
+        const { data: existingRoles, error: readRoleErr } = await supabaseAdmin
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", existing.id)
+          .limit(1);
+        if (readRoleErr) throw new Error(readRoleErr.message);
+        if ((existingRoles ?? []).length === 0) {
+          const { error: roleErr } = await supabaseAdmin
+            .from("user_roles")
+            .insert({ user_id: existing.id, role: "user", department_id: null });
+          if (roleErr) throw new Error(roleErr.message);
+        }
         return { ok: true, updated: true };
       }
       throw new Error(cErr.message);
@@ -73,10 +90,27 @@ export const createPlatformUser = createServerFn({ method: "POST" })
 
     // 3) Approve profile (trigger should have created it)
     if (created?.user) {
-      await supabaseAdmin
+      const now = new Date().toISOString();
+      const { error: profileErr } = await supabaseAdmin
         .from("profiles")
-        .update({ is_approved: true, approved_at: new Date().toISOString() })
-        .eq("user_id", created.user.id);
+        .upsert(
+          { user_id: created.user.id, email, is_approved: true, approved_at: now },
+          { onConflict: "user_id" },
+        );
+      if (profileErr) throw new Error(profileErr.message);
+
+      const { data: existingRoles, error: readRoleErr } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", created.user.id)
+        .limit(1);
+      if (readRoleErr) throw new Error(readRoleErr.message);
+      if ((existingRoles ?? []).length === 0) {
+        const { error: roleErr } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id: created.user.id, role: "user", department_id: null });
+        if (roleErr) throw new Error(roleErr.message);
+      }
     }
 
     return { ok: true, updated: false };
