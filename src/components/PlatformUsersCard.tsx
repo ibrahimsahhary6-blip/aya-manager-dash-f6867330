@@ -48,6 +48,8 @@ type UserRow = {
 
 export function PlatformUsersCard() {
   const isSuperAdmin = useIsSuperAdmin();
+  const isAdmin = useIsAdmin();
+  const canView = isSuperAdmin || isAdmin;
   const qc = useQueryClient();
   const setRole = useServerFn(setUserRole);
   const setApproval = useServerFn(setUserApproval);
