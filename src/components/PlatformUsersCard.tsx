@@ -82,32 +82,34 @@ export function PlatformUsersCard() {
         rowsByUser.set(r.user_id, list);
       });
 
-      return (profiles ?? []).map((p) => {
-        const userRows = rowsByUser.get(p.user_id) ?? [];
-        const isSuper = userRows.some((r) => r.role === "super_admin");
-        // Admin = any row where role is admin/moderator AND department_id is null (global).
-        const isAdmin = userRows.some(
-          (r) => (r.role === "admin" || r.role === "moderator") && r.department_id === null,
-        );
-        const role: SimpleRole = isAdmin ? "admin" : "user";
-        const departmentIds = Array.from(
-          new Set(
-            userRows
-              .filter((r) => r.department_id !== null)
-              .map((r) => r.department_id as string),
-          ),
-        );
-        return {
-          user_id: p.user_id,
-          email: p.email,
-          is_approved: p.is_approved,
-          first_login_at: p.first_login_at,
-          created_at: p.created_at,
-          isSuper,
-          role,
-          departmentIds,
-        };
-      });
+      return (profiles ?? [])
+        .map((p) => {
+          const userRows = rowsByUser.get(p.user_id) ?? [];
+          const isSuper = userRows.some((r) => r.role === "super_admin");
+          // Admin = any row where role is admin/moderator AND department_id is null (global).
+          const isAdmin = userRows.some(
+            (r) => (r.role === "admin" || r.role === "moderator") && r.department_id === null,
+          );
+          const role: SimpleRole = isAdmin ? "admin" : "user";
+          const departmentIds = Array.from(
+            new Set(
+              userRows
+                .filter((r) => r.department_id !== null)
+                .map((r) => r.department_id as string),
+            ),
+          );
+          return {
+            user_id: p.user_id,
+            email: p.email,
+            is_approved: p.is_approved,
+            first_login_at: p.first_login_at,
+            created_at: p.created_at,
+            isSuper,
+            role,
+            departmentIds,
+          };
+        })
+        .filter((u) => !u.isSuper);
     },
   });
 
