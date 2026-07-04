@@ -11,34 +11,8 @@ import { getErrorMessage } from "@/lib/errors";
 import { seedCacheIfMissing } from "@/lib/local-cache";
 import { syncAllOfflineData } from "@/lib/offline-sync";
 
-type ApprovalStatus = "checking" | "approved" | "pending" | "error";
-
-const APPROVAL_CACHE_PREFIX = "approved-user-v1:";
 const OFFLINE_SESSION_KEY = "offline-auth-session-v1";
 const DEFAULT_DEPARTMENT_ID = "offline-default-department";
-
-function approvalCacheKey(userId: string) {
-  return `${APPROVAL_CACHE_PREFIX}${userId}`;
-}
-
-function readCachedApproval(userId: string): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(approvalCacheKey(userId)) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeCachedApproval(userId: string, approved: boolean) {
-  if (typeof window === "undefined") return;
-  try {
-    if (approved) window.localStorage.setItem(approvalCacheKey(userId), "1");
-    else window.localStorage.removeItem(approvalCacheKey(userId));
-  } catch {
-    // ignore storage failures
-  }
-}
 
 function readCachedSession(): Session | null {
   if (typeof window === "undefined") return null;
@@ -88,12 +62,6 @@ async function seedOfflineDefaults(userId: string) {
   ]);
 }
 
-function isOfflineLikeError(error: unknown): boolean {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
-  const msg = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
-  return msg.includes("failed to fetch") || msg.includes("network") || msg.includes("timeout") || msg.includes("fetch");
-}
-
 async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -108,31 +76,11 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
   }
 }
 
-async function checkApprovalOnline(userId: string, email: string): Promise<boolean> {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_approved")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (profile?.is_approved) return true;
-  const normalized = email.trim().toLowerCase();
-  if (!normalized) return false;
-  const { data: allowed } = await supabase
-    .from("allowed_emails")
-    .select("email")
-    .eq("email", normalized)
-    .maybeSingle();
-  return Boolean(allowed);
-}
-
-
-
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isPublicRoute = pathname.startsWith("/reset-password") || pathname.startsWith("/lookup");
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [approval, setApproval] = useState<ApprovalStatus>("checking");
 
   useEffect(() => {
     let cancelled = false;
@@ -167,57 +115,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!session) {
-      setApproval("checking");
-      return;
+    if (!session?.user?.id) return;
+    seedOfflineDefaults(session.user.id).catch(() => undefined);
+    if (typeof navigator === "undefined" || navigator.onLine) {
+      syncAllOfflineData().catch(() => undefined);
     }
-    setApproval("checking");
-    (async () => {
-      const cachedApproval = readCachedApproval(session.user.id);
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await seedOfflineDefaults(session.user.id).catch(() => undefined);
-        setApproval("approved");
-        return;
-      }
-      if (cachedApproval) {
-        await seedOfflineDefaults(session.user.id).catch(() => undefined);
-        setApproval("approved");
-        // Background refresh — but only downgrade to "pending" if BOTH the
-        // profile flag is false AND the email is not in allowed_emails.
-        Promise.resolve(
-          checkApprovalOnline(session.user.id, session.user.email ?? ""),
-        )
-          .then((approved) => {
-            writeCachedApproval(session.user.id, approved);
-            if (!approved) setApproval("pending");
-          })
-          .catch(() => undefined);
-        syncAllOfflineData().catch(() => undefined);
-        return;
-      }
-      try {
-        const approved = await withTimeout(
-          checkApprovalOnline(session.user.id, session.user.email ?? ""),
-          6000,
-        );
-        writeCachedApproval(session.user.id, approved);
-        if (approved) {
-          seedOfflineDefaults(session.user.id).catch(() => undefined);
-          if (typeof navigator === "undefined" || navigator.onLine) {
-            syncAllOfflineData().catch(() => undefined);
-          }
-        }
-        setApproval(approved ? "approved" : "pending");
-      } catch (error) {
-        if (isOfflineLikeError(error)) {
-          await seedOfflineDefaults(session.user.id).catch(() => undefined);
-          setApproval("approved");
-          return;
-        }
-        setApproval("error");
-        return;
-      }
-    })();
   }, [session]);
 
 
@@ -233,62 +135,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!session) return <LoginScreen />;
 
-  if (approval === "checking") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">جاري التحقق من الحساب...</p>
-      </div>
-    );
-  }
-
-  if (approval !== "approved") {
-    if (approval === "error") {
-      return <OfflineApprovalError />;
-    }
-    return <PendingScreen email={session.user.email ?? ""} />;
-  }
-
   return <>{children}</>;
-}
-
-function OfflineApprovalError() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <CardTitle>تعذر فتح الحساب بدون اتصال</CardTitle>
-          <CardDescription>
-            افتح التطبيق مرة واحدة وأنت متصل حتى يتم حفظ صلاحية الحساب، ثم سيعمل لاحقاً بدون إنترنت.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
-            إعادة المحاولة
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function PendingScreen({ email }: { email: string }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <CardTitle>بانتظار موافقة المدير</CardTitle>
-          <CardDescription>
-            حسابك ({email}) بانتظار موافقة المدير لتفعيل الدخول.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full" onClick={() => supabase.auth.signOut()}>
-            تسجيل الخروج
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
 }
 
 function LoginScreen() {
