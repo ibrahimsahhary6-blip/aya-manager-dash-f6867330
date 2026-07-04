@@ -1,4 +1,4 @@
-import { useIsSuperAdmin } from "@/lib/roles";
+import { useIsSuperAdmin, useIsAdmin } from "@/lib/roles";
 import { useDepartments } from "@/lib/orgs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
