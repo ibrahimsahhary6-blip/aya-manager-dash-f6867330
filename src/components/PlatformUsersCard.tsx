@@ -1,4 +1,4 @@
-import { useIsSuperAdmin } from "@/lib/roles";
+import { useIsSuperAdmin, useIsAdmin } from "@/lib/roles";
 import { useDepartments } from "@/lib/orgs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -48,6 +48,8 @@ type UserRow = {
 
 export function PlatformUsersCard() {
   const isSuperAdmin = useIsSuperAdmin();
+  const isAdmin = useIsAdmin();
+  const canView = isSuperAdmin || isAdmin;
   const qc = useQueryClient();
   const setRole = useServerFn(setUserRole);
   const setApproval = useServerFn(setUserApproval);
@@ -60,7 +62,7 @@ export function PlatformUsersCard() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["platform_users"],
-    enabled: isSuperAdmin,
+    enabled: canView,
     queryFn: async (): Promise<UserRow[]> => {
       const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
         supabase
@@ -80,32 +82,34 @@ export function PlatformUsersCard() {
         rowsByUser.set(r.user_id, list);
       });
 
-      return (profiles ?? []).map((p) => {
-        const userRows = rowsByUser.get(p.user_id) ?? [];
-        const isSuper = userRows.some((r) => r.role === "super_admin");
-        // Admin = any row where role is admin/moderator AND department_id is null (global).
-        const isAdmin = userRows.some(
-          (r) => (r.role === "admin" || r.role === "moderator") && r.department_id === null,
-        );
-        const role: SimpleRole = isAdmin ? "admin" : "user";
-        const departmentIds = Array.from(
-          new Set(
-            userRows
-              .filter((r) => r.department_id !== null)
-              .map((r) => r.department_id as string),
-          ),
-        );
-        return {
-          user_id: p.user_id,
-          email: p.email,
-          is_approved: p.is_approved,
-          first_login_at: p.first_login_at,
-          created_at: p.created_at,
-          isSuper,
-          role,
-          departmentIds,
-        };
-      });
+      return (profiles ?? [])
+        .map((p) => {
+          const userRows = rowsByUser.get(p.user_id) ?? [];
+          const isSuper = userRows.some((r) => r.role === "super_admin");
+          // Admin = any row where role is admin/moderator AND department_id is null (global).
+          const isAdmin = userRows.some(
+            (r) => (r.role === "admin" || r.role === "moderator") && r.department_id === null,
+          );
+          const role: SimpleRole = isAdmin ? "admin" : "user";
+          const departmentIds = Array.from(
+            new Set(
+              userRows
+                .filter((r) => r.department_id !== null)
+                .map((r) => r.department_id as string),
+            ),
+          );
+          return {
+            user_id: p.user_id,
+            email: p.email,
+            is_approved: p.is_approved,
+            first_login_at: p.first_login_at,
+            created_at: p.created_at,
+            isSuper,
+            role,
+            departmentIds,
+          };
+        })
+        .filter((u) => !u.isSuper);
     },
   });
 
@@ -182,7 +186,7 @@ export function PlatformUsersCard() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
-  if (!isSuperAdmin) return null;
+  if (!canView) return null;
 
   return (
     <section className="bg-card rounded-2xl border shadow-soft p-4 sm:p-6 lg:col-span-2">
@@ -205,7 +209,7 @@ export function PlatformUsersCard() {
       ) : (
         <ul className="divide-y border rounded-xl overflow-hidden">
           {users.map((u) => {
-            const isSuper = u.isSuper;
+            const isSuper = u.isSuper || !isSuperAdmin;
             const draft = getDraft(u);
             const dirty = isDirty(u);
             return (
