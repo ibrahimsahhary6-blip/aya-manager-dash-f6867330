@@ -186,7 +186,7 @@ export function PlatformUsersCard() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
-  if (!isSuperAdmin) return null;
+  if (!canView) return null;
 
   return (
     <section className="bg-card rounded-2xl border shadow-soft p-4 sm:p-6 lg:col-span-2">
