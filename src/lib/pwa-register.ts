@@ -1,9 +1,9 @@
 // Guarded service-worker registration wrapper.
 // Never registers in dev, Lovable preview, iframes, or when ?sw=off is set;
 // unregisters any stale registration in those contexts.
-const APP_SW_URL = "/app-sw.js";
-const LEGACY_SW_URL = "/sw.js";
-const KNOWN_SW_URLS = [APP_SW_URL, LEGACY_SW_URL];
+const APP_SW_URL = "/sw.js";
+const STALE_APP_SW_URLS = ["/app-sw.js"];
+const KNOWN_SW_URLS = [APP_SW_URL, ...STALE_APP_SW_URLS];
 
 function isPreviewHost(hostname: string): boolean {
   if (hostname.startsWith("id-preview--") || hostname.startsWith("preview--")) return true;
@@ -26,13 +26,13 @@ async function unregisterMatching() {
   );
 }
 
-async function unregisterLegacyWorker() {
+async function unregisterStaleAppWorkers() {
   if (!("serviceWorker" in navigator)) return;
   const regs = await navigator.serviceWorker.getRegistrations();
   await Promise.all(
     regs.map((r) => {
       const url = r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "";
-      if (url.endsWith(LEGACY_SW_URL)) return r.unregister();
+      if (STALE_APP_SW_URLS.some((swUrl) => url.endsWith(swUrl))) return r.unregister();
       return Promise.resolve();
     }),
   );
@@ -55,7 +55,7 @@ export async function registerPWA() {
   }
 
   try {
-    await unregisterLegacyWorker().catch(() => undefined);
+    await unregisterStaleAppWorkers().catch(() => undefined);
     const { Workbox } = await import("workbox-window");
     const wb = new Workbox(APP_SW_URL);
     wb.addEventListener("waiting", () => {
@@ -64,18 +64,7 @@ export async function registerPWA() {
     wb.addEventListener("controlling", () => {
       window.location.reload();
     });
-    const registration = await wb.register();
-    // Actively poll for a new service worker so users get updates without
-    // needing to clear the browser cache after each Publish. Checks on tab
-    // focus, on reconnect, and every 60s while the tab is open.
-    const checkForUpdate = () => {
-      registration?.update().catch(() => undefined);
-    };
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") checkForUpdate();
-    });
-    window.addEventListener("online", checkForUpdate);
-    setInterval(checkForUpdate, 60_000);
+    await wb.register();
   } catch (e) {
     console.warn("[pwa] registration failed", e);
   }

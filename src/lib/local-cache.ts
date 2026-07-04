@@ -1,10 +1,11 @@
 // Generic IndexedDB-backed cache for read queries.
 // Cache-first: renders IndexedDB data instantly (0ms) and refreshes in the background.
 import { openDB, type IDBPDatabase } from "idb";
-import { useQuery, type QueryKey } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 
 const DB_NAME = "lovable-local-cache";
 const STORE = "kv";
+const NETWORK_TIMEOUT_MS = 2500;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 function getDB() {
@@ -90,6 +91,20 @@ export async function seedCacheIfMissing<T>(queryKey: QueryKey, value: T): Promi
   if (existing === undefined) await writeCache(queryKey, value);
 }
 
+async function withNetworkTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("network timeout")), NETWORK_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * Cache-first useQuery wrapper:
  * - Returns IndexedDB data synchronously via `initialData` (0ms first paint).
@@ -102,6 +117,18 @@ export function useCachedQuery<T>(opts: {
   staleTime?: number;
   enabled?: boolean;
 }) {
+  const queryClient = useQueryClient();
+
+  const refreshInBackground = () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    withNetworkTimeout(opts.queryFn())
+      .then((data) => {
+        queryClient.setQueryData(opts.queryKey, data);
+        writeCache(opts.queryKey, data).catch(() => undefined);
+      })
+      .catch(() => undefined);
+  };
+
   return useQuery({
     queryKey: opts.queryKey,
     enabled: opts.enabled ?? true,
@@ -114,12 +141,15 @@ export function useCachedQuery<T>(opts: {
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const cached = (await readCache<T>(opts.queryKey)) as T | undefined;
+      if (cached !== undefined) {
+        refreshInBackground();
+        return cached;
+      }
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        if (cached !== undefined) return cached;
         throw new Error("offline cache miss");
       }
       try {
-        const data = await opts.queryFn();
+        const data = await withNetworkTimeout(opts.queryFn());
         writeCache(opts.queryKey, data).catch(() => undefined);
         return data;
       } catch (error) {
