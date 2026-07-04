@@ -1,9 +1,7 @@
 // Generic IndexedDB-backed cache for read queries.
-// Lets the app render lists (students, battalions, companies, departments)
-// instantly from local storage, including while fully offline.
+// Cache-first: renders IndexedDB data instantly (0ms) and refreshes in the background.
 import { openDB, type IDBPDatabase } from "idb";
-import { useEffect } from "react";
-import { useQuery, type QueryKey, useQueryClient } from "@tanstack/react-query";
+import { useQuery, type QueryKey } from "@tanstack/react-query";
 
 const DB_NAME = "lovable-local-cache";
 const STORE = "kv";
@@ -25,30 +23,55 @@ function keyOf(queryKey: QueryKey): string {
   return JSON.stringify(queryKey);
 }
 
+// In-memory mirror of IndexedDB so useCachedQuery can serve data
+// synchronously on first render, without waiting for any async read.
+const memory = new Map<string, unknown>();
+let warmPromise: Promise<void> | null = null;
+
+export function warmMemoryCache(): Promise<void> {
+  if (warmPromise) return warmPromise;
+  warmPromise = (async () => {
+    const db = await getDB();
+    if (!db) return;
+    try {
+      const tx = db.transaction(STORE, "readonly");
+      const store = tx.objectStore(STORE);
+      let cursor = await store.openCursor();
+      while (cursor) {
+        memory.set(String(cursor.key), cursor.value);
+        cursor = await cursor.continue();
+      }
+    } catch {
+      // ignore
+    }
+  })();
+  return warmPromise;
+}
+
+// Kick off warming as early as possible.
+if (typeof window !== "undefined") {
+  warmMemoryCache().catch(() => undefined);
+}
+
+function readMemory<T>(queryKey: QueryKey): T | undefined {
+  return memory.get(keyOf(queryKey)) as T | undefined;
+}
+
 export async function readCache<T>(queryKey: QueryKey): Promise<T | undefined> {
+  const mem = readMemory<T>(queryKey);
+  if (mem !== undefined) return mem;
   const db = await getDB();
   if (!db) return undefined;
-  return (await db.get(STORE, keyOf(queryKey))) as T | undefined;
+  const value = (await db.get(STORE, keyOf(queryKey))) as T | undefined;
+  if (value !== undefined) memory.set(keyOf(queryKey), value);
+  return value;
 }
 
 export async function writeCache<T>(queryKey: QueryKey, value: T): Promise<void> {
+  memory.set(keyOf(queryKey), value);
   const db = await getDB();
   if (!db) return;
   await db.put(STORE, value, keyOf(queryKey));
-}
-
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error("network timeout")), ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 }
 
 export async function seedCacheIfMissing<T>(queryKey: QueryKey, value: T): Promise<void> {
@@ -57,8 +80,10 @@ export async function seedCacheIfMissing<T>(queryKey: QueryKey, value: T): Promi
 }
 
 /**
- * useQuery wrapper that hydrates from IndexedDB on mount and persists the
- * latest network result back to IndexedDB. Pages load instantly offline.
+ * Cache-first useQuery wrapper:
+ * - Returns IndexedDB data synchronously via `initialData` (0ms first paint).
+ * - Refetches in the background to update the cache (SWR).
+ * - Never blocks the UI on the network; falls back to cache on any failure.
  */
 export function useCachedQuery<T>(opts: {
   queryKey: QueryKey;
@@ -66,60 +91,32 @@ export function useCachedQuery<T>(opts: {
   staleTime?: number;
   enabled?: boolean;
 }) {
-  const qc = useQueryClient();
-
-  // Hydrate cached data into react-query immediately on mount, before the
-  // network query resolves. This makes the UI render from IndexedDB first.
-  useEffect(() => {
-    let cancelled = false;
-    readCache<T>(opts.queryKey).then((cached) => {
-      if (cancelled || cached === undefined) return;
-      const existing = qc.getQueryData<T>(opts.queryKey);
-      if (existing === undefined) qc.setQueryData(opts.queryKey, cached);
-    });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keyOf(opts.queryKey)]);
-
-  const q = useQuery({
+  return useQuery({
     queryKey: opts.queryKey,
     enabled: opts.enabled ?? true,
     networkMode: "always",
+    // Serve cache synchronously on first render.
+    initialData: () => readMemory<T>(opts.queryKey),
+    // Treat initial data as stale so react-query refetches in background.
+    initialDataUpdatedAt: 0,
+    // SWR: show cached data instantly, refresh silently.
+    placeholderData: (prev) => prev,
     queryFn: async () => {
-      const cached = await readCache<T>(opts.queryKey);
-      // When the device is offline, never wait for Supabase/fetch. Render the
-      // last locally-saved data immediately and keep writes in the queue.
+      const cached = (await readCache<T>(opts.queryKey)) as T | undefined;
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         if (cached !== undefined) return cached;
         throw new Error("offline cache miss");
       }
-
       try {
-        const data = await withTimeout(opts.queryFn(), 8000);
+        const data = await opts.queryFn();
         writeCache(opts.queryKey, data).catch(() => undefined);
         return data;
       } catch (error) {
-        // If the network drops while the query is running, keep the offline UI
-        // usable by falling back to IndexedDB instead of putting the page in an
-        // error/loading state.
-        const msg = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
-        if (
-          cached !== undefined &&
-          (typeof navigator !== "undefined" && !navigator.onLine ||
-            msg.includes("failed to fetch") ||
-            msg.includes("network") ||
-            msg.includes("timeout") ||
-            msg.includes("fetch"))
-        ) {
-          return cached;
-        }
+        if (cached !== undefined) return cached;
         throw error;
       }
     },
     staleTime: opts.staleTime ?? 60_000,
-    // Never throw on offline failure if we have something cached.
     retry: (failureCount, error) => {
       if (typeof navigator !== "undefined" && !navigator.onLine) return false;
       const msg = error instanceof Error ? error.message.toLowerCase() : "";
@@ -127,6 +124,4 @@ export function useCachedQuery<T>(opts: {
       return failureCount < 2;
     },
   });
-
-  return q;
 }

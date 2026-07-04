@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/errors";
-import { seedCacheIfMissing } from "@/lib/local-cache";
+import { seedCacheIfMissing, warmMemoryCache } from "@/lib/local-cache";
 import { syncAllOfflineData } from "@/lib/offline-sync";
 
 const OFFLINE_SESSION_KEY = "offline-auth-session-v1";
@@ -93,12 +93,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       setLoading(false);
     };
 
-    const fallbackTimer = window.setTimeout(() => finishSessionCheck(initialCachedSession), 2500);
+    // Warm the in-memory cache from IndexedDB so pages paint instantly.
+    warmMemoryCache().catch(() => undefined);
+
+    // If we already have a cached session, render immediately (cache-first).
+    if (initialCachedSession) {
+      setSession(initialCachedSession);
+      setLoading(false);
+    }
+
+    const fallbackTimer = window.setTimeout(() => finishSessionCheck(initialCachedSession), 1500);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       clearTimeout(fallbackTimer);
       finishSessionCheck(s);
     });
-    withTimeout(supabase.auth.getSession(), 2500)
+    withTimeout(supabase.auth.getSession(), 1500)
       .then(({ data }) => {
         clearTimeout(fallbackTimer);
         finishSessionCheck(data.session);
