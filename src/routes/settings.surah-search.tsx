@@ -47,15 +47,46 @@ function SurahSearchPage() {
     queryKey: ["surah-search", activeSurah],
     enabled: activeSurah.length > 0,
     queryFn: async () => {
+      // Find target surah metadata (by exact name or fuzzy contains)
+      const target =
+        SURAHS.find((s) => s.name === activeSurah) ??
+        SURAHS.find((s) => s.name.includes(activeSurah) || activeSurah.includes(s.name));
+
+      // Fetch all distinct surah strings stored in DB
+      const { data: distinctRows, error: dErr } = await supabase
+        .from("recitations")
+        .select("surah")
+        .limit(5000);
+      if (dErr) throw dErr;
+      const allSurahs = Array.from(
+        new Set((distinctRows ?? []).map((r: { surah: string }) => r.surah).filter(Boolean)),
+      );
+
+      // Match: exact contains target name, OR is a range "A - B" whose span includes target
+      const matching = allSurahs.filter((s) => {
+        if (!target) return s.includes(activeSurah);
+        if (s.includes(target.name)) return true;
+        const parts = s.split(/\s*[-–]\s*/);
+        if (parts.length !== 2) return false;
+        const a = SURAHS.find((x) => x.name === parts[0].trim());
+        const b = SURAHS.find((x) => x.name === parts[1].trim());
+        if (!a || !b) return false;
+        const lo = Math.min(a.number, b.number);
+        const hi = Math.max(a.number, b.number);
+        return target.number >= lo && target.number <= hi;
+      });
+
+      if (matching.length === 0) return [];
+
       const { data, error } = await supabase
         .from("recitations")
         .select(
           "id, student_id, surah, from_ayah, to_ayah, recited_on, rating, is_review, students!inner(id, full_name, battalion_id, company_id)",
         )
-        .ilike("surah", `%${activeSurah}%`)
+        .in("surah", matching)
         .is("students.deleted_at", null)
         .order("recited_on", { ascending: false })
-        .limit(500);
+        .limit(1000);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
     },
