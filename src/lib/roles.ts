@@ -159,10 +159,8 @@ export function useCanManageStudentsResolver() {
   const isSuper = useIsSuperAdmin();
   const { data: adminGlobal } = useAdminsCanManageStudentsSetting();
   const { data: userGlobal } = useUsersCanManageStudentsSetting();
-  // Lazy import to avoid circular dep at module init
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useDepartmentSettings } = require("@/lib/department-settings") as typeof import("@/lib/department-settings");
   const { data: settings = [] } = useDepartmentSettings();
+
   return (departmentId: string | null | undefined) => {
     if (isSuper) return true;
     const s = departmentId ? settings.find((x) => x.department_id === departmentId) : null;
