@@ -72,6 +72,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const isAdmin = useIsAdmin();
   const canManage = useCanManageStudents();
+  const canManageFor = useCanManageStudentsResolver();
   // Persist filters so returning from a student profile preserves context
   const FILTERS_KEY = "dashboard-filters-v1";
   const initialFilters = (() => {
