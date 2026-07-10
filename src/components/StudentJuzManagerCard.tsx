@@ -26,7 +26,6 @@ type StudentRow = {
 export function StudentJuzManagerCard() {
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
-  const isManager = isAdmin || isSuper;
   const qc = useQueryClient();
   const [q, setQ] = useState("");
 
@@ -34,6 +33,8 @@ export function StudentJuzManagerCard() {
   const { data: battalions = [] } = useBattalions();
   const { data: deptSettings = [] } = useDepartmentSettings();
   const upsertDept = useUpsertDepartmentSetting();
+  void isAdmin;
+
 
   const battalionDept = useMemo(() => {
     const m = new Map<string, string>();
@@ -58,7 +59,7 @@ export function StudentJuzManagerCard() {
       if (error) throw error;
       return (data ?? []) as StudentRow[];
     },
-    enabled: isManager,
+    enabled: true,
   });
 
   const filtered = useMemo(() => {
@@ -96,7 +97,7 @@ export function StudentJuzManagerCard() {
     mutation.mutate({ id: s.id, extra_juz: next });
   };
 
-  if (!isManager) return null;
+  
 
   return (
     <section className="rounded-2xl border bg-card p-5 shadow-soft" dir="rtl">

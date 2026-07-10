@@ -7,7 +7,9 @@ import {
   UserCircle,
   QrCode,
   Search,
+  BookOpen,
   ChevronLeft,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/settings/")({
 });
 
 type MenuItem = {
-  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr" | "/settings/surah-search";
+  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr" | "/settings/surah-search" | "/settings/juz";
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -52,6 +54,13 @@ const items: MenuItem[] = [
     icon: Search,
   },
   {
+    to: "/settings/juz",
+    title: "الأجزاء المتاحة للتسميع",
+    description: "تفعيل جزء تبارك (29) وقد سمع (28) للطلاب",
+    icon: BookOpen,
+  },
+  {
+
     to: "/settings/system",
     title: "أدوات النظام",
     description: "تصدير التقارير، سلة المحذوفات، النسخ الاحتياطي",
