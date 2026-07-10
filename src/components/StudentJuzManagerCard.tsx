@@ -9,12 +9,18 @@ import { BookOpen, Search } from "lucide-react";
 import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/errors";
 import { normalizeArabic } from "@/lib/normalize";
+import { useDepartments, useBattalions } from "@/lib/orgs";
+import {
+  useDepartmentSettings,
+  useUpsertDepartmentSetting,
+} from "@/lib/department-settings";
 
 type StudentRow = {
   id: string;
   full_name: string;
   student_code: string | null;
   extra_juz: number[] | null;
+  battalion_id: string | null;
 };
 
 export function StudentJuzManagerCard() {
@@ -24,12 +30,29 @@ export function StudentJuzManagerCard() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
 
+  const { data: departments = [] } = useDepartments();
+  const { data: battalions = [] } = useBattalions();
+  const { data: deptSettings = [] } = useDepartmentSettings();
+  const upsertDept = useUpsertDepartmentSetting();
+
+  const battalionDept = useMemo(() => {
+    const m = new Map<string, string>();
+    battalions.forEach((b) => m.set(b.id, b.department_id));
+    return m;
+  }, [battalions]);
+
+  const deptExtraEnabled = (departmentId: string | null | undefined) => {
+    if (!departmentId) return true;
+    const s = deptSettings.find((x) => x.department_id === departmentId);
+    return s?.extra_juz_enabled ?? true;
+  };
+
   const { data: students = [], isLoading } = useQuery({
     queryKey: ["students-juz-manager"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("id, full_name, student_code, extra_juz")
+        .select("id, full_name, student_code, extra_juz, battalion_id")
         .is("deleted_at", null)
         .order("full_name", { ascending: true });
       if (error) throw error;
@@ -84,10 +107,40 @@ export function StudentJuzManagerCard() {
         <div className="flex-1">
           <h2 className="font-bold text-sm sm:text-base">الأجزاء المتاحة للتسميع</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            ابحث عن طالب وفعّل له جزء تبارك (29) أو جزء قد سمع (28). جزء عمّ (30) مفعّل دائماً.
+            فعّل ميزة الأجزاء الإضافية (28/29) لكل قسم، ثم اختر الطلاب المستفيدين. جزء عمّ (30) مفعّل دائماً.
           </p>
         </div>
       </div>
+
+      {/* Department toggles — super_admin only */}
+      {isSuper && departments.length > 0 && (
+        <div className="mb-4 rounded-xl border bg-muted/30 p-3">
+          <div className="text-xs font-semibold mb-2">تفعيل الميزة لكل قسم</div>
+          <ul className="grid gap-2">
+            {departments.map((d) => {
+              const enabled = deptExtraEnabled(d.id);
+              return (
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between rounded-lg bg-background border px-3 py-2"
+                >
+                  <span className="text-xs">{d.name}</span>
+                  <Switch
+                    checked={enabled}
+                    disabled={upsertDept.isPending}
+                    onCheckedChange={(v) =>
+                      upsertDept
+                        .mutateAsync({ department_id: d.id, extra_juz_enabled: v })
+                        .then(() => toast.success("تم التحديث"))
+                        .catch((e) => toast.error(getErrorMessage(e as Error)))
+                    }
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="relative mb-3">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -112,6 +165,8 @@ export function StudentJuzManagerCard() {
           {filtered.map((s) => {
             const has28 = (s.extra_juz ?? []).includes(28);
             const has29 = (s.extra_juz ?? []).includes(29);
+            const deptId = s.battalion_id ? battalionDept.get(s.battalion_id) : undefined;
+            const enabledForDept = deptExtraEnabled(deptId);
             return (
               <li
                 key={s.id}
@@ -125,24 +180,30 @@ export function StudentJuzManagerCard() {
                     </Badge>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <label className="flex items-center gap-2 text-xs border rounded-md px-2.5 py-1.5 bg-background">
-                    <Switch
-                      checked={has29}
-                      onCheckedChange={(v) => toggle(s, 29, v)}
-                      disabled={mutation.isPending}
-                    />
-                    <span>تبارك (29)</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-xs border rounded-md px-2.5 py-1.5 bg-background">
-                    <Switch
-                      checked={has28}
-                      onCheckedChange={(v) => toggle(s, 28, v)}
-                      disabled={mutation.isPending}
-                    />
-                    <span>قد سمع (28)</span>
-                  </label>
-                </div>
+                {enabledForDept ? (
+                  <div className="flex flex-wrap gap-2">
+                    <label className="flex items-center gap-2 text-xs border rounded-md px-2.5 py-1.5 bg-background">
+                      <Switch
+                        checked={has29}
+                        onCheckedChange={(v) => toggle(s, 29, v)}
+                        disabled={mutation.isPending}
+                      />
+                      <span>تبارك (29)</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs border rounded-md px-2.5 py-1.5 bg-background">
+                      <Switch
+                        checked={has28}
+                        onCheckedChange={(v) => toggle(s, 28, v)}
+                        disabled={mutation.isPending}
+                      />
+                      <span>قد سمع (28)</span>
+                    </label>
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">
+                    الميزة معطّلة لقسم هذا الطالب
+                  </span>
+                )}
               </li>
             );
           })}
