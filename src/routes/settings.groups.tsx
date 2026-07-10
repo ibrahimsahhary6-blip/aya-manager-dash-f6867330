@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@/lib/errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,8 +51,8 @@ function GroupsPage() {
     isManager || allowedIds.length === 0
       ? allDepartments
       : allDepartments.filter((d) => allowedIds.includes(d.id));
-  const hideDeptPicker = !isManager && allowedIds.length === 1;
-  const autoDeptId = !isManager && allowedIds.length === 1 ? allowedIds[0] : "";
+
+
 
   const { data: allBattalions = [] } = useBattalions();
   const { data: allCompanies = [] } = useCompanies();
@@ -126,11 +126,7 @@ function GroupsPage() {
   });
 
   // ===== Battalions =====
-  const [newBat, setNewBat] = useState("");
-  const [newBatDept, setNewBatDept] = useState<string>("");
-  useEffect(() => {
-    if (autoDeptId && newBatDept !== autoDeptId) setNewBatDept(autoDeptId);
-  }, [autoDeptId, newBatDept]);
+
 
 
   const [editingBat, setEditingBat] = useState<Battalion | null>(null);
@@ -138,24 +134,8 @@ function GroupsPage() {
   const [editBatDept, setEditBatDept] = useState<string>("");
   const [deletingBat, setDeletingBat] = useState<Battalion | null>(null);
 
-  const addBat = useMutation({
-    mutationFn: async () => {
-      if (!newBatDept) throw new Error("اختر القسم");
-      if (!newBat.trim()) throw new Error("أدخل اسم الكتيبة");
-      const { error } = await supabase.from("battalions").insert({
-        name: newBat.trim().slice(0, 100),
-        sort_order: battalions.length + 1,
-        department_id: newBatDept,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("تم إضافة الكتيبة");
-      setNewBat("");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(getErrorMessage(e)),
-  });
+
+
 
   const updateBat = useMutation({
     mutationFn: async ({ id, name, department_id }: { id: string; name: string; department_id: string }) => {
@@ -187,32 +167,11 @@ function GroupsPage() {
   });
 
   // ===== Companies =====
-  const [newCoName, setNewCoName] = useState("");
-  const [newCoBat, setNewCoBat] = useState<string>("");
   const [editingCo, setEditingCo] = useState<Company | null>(null);
   const [editCoName, setEditCoName] = useState("");
   const [editCoBat, setEditCoBat] = useState<string>("");
   const [deletingCo, setDeletingCo] = useState<Company | null>(null);
 
-  const addCo = useMutation({
-    mutationFn: async () => {
-      if (!newCoBat) throw new Error("اختر الكتيبة");
-      if (!newCoName.trim()) throw new Error("أدخل اسم السرية");
-      const count = companies.filter((c) => c.battalion_id === newCoBat).length;
-      const { error } = await supabase.from("companies").insert({
-        battalion_id: newCoBat,
-        name: newCoName.trim().slice(0, 100),
-        sort_order: count + 1,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("تم إضافة السرية");
-      setNewCoName("");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(getErrorMessage(e)),
-  });
 
   const updateCo = useMutation({
     mutationFn: async ({
@@ -254,6 +213,58 @@ function GroupsPage() {
   const deptName = (id: string | null) =>
     departments.find((d) => d.id === id)?.name ?? "—";
 
+  // Per-department inline "add battalion" inputs
+  const [batNameByDept, setBatNameByDept] = useState<Record<string, string>>({});
+  // Per-battalion inline "add company" inputs
+  const [coNameByBat, setCoNameByBat] = useState<Record<string, string>>({});
+  // Which battalions are expanded to reveal their companies
+  const [openBat, setOpenBat] = useState<Record<string, boolean>>({});
+
+  const addBatInline = useMutation({
+    mutationFn: async ({ department_id, name }: { department_id: string; name: string }) => {
+      const trimmed = name.trim().slice(0, 100);
+      if (!trimmed) throw new Error("أدخل اسم الكتيبة");
+      // Uniqueness is now per-department; block only when the same dept already has it.
+      const dup = battalions.some(
+        (b) => b.department_id === department_id && b.name.trim() === trimmed,
+      );
+      if (dup) throw new Error("يوجد كتيبة بنفس الاسم في هذا القسم");
+      const count = battalions.filter((b) => b.department_id === department_id).length;
+      const { error } = await supabase.from("battalions").insert({
+        name: trimmed,
+        sort_order: count + 1,
+        department_id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success("تم إضافة الكتيبة");
+      setBatNameByDept((s) => ({ ...s, [vars.department_id]: "" }));
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
+  const addCoInline = useMutation({
+    mutationFn: async ({ battalion_id, name }: { battalion_id: string; name: string }) => {
+      const trimmed = name.trim().slice(0, 100);
+      if (!trimmed) throw new Error("أدخل اسم السرية");
+      const count = companies.filter((c) => c.battalion_id === battalion_id).length;
+      const { error } = await supabase.from("companies").insert({
+        battalion_id,
+        name: trimmed,
+        sort_order: count + 1,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success("تم إضافة السرية");
+      setCoNameByBat((s) => ({ ...s, [vars.battalion_id]: "" }));
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="border-b bg-card/60 backdrop-blur sticky top-0 z-30">
@@ -268,28 +279,27 @@ function GroupsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 grid gap-6 lg:grid-cols-2">
-        {/* Departments */}
-        <section className="bg-card rounded-2xl border shadow-soft overflow-hidden lg:col-span-2">
-          <div className="p-4 sm:p-6 border-b flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Building2 className="h-5 w-5" />
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 grid gap-6">
+        {/* Add new department */}
+        {(isAdmin || isSuper) && (
+          <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
+            <div className="p-4 sm:p-5 border-b flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-bold">الأقسام</h2>
+                <p className="text-xs text-muted-foreground">
+                  إجمالي: {departments.length} — كل قسم يحتوي كتائبه وسراياه
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-bold">الأقسام</h2>
-              <p className="text-xs text-muted-foreground">
-                إجمالي: {departments.length} — كل كتيبة تتبع لقسم واحد
-              </p>
-            </div>
-          </div>
-
-          {(isAdmin || isSuper) && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 if (newDept.trim()) addDept.mutate(newDept);
               }}
-              className="p-4 flex gap-2 border-b bg-muted/20"
+              className="p-4 flex gap-2 bg-muted/20"
             >
               <Input
                 value={newDept}
@@ -301,146 +311,29 @@ function GroupsPage() {
                 <Plus className="h-4 w-4" /> إضافة
               </Button>
             </form>
-          )}
+          </section>
+        )}
 
-          <ul className="divide-y">
-            {departments.length === 0 && (
-              <li className="p-6 text-center text-muted-foreground text-sm">لا توجد أقسام</li>
-            )}
-            {departments.map((d) => {
-              const batCount = battalions.filter((b) => b.department_id === d.id).length;
-              return (
-                <li key={d.id} className="p-3 sm:p-4 flex items-center gap-2">
-                  {editingDept?.id === d.id ? (
-                    <>
-                      <Input
-                        value={editDeptName}
-                        onChange={(e) => setEditDeptName(e.target.value)}
-                        autoFocus
-                        maxLength={100}
-                        className="flex-1"
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => updateDept.mutate({ id: d.id, name: editDeptName })}
-                        disabled={!editDeptName.trim()}
-                      >
-                        <Check className="h-4 w-4 text-primary" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setEditingDept(null)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="flex-1 font-medium">{d.name}</span>
-                      <span className="text-xs text-muted-foreground">{batCount} كتيبة</span>
-                      {(isAdmin || isSuper) && (
-                        <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingDept(d);
-                              setEditDeptName(d.name);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeletingDept(d)}
-                            disabled={batCount > 0}
-                            title={batCount > 0 ? "انقل الكتائب إلى قسم آخر قبل الحذف" : "حذف"}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </>
-                      )}
-                    </>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        {/* Battalions */}
-        <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
-          <div className="p-4 sm:p-6 border-b flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Layers className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-bold">الكتائب</h2>
-              <p className="text-xs text-muted-foreground">إجمالي: {battalions.length}</p>
-            </div>
+        {/* Departments tree */}
+        {departments.length === 0 && (
+          <div className="p-6 text-center text-sm text-muted-foreground rounded-2xl border bg-card">
+            لا توجد أقسام بعد
           </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addBat.mutate();
-            }}
-            className="p-4 grid gap-2 border-b bg-muted/20"
-          >
-            {!hideDeptPicker && (
-              <Select value={newBatDept} onValueChange={setNewBatDept}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر القسم" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            <div className="flex gap-2">
-              <Input
-                value={newBat}
-                onChange={(e) => setNewBat(e.target.value)}
-                placeholder="اسم الكتيبة الجديدة..."
-                maxLength={100}
-              />
-              <Button
-                type="submit"
-                disabled={!newBat.trim() || !newBatDept || addBat.isPending}
-                className="gap-1"
-              >
-                <Plus className="h-4 w-4" /> إضافة
-              </Button>
-            </div>
-          </form>
-
-          <ul className="divide-y">
-            {battalions.length === 0 && (
-              <li className="p-6 text-center text-muted-foreground text-sm">لا توجد كتائب</li>
-            )}
-            {battalions.map((b) => (
-              <li key={b.id} className="p-3 sm:p-4 flex items-center gap-2">
-                {editingBat?.id === b.id ? (
+        )}
+        {departments.map((d) => {
+          const deptBats = battalions.filter((b) => b.department_id === d.id);
+          return (
+            <section key={d.id} className="bg-card rounded-2xl border shadow-soft overflow-hidden">
+              {/* Department header */}
+              <div className="p-4 border-b bg-primary/5 flex items-center gap-2">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                {editingDept?.id === d.id ? (
                   <>
-                    <Select value={editBatDept} onValueChange={setEditBatDept}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>
-                            {d.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Input
-                      value={editBatName}
-                      onChange={(e) => setEditBatName(e.target.value)}
+                      value={editDeptName}
+                      onChange={(e) => setEditDeptName(e.target.value)}
                       autoFocus
                       maxLength={100}
                       className="flex-1"
@@ -448,179 +341,263 @@ function GroupsPage() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() =>
-                        updateBat.mutate({ id: b.id, name: editBatName, department_id: editBatDept })
-                      }
-                      disabled={!editBatName.trim() || !editBatDept}
+                      onClick={() => updateDept.mutate({ id: d.id, name: editDeptName })}
+                      disabled={!editDeptName.trim()}
                     >
                       <Check className="h-4 w-4 text-primary" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditingBat(null)}>
+                    <Button size="icon" variant="ghost" onClick={() => setEditingDept(null)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </>
                 ) : (
                   <>
-                    <span className="flex-1 font-medium">{b.name}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                      {deptName(b.department_id)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {companies.filter((c) => c.battalion_id === b.id).length} سرية
-                    </span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingBat(b);
-                        setEditBatName(b.name);
-                        setEditBatDept(b.department_id);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setDeletingBat(b)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold truncate">قسم {d.name}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {deptBats.length} كتيبة
+                      </div>
+                    </div>
+                    {(isAdmin || isSuper) && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingDept(d);
+                            setEditDeptName(d.name);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setDeletingDept(d)}
+                          disabled={deptBats.length > 0}
+                          title={deptBats.length > 0 ? "انقل الكتائب إلى قسم آخر قبل الحذف" : "حذف"}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
-              </li>
-            ))}
-          </ul>
-        </section>
+              </div>
 
-        {/* Companies */}
-        <section className="bg-card rounded-2xl border shadow-soft overflow-hidden">
-          <div className="p-4 sm:p-6 border-b flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Users className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-bold">السرايا</h2>
-              <p className="text-xs text-muted-foreground">إجمالي: {companies.length}</p>
-            </div>
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addCo.mutate();
-            }}
-            className="p-4 grid gap-2 border-b bg-muted/20"
-          >
-            <Select value={newCoBat} onValueChange={setNewCoBat}>
-              <SelectTrigger>
-                <SelectValue placeholder="اختر الكتيبة" />
-              </SelectTrigger>
-              <SelectContent>
-                {battalions.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name} — {deptName(b.department_id)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex gap-2">
-              <Input
-                value={newCoName}
-                onChange={(e) => setNewCoName(e.target.value)}
-                placeholder="اسم السرية الجديدة..."
-                maxLength={100}
-              />
-              <Button
-                type="submit"
-                disabled={!newCoBat || !newCoName.trim() || addCo.isPending}
-                className="gap-1"
+              {/* Add battalion under this department */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addBatInline.mutate({ department_id: d.id, name: batNameByDept[d.id] ?? "" });
+                }}
+                className="px-4 py-3 border-b bg-muted/20 flex gap-2"
               >
-                <Plus className="h-4 w-4" /> إضافة
-              </Button>
-            </div>
-          </form>
+                <div className="h-8 w-8 shrink-0 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+                  <Layers className="h-4 w-4" />
+                </div>
+                <Input
+                  value={batNameByDept[d.id] ?? ""}
+                  onChange={(e) => setBatNameByDept((s) => ({ ...s, [d.id]: e.target.value }))}
+                  placeholder="اسم الكتيبة الجديدة..."
+                  maxLength={100}
+                  className="flex-1"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!(batNameByDept[d.id]?.trim()) || addBatInline.isPending}
+                  className="gap-1"
+                >
+                  <Plus className="h-4 w-4" /> إضافة
+                </Button>
+              </form>
 
-          <ul className="divide-y max-h-[500px] overflow-y-auto">
-            {companies.length === 0 && (
-              <li className="p-6 text-center text-muted-foreground text-sm">لا توجد سرايا</li>
-            )}
-            {battalions.map((b) => {
-              const list = companies.filter((c) => c.battalion_id === b.id);
-              if (list.length === 0) return null;
-              return (
-                <li key={b.id} className="p-0">
-                  <div className="px-4 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground">
-                    {b.name} <span className="opacity-70">— {deptName(b.department_id)}</span>
-                  </div>
-                  <ul className="divide-y">
-                    {list.map((c) => (
-                      <li key={c.id} className="px-4 py-2.5 flex items-center gap-2">
-                        {editingCo?.id === c.id ? (
+              {/* Battalions list */}
+              <ul className="divide-y">
+                {deptBats.length === 0 && (
+                  <li className="p-4 text-center text-xs text-muted-foreground">
+                    لا توجد كتائب في هذا القسم
+                  </li>
+                )}
+                {deptBats.map((b) => {
+                  const list = companies.filter((c) => c.battalion_id === b.id);
+                  const isOpen = openBat[b.id] ?? false;
+                  return (
+                    <li key={b.id} className="p-0">
+                      {/* Battalion row */}
+                      <div className="px-4 py-3 flex items-center gap-2">
+                        {editingBat?.id === b.id ? (
                           <>
-                            <Select value={editCoBat} onValueChange={setEditCoBat}>
-                              <SelectTrigger className="w-32">
+                            <Select value={editBatDept} onValueChange={setEditBatDept}>
+                              <SelectTrigger className="w-28">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {battalions.map((bb) => (
-                                  <SelectItem key={bb.id} value={bb.id}>
-                                    {bb.name}
+                                {departments.map((dd) => (
+                                  <SelectItem key={dd.id} value={dd.id}>
+                                    {dd.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                             <Input
-                              value={editCoName}
-                              onChange={(e) => setEditCoName(e.target.value)}
+                              value={editBatName}
+                              onChange={(e) => setEditBatName(e.target.value)}
+                              autoFocus
                               maxLength={100}
                               className="flex-1"
-                              autoFocus
                             />
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={() =>
-                                updateCo.mutate({
-                                  id: c.id,
-                                  name: editCoName,
-                                  battalion_id: editCoBat,
-                                })
+                                updateBat.mutate({ id: b.id, name: editBatName, department_id: editBatDept })
                               }
-                              disabled={!editCoName.trim() || !editCoBat}
+                              disabled={!editBatName.trim() || !editBatDept}
                             >
                               <Check className="h-4 w-4 text-primary" />
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => setEditingCo(null)}>
+                            <Button size="icon" variant="ghost" onClick={() => setEditingBat(null)}>
                               <X className="h-4 w-4" />
                             </Button>
                           </>
                         ) : (
                           <>
-                            <span className="flex-1 text-sm">{c.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => setOpenBat((s) => ({ ...s, [b.id]: !isOpen }))}
+                              className="flex-1 text-right flex items-center gap-2 min-w-0"
+                            >
+                              <Layers className="h-4 w-4 text-primary shrink-0" />
+                              <span className="font-semibold truncate">{b.name}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                                {list.length} سرية
+                              </span>
+                            </button>
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={() => {
-                                setEditingCo(c);
-                                setEditCoName(c.name);
-                                setEditCoBat(c.battalion_id);
+                                setEditingBat(b);
+                                setEditBatName(b.name);
+                                setEditBatDept(b.department_id);
                               }}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            {canManageFor(battalions.find((b) => b.id === c.battalion_id)?.department_id ?? null) && (
-                              <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
+                            <Button size="icon" variant="ghost" onClick={() => setDeletingBat(b)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </>
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+                      </div>
+
+                      {/* Companies under this battalion */}
+                      {isOpen && (
+                        <div className="bg-muted/20 border-t">
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              addCoInline.mutate({
+                                battalion_id: b.id,
+                                name: coNameByBat[b.id] ?? "",
+                              });
+                            }}
+                            className="px-4 py-2.5 flex gap-2"
+                          >
+                            <div className="h-7 w-7 shrink-0 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+                              <Users className="h-3.5 w-3.5" />
+                            </div>
+                            <Input
+                              value={coNameByBat[b.id] ?? ""}
+                              onChange={(e) =>
+                                setCoNameByBat((s) => ({ ...s, [b.id]: e.target.value }))
+                              }
+                              placeholder="اسم السرية الجديدة..."
+                              maxLength={100}
+                              className="flex-1 h-9"
+                            />
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={!(coNameByBat[b.id]?.trim()) || addCoInline.isPending}
+                              className="gap-1"
+                            >
+                              <Plus className="h-4 w-4" /> إضافة
+                            </Button>
+                          </form>
+                          <ul className="divide-y border-t">
+                            {list.length === 0 && (
+                              <li className="px-4 py-3 text-center text-xs text-muted-foreground">
+                                لا توجد سرايا
+                              </li>
+                            )}
+                            {list.map((c) => (
+                              <li key={c.id} className="px-4 py-2.5 flex items-center gap-2">
+                                {editingCo?.id === c.id ? (
+                                  <>
+                                    <Input
+                                      value={editCoName}
+                                      onChange={(e) => setEditCoName(e.target.value)}
+                                      maxLength={100}
+                                      className="flex-1"
+                                      autoFocus
+                                    />
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        updateCo.mutate({
+                                          id: c.id,
+                                          name: editCoName,
+                                          battalion_id: editCoBat || b.id,
+                                        })
+                                      }
+                                      disabled={!editCoName.trim()}
+                                    >
+                                      <Check className="h-4 w-4 text-primary" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" onClick={() => setEditingCo(null)}>
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                    <span className="flex-1 text-sm truncate">{c.name}</span>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setEditingCo(c);
+                                        setEditCoName(c.name);
+                                        setEditCoBat(c.battalion_id);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    {canManageFor(d.id) && (
+                                      <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })}
       </main>
+
 
       <AlertDialog open={!!deletingDept} onOpenChange={(o) => !o && setDeletingDept(null)}>
         <AlertDialogContent dir="rtl">
