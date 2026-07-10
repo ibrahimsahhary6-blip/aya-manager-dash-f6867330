@@ -26,7 +26,6 @@ type StudentRow = {
 export function StudentJuzManagerCard() {
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
-  const isManager = isAdmin || isSuper;
   const qc = useQueryClient();
   const [q, setQ] = useState("");
 
@@ -34,6 +33,8 @@ export function StudentJuzManagerCard() {
   const { data: battalions = [] } = useBattalions();
   const { data: deptSettings = [] } = useDepartmentSettings();
   const upsertDept = useUpsertDepartmentSetting();
+  void isAdmin;
+
 
   const battalionDept = useMemo(() => {
     const m = new Map<string, string>();
