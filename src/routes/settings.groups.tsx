@@ -41,7 +41,6 @@ export const Route = createFileRoute("/settings/groups")({
 
 function GroupsPage() {
   const qc = useQueryClient();
-  const canManage = useCanManageStudents();
   const canManageFor = useCanManageStudentsResolver();
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
