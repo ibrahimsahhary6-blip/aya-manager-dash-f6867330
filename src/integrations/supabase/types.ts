@@ -254,6 +254,38 @@ export type Database = {
           },
         ]
       }
+      department_settings: {
+        Row: {
+          admins_can_manage_students: boolean | null
+          department_id: string
+          extra_juz_enabled: boolean
+          updated_at: string
+          users_can_manage_students: boolean | null
+        }
+        Insert: {
+          admins_can_manage_students?: boolean | null
+          department_id: string
+          extra_juz_enabled?: boolean
+          updated_at?: string
+          users_can_manage_students?: boolean | null
+        }
+        Update: {
+          admins_can_manage_students?: boolean | null
+          department_id?: string
+          extra_juz_enabled?: boolean
+          updated_at?: string
+          users_can_manage_students?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_settings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: true
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -449,11 +481,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_admin_manage_students: {
-        Args: { _user_id: string }
+      battalion_department_id: {
+        Args: { _battalion_id: string }
+        Returns: string
+      }
+      can_admin_manage_students:
+        | { Args: { _user_id: string }; Returns: boolean }
+        | {
+            Args: { _department_id: string; _user_id: string }
+            Returns: boolean
+          }
+      current_actor_email: { Args: never; Returns: string }
+      department_extra_juz_enabled: {
+        Args: { _department_id: string }
         Returns: boolean
       }
-      current_actor_email: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
