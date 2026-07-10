@@ -20,7 +20,7 @@ export const Route = createFileRoute("/settings/")({
 });
 
 type MenuItem = {
-  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr" | "/settings/surah-search";
+  to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr" | "/settings/surah-search" | "/settings/juz";
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
