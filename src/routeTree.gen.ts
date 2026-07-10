@@ -21,6 +21,7 @@ import { Route as SettingsUsersRouteImport } from './routes/settings.users'
 import { Route as SettingsSystemRouteImport } from './routes/settings.system'
 import { Route as SettingsSurahSearchRouteImport } from './routes/settings.surah-search'
 import { Route as SettingsQrRouteImport } from './routes/settings.qr'
+import { Route as SettingsJuzRouteImport } from './routes/settings.juz'
 import { Route as SettingsGroupsRouteImport } from './routes/settings.groups'
 import { Route as SettingsAccountRouteImport } from './routes/settings.account'
 import { Route as ApiPublicHooksDailyBackupRouteImport } from './routes/api/public/hooks/daily-backup'
@@ -85,6 +86,11 @@ const SettingsQrRoute = SettingsQrRouteImport.update({
   path: '/qr',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsJuzRoute = SettingsJuzRouteImport.update({
+  id: '/juz',
+  path: '/juz',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsGroupsRoute = SettingsGroupsRouteImport.update({
   id: '/groups',
   path: '/groups',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/trash': typeof TrashRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/groups': typeof SettingsGroupsRoute
+  '/settings/juz': typeof SettingsJuzRoute
   '/settings/qr': typeof SettingsQrRoute
   '/settings/surah-search': typeof SettingsSurahSearchRoute
   '/settings/system': typeof SettingsSystemRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/trash': typeof TrashRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/groups': typeof SettingsGroupsRoute
+  '/settings/juz': typeof SettingsJuzRoute
   '/settings/qr': typeof SettingsQrRoute
   '/settings/surah-search': typeof SettingsSurahSearchRoute
   '/settings/system': typeof SettingsSystemRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/trash': typeof TrashRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/groups': typeof SettingsGroupsRoute
+  '/settings/juz': typeof SettingsJuzRoute
   '/settings/qr': typeof SettingsQrRoute
   '/settings/surah-search': typeof SettingsSurahSearchRoute
   '/settings/system': typeof SettingsSystemRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/trash'
     | '/settings/account'
     | '/settings/groups'
+    | '/settings/juz'
     | '/settings/qr'
     | '/settings/surah-search'
     | '/settings/system'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/trash'
     | '/settings/account'
     | '/settings/groups'
+    | '/settings/juz'
     | '/settings/qr'
     | '/settings/surah-search'
     | '/settings/system'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/trash'
     | '/settings/account'
     | '/settings/groups'
+    | '/settings/juz'
     | '/settings/qr'
     | '/settings/surah-search'
     | '/settings/system'
@@ -303,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsQrRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/juz': {
+      id: '/settings/juz'
+      path: '/juz'
+      fullPath: '/settings/juz'
+      preLoaderRoute: typeof SettingsJuzRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/groups': {
       id: '/settings/groups'
       path: '/groups'
@@ -330,6 +349,7 @@ declare module '@tanstack/react-router' {
 interface SettingsRouteChildren {
   SettingsAccountRoute: typeof SettingsAccountRoute
   SettingsGroupsRoute: typeof SettingsGroupsRoute
+  SettingsJuzRoute: typeof SettingsJuzRoute
   SettingsQrRoute: typeof SettingsQrRoute
   SettingsSurahSearchRoute: typeof SettingsSurahSearchRoute
   SettingsSystemRoute: typeof SettingsSystemRoute
@@ -340,6 +360,7 @@ interface SettingsRouteChildren {
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountRoute: SettingsAccountRoute,
   SettingsGroupsRoute: SettingsGroupsRoute,
+  SettingsJuzRoute: SettingsJuzRoute,
   SettingsQrRoute: SettingsQrRoute,
   SettingsSurahSearchRoute: SettingsSurahSearchRoute,
   SettingsSystemRoute: SettingsSystemRoute,

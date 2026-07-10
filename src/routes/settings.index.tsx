@@ -7,7 +7,9 @@ import {
   UserCircle,
   QrCode,
   Search,
+  BookOpen,
   ChevronLeft,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
