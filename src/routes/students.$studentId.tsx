@@ -743,11 +743,12 @@ function StudentProfilePage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const val = codeInput.trim();
-              if (!val) {
+              const suffix = codeInput.replace(/^ST-/i, "").trim();
+              if (!suffix) {
                 toast.error("الرقم التعريفي مطلوب");
                 return;
               }
+              const val = `ST-${suffix}`;
               if (val === student.student_code) {
                 setEditCodeOpen(false);
                 return;
@@ -758,16 +759,22 @@ function StudentProfilePage() {
           >
             <div className="space-y-2">
               <Label htmlFor="student-code">الرقم التعريفي</Label>
-              <Input
-                id="student-code"
-                value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value)}
-                dir="ltr"
-                className="font-mono"
-                maxLength={40}
-                autoFocus
-              />
+              <div dir="ltr" className="flex items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring">
+                <span className="px-3 py-2 font-mono text-sm text-muted-foreground border-l border-input bg-muted/50 select-none">
+                  ST-
+                </span>
+                <Input
+                  id="student-code"
+                  value={codeInput.replace(/^ST-/i, "")}
+                  onChange={(e) => setCodeInput(`ST-${e.target.value.replace(/^ST-/i, "")}`)}
+                  dir="ltr"
+                  className="font-mono border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  maxLength={37}
+                  autoFocus
+                />
+              </div>
             </div>
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditCodeOpen(false)}>
                 إلغاء
