@@ -57,7 +57,7 @@ import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
 import { OfflineSyncButton } from "@/components/OfflineSyncButton";
-import { useIsAdmin, useCanManageStudents, useCanManageStudentsResolver } from "@/lib/roles";
+import { useIsAdmin, useIsSuperAdmin, useCanManageStudentsResolver, useUserDepartmentAccess } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
 
@@ -71,7 +71,7 @@ function DashboardPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const isAdmin = useIsAdmin();
-  const canManage = useCanManageStudents();
+  const isSuper = useIsSuperAdmin();
   const canManageFor = useCanManageStudentsResolver();
   // Persist filters so returning from a student profile preserves context
   const FILTERS_KEY = "dashboard-filters-v1";
@@ -107,7 +107,8 @@ function DashboardPage() {
 
   const { data: battalionsAll = [] } = useBattalions();
   const { data: companiesAll = [] } = useCompanies();
-  const { scopedBattalionIds } = useDepartmentContext();
+  const { scopedBattalionIds, currentDepartmentId } = useDepartmentContext();
+  const { allowedIds, all: allDepts } = useUserDepartmentAccess();
   const battalions = useMemo(
     () => (scopedBattalionIds === null ? battalionsAll : battalionsAll.filter((b) => scopedBattalionIds.includes(b.id))),
     [battalionsAll, scopedBattalionIds],
@@ -116,6 +117,19 @@ function DashboardPage() {
     () => (scopedBattalionIds === null ? companiesAll : companiesAll.filter((c) => scopedBattalionIds.includes(c.battalion_id))),
     [companiesAll, scopedBattalionIds],
   );
+
+  // Header "add" button reflects the CURRENT department context:
+  // - specific department selected → check that department only
+  // - "all" while user has multiple allowed departments → require every one to permit
+  // - super_admin / global admin viewing "all" → allow if global setting permits
+  const canManage = useMemo(() => {
+    if (currentDepartmentId && currentDepartmentId !== "all") {
+      return canManageFor(currentDepartmentId);
+    }
+    if (isSuper || allDepts) return canManageFor(null);
+    if (allowedIds.length === 0) return false;
+    return allowedIds.every((id) => canManageFor(id));
+  }, [currentDepartmentId, canManageFor, isSuper, allDepts, allowedIds]);
 
   const battalionName = (id: string | null) =>
     battalions.find((b) => b.id === id)?.name ?? "—";
