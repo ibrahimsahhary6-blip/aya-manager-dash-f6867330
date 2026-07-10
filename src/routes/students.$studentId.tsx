@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { useCurrentUserId, useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { useStudentDepartmentExtraJuzEnabled } from "@/lib/department-settings";
 import {
   compareReportDates,
   formatArabicReportDate,
@@ -553,6 +554,10 @@ function StudentProfilePage() {
       : current.filter((j) => j !== juz);
     juzMutation.mutate(next);
   };
+  void toggleJuz;
+  const extraJuzEnabledForDept = useStudentDepartmentExtraJuzEnabled(
+    (student as (Student & { battalion_id?: string | null }) | null | undefined)?.battalion_id ?? null,
+  );
 
 
   if (isLoading || (!student && localStudentCheckKey !== studentId)) {
@@ -853,7 +858,7 @@ function StudentProfilePage() {
             loading={addMutation.isPending}
             onSubmit={(v) => addMutation.mutate(v)}
             onCancel={() => setAddOpen(false)}
-            extraJuz={((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? []}
+            extraJuz={extraJuzEnabledForDept ? ((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? [] : []}
           />
         </DialogContent>
       </Dialog>
@@ -881,7 +886,7 @@ function StudentProfilePage() {
                 updateMutation.mutate({ id: editing.id, values })
               }
               onCancel={() => setEditing(null)}
-              extraJuz={((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? []}
+              extraJuz={extraJuzEnabledForDept ? ((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? [] : []}
             />
           )}
         </DialogContent>
