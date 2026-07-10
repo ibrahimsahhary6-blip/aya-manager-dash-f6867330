@@ -731,7 +731,57 @@ function StudentProfilePage() {
         />
       </div>
 
+      {/* Edit student code dialog */}
+      <Dialog open={editCodeOpen} onOpenChange={setEditCodeOpen}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>تعديل الرقم التعريفي</DialogTitle>
+            <DialogDescription>
+              يجب أن يكون الرقم فريداً ولا يتكرر مع طالب آخر.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const val = codeInput.trim();
+              if (!val) {
+                toast.error("الرقم التعريفي مطلوب");
+                return;
+              }
+              if (val === student.student_code) {
+                setEditCodeOpen(false);
+                return;
+              }
+              codeMutation.mutate(val);
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="student-code">الرقم التعريفي</Label>
+              <Input
+                id="student-code"
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
+                dir="ltr"
+                className="font-mono"
+                maxLength={40}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditCodeOpen(false)}>
+                إلغاء
+              </Button>
+              <Button type="submit" disabled={codeMutation.isPending}>
+                {codeMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Export date-range dialog */}
+
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent dir="rtl" className="sm:max-w-md">
           <DialogHeader>
