@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useBattalions, useCompanies } from "@/lib/orgs";
 import { useCurrentUserId, useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { useStudentDepartmentExtraJuzEnabled } from "@/lib/department-settings";
 import {
   compareReportDates,
   formatArabicReportDate,
