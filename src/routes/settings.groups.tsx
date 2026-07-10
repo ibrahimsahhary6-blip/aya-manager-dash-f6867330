@@ -126,11 +126,7 @@ function GroupsPage() {
   });
 
   // ===== Battalions =====
-  const [newBat, setNewBat] = useState("");
-  const [newBatDept, setNewBatDept] = useState<string>("");
-  useEffect(() => {
-    if (autoDeptId && newBatDept !== autoDeptId) setNewBatDept(autoDeptId);
-  }, [autoDeptId, newBatDept]);
+
 
 
   const [editingBat, setEditingBat] = useState<Battalion | null>(null);
