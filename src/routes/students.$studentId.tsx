@@ -520,6 +520,32 @@ function StudentProfilePage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const [editCodeOpen, setEditCodeOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+
+  const codeMutation = useMutation({
+    mutationFn: async (student_code: string) => {
+      qc.setQueryData(["student", studentId], student ? ({ ...student, student_code } as Student) : student);
+      patchStudentsCache((rows) =>
+        rows.map((r) => (r.id === studentId ? ({ ...r, student_code, updated_at: new Date().toISOString() } as Student) : r)),
+      );
+      const { queued } = await runOrQueue({
+        kind: "student_update",
+        payload: { id: studentId, patch: { student_code } },
+      });
+      return { queued };
+    },
+    onSuccess: (res) => {
+      toast.success(res.queued ? "تم حفظ الرقم محلياً وسيُزامَن لاحقاً" : "تم تحديث الرقم التعريفي");
+      setEditCodeOpen(false);
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["student", studentId] });
+        qc.invalidateQueries({ queryKey: ["students"] });
+      }
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
   const toggleJuz = (juz: 28 | 29, enabled: boolean) => {
     const current = ((student as (Student & { extra_juz?: number[] | null }) | null | undefined)?.extra_juz) ?? [];
     const next = enabled
@@ -527,6 +553,7 @@ function StudentProfilePage() {
       : current.filter((j) => j !== juz);
     juzMutation.mutate(next);
   };
+
 
   if (isLoading || (!student && localStudentCheckKey !== studentId)) {
     return (
@@ -575,6 +602,21 @@ function StudentProfilePage() {
             <span className="font-mono text-xs text-primary font-semibold">
               {student.student_code}
             </span>
+            {isManager && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="تعديل الرقم التعريفي"
+                onClick={() => {
+                  setCodeInput(student.student_code ?? "");
+                  setEditCodeOpen(true);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
           </div>
         </div>
       </header>
@@ -689,7 +731,57 @@ function StudentProfilePage() {
         />
       </div>
 
+      {/* Edit student code dialog */}
+      <Dialog open={editCodeOpen} onOpenChange={setEditCodeOpen}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>تعديل الرقم التعريفي</DialogTitle>
+            <DialogDescription>
+              يجب أن يكون الرقم فريداً ولا يتكرر مع طالب آخر.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const val = codeInput.trim();
+              if (!val) {
+                toast.error("الرقم التعريفي مطلوب");
+                return;
+              }
+              if (val === student.student_code) {
+                setEditCodeOpen(false);
+                return;
+              }
+              codeMutation.mutate(val);
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="student-code">الرقم التعريفي</Label>
+              <Input
+                id="student-code"
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
+                dir="ltr"
+                className="font-mono"
+                maxLength={40}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditCodeOpen(false)}>
+                إلغاء
+              </Button>
+              <Button type="submit" disabled={codeMutation.isPending}>
+                {codeMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Export date-range dialog */}
+
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent dir="rtl" className="sm:max-w-md">
           <DialogHeader>
