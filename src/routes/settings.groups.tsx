@@ -167,32 +167,11 @@ function GroupsPage() {
   });
 
   // ===== Companies =====
-  const [newCoName, setNewCoName] = useState("");
-  const [newCoBat, setNewCoBat] = useState<string>("");
   const [editingCo, setEditingCo] = useState<Company | null>(null);
   const [editCoName, setEditCoName] = useState("");
   const [editCoBat, setEditCoBat] = useState<string>("");
   const [deletingCo, setDeletingCo] = useState<Company | null>(null);
 
-  const addCo = useMutation({
-    mutationFn: async () => {
-      if (!newCoBat) throw new Error("اختر الكتيبة");
-      if (!newCoName.trim()) throw new Error("أدخل اسم السرية");
-      const count = companies.filter((c) => c.battalion_id === newCoBat).length;
-      const { error } = await supabase.from("companies").insert({
-        battalion_id: newCoBat,
-        name: newCoName.trim().slice(0, 100),
-        sort_order: count + 1,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("تم إضافة السرية");
-      setNewCoName("");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(getErrorMessage(e)),
-  });
 
   const updateCo = useMutation({
     mutationFn: async ({
