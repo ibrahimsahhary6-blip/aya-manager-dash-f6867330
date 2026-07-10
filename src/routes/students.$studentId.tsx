@@ -520,6 +520,32 @@ function StudentProfilePage() {
     onError: (e: Error) => toast.error(getErrorMessage(e)),
   });
 
+  const [editCodeOpen, setEditCodeOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+
+  const codeMutation = useMutation({
+    mutationFn: async (student_code: string) => {
+      qc.setQueryData(["student", studentId], student ? ({ ...student, student_code } as Student) : student);
+      patchStudentsCache((rows) =>
+        rows.map((r) => (r.id === studentId ? ({ ...r, student_code, updated_at: new Date().toISOString() } as Student) : r)),
+      );
+      const { queued } = await runOrQueue({
+        kind: "student_update",
+        payload: { id: studentId, patch: { student_code } },
+      });
+      return { queued };
+    },
+    onSuccess: (res) => {
+      toast.success(res.queued ? "تم حفظ الرقم محلياً وسيُزامَن لاحقاً" : "تم تحديث الرقم التعريفي");
+      setEditCodeOpen(false);
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        qc.invalidateQueries({ queryKey: ["student", studentId] });
+        qc.invalidateQueries({ queryKey: ["students"] });
+      }
+    },
+    onError: (e: Error) => toast.error(getErrorMessage(e)),
+  });
+
   const toggleJuz = (juz: 28 | 29, enabled: boolean) => {
     const current = ((student as (Student & { extra_juz?: number[] | null }) | null | undefined)?.extra_juz) ?? [];
     const next = enabled
@@ -527,6 +553,7 @@ function StudentProfilePage() {
       : current.filter((j) => j !== juz);
     juzMutation.mutate(next);
   };
+
 
   if (isLoading || (!student && localStudentCheckKey !== studentId)) {
     return (
