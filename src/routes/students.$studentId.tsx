@@ -554,6 +554,10 @@ function StudentProfilePage() {
       : current.filter((j) => j !== juz);
     juzMutation.mutate(next);
   };
+  void toggleJuz;
+  const extraJuzEnabledForDept = useStudentDepartmentExtraJuzEnabled(
+    (student as (Student & { battalion_id?: string | null }) | null | undefined)?.battalion_id ?? null,
+  );
 
 
   if (isLoading || (!student && localStudentCheckKey !== studentId)) {
