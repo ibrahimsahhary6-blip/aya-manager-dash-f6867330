@@ -59,7 +59,7 @@ export function StudentJuzManagerCard() {
       if (error) throw error;
       return (data ?? []) as StudentRow[];
     },
-    enabled: isManager,
+    enabled: true,
   });
 
   const filtered = useMemo(() => {
@@ -97,7 +97,7 @@ export function StudentJuzManagerCard() {
     mutation.mutate({ id: s.id, extra_juz: next });
   };
 
-  if (!isManager) return null;
+  
 
   return (
     <section className="rounded-2xl border bg-card p-5 shadow-soft" dir="rtl">
