@@ -606,7 +606,7 @@ function GroupsPage() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            {canManage && (
+                            {canManageFor(battalions.find((b) => b.id === c.battalion_id)?.department_id ?? null) && (
                               <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
