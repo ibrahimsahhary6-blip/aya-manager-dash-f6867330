@@ -602,6 +602,21 @@ function StudentProfilePage() {
             <span className="font-mono text-xs text-primary font-semibold">
               {student.student_code}
             </span>
+            {isManager && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="تعديل الرقم التعريفي"
+                onClick={() => {
+                  setCodeInput(student.student_code ?? "");
+                  setEditCodeOpen(true);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
           </div>
         </div>
       </header>
