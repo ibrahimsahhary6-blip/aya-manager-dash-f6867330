@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, RotateCcw } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { useIsSuperAdmin } from "@/lib/roles";
 import {
   useDepartmentSettings,
@@ -59,34 +59,10 @@ export function ManageStudentsPermissionCard() {
             const s = settingOf(d.id);
             const admins = s?.admins_can_manage_students ?? false;
             const users = s?.users_can_manage_students ?? false;
-            const hasOverride =
-              s?.admins_can_manage_students !== null && s?.admins_can_manage_students !== undefined
-                ? true
-                : s?.users_can_manage_students !== null && s?.users_can_manage_students !== undefined;
             return (
               <li key={d.id} className="rounded-xl border bg-muted/30 p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-sm">{d.name}</span>
-                  {hasOverride && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs gap-1"
-                      onClick={() =>
-                        upsert
-                          .mutateAsync({
-                            department_id: d.id,
-                            admins_can_manage_students: null,
-                            users_can_manage_students: null,
-                          })
-                          .then(() => toast.success("أُعيد للإعداد الافتراضي"))
-                          .catch((e) => toast.error(getErrorMessage(e as Error)))
-                      }
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      افتراضي
-                    </Button>
-                  )}
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between rounded-lg bg-background px-3 py-2 border">
