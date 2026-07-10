@@ -54,6 +54,13 @@ const items: MenuItem[] = [
     icon: Search,
   },
   {
+    to: "/settings/juz",
+    title: "الأجزاء المتاحة للتسميع",
+    description: "تفعيل جزء تبارك (29) وقد سمع (28) للطلاب",
+    icon: BookOpen,
+  },
+  {
+
     to: "/settings/system",
     title: "أدوات النظام",
     description: "تصدير التقارير، سلة المحذوفات، النسخ الاحتياطي",
