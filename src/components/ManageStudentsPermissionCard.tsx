@@ -2,10 +2,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { ShieldCheck } from "lucide-react";
 import { useIsSuperAdmin } from "@/lib/roles";
-import {
-  useDepartmentSettings,
-  useUpsertDepartmentSetting,
-} from "@/lib/department-settings";
+import { useDepartmentSettings, useUpsertDepartmentSetting } from "@/lib/department-settings";
 import { useDepartments } from "@/lib/orgs";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -39,9 +36,7 @@ export function ManageStudentsPermissionCard() {
           <ShieldCheck className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <h2 className="font-bold text-sm sm:text-base">
-            صلاحية إدارة الطلاب والسرايا لكل قسم
-          </h2>
+          <h2 className="font-bold text-sm sm:text-base">صلاحية إدارة الطلاب والسرايا لكل قسم</h2>
           <p className="text-xs text-muted-foreground mt-1">
             فعّل/عطّل إضافة وحذف الطلاب والسرايا لكل قسم على حدة. المدير الأعلى يستطيع دائماً.
           </p>
