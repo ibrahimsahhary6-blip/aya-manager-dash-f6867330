@@ -9,12 +9,13 @@ import {
 } from "@/lib/access-requests.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useIsAdmin, useIsSuperAdmin } from "@/lib/roles";
+import { useIsAdmin, useIsSuperAdmin, useCurrentUserId } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/errors";
 
 export function AccessRequestsCard() {
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
+  const { userId } = useCurrentUserId();
   const allowed = isAdmin || isSuper;
 
   const list = useServerFn(listPendingAccessRequests);
@@ -23,8 +24,14 @@ export function AccessRequestsCard() {
   const qc = useQueryClient();
 
   const q = useQuery({
-    queryKey: ["access-requests-pending"],
-    enabled: allowed,
+    queryKey: ["access-requests-pending", userId],
+    // Only run when we have both an actual signed-in user AND admin rights.
+    // Without the userId guard the query fires with a stale cached "isAdmin=true"
+    // right after a refresh-token expiry and the server function throws
+    // "Unauthorized: No authorization header provided", blanking the screen.
+    enabled: !!userId && allowed,
+    retry: false,
+    throwOnError: false,
     queryFn: () => list({ data: undefined }),
   });
 
