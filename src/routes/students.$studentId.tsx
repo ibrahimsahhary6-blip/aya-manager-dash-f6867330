@@ -882,7 +882,7 @@ function StudentProfilePage() {
                 updateMutation.mutate({ id: editing.id, values })
               }
               onCancel={() => setEditing(null)}
-              extraJuz={((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? []}
+              extraJuz={extraJuzEnabledForDept ? ((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? [] : []}
             />
           )}
         </DialogContent>
