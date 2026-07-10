@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCachedQuery } from "@/lib/local-cache";
+import { useDepartmentSettings } from "@/lib/department-settings";
+
 
 function readInitialUserId(): string | null {
   if (typeof window === "undefined") return null;
