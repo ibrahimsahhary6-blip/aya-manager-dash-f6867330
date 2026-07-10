@@ -134,24 +134,8 @@ function GroupsPage() {
   const [editBatDept, setEditBatDept] = useState<string>("");
   const [deletingBat, setDeletingBat] = useState<Battalion | null>(null);
 
-  const addBat = useMutation({
-    mutationFn: async () => {
-      if (!newBatDept) throw new Error("اختر القسم");
-      if (!newBat.trim()) throw new Error("أدخل اسم الكتيبة");
-      const { error } = await supabase.from("battalions").insert({
-        name: newBat.trim().slice(0, 100),
-        sort_order: battalions.length + 1,
-        department_id: newBatDept,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("تم إضافة الكتيبة");
-      setNewBat("");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(getErrorMessage(e)),
-  });
+
+
 
   const updateBat = useMutation({
     mutationFn: async ({ id, name, department_id }: { id: string; name: string; department_id: string }) => {
