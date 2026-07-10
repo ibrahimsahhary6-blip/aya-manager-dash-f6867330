@@ -1,6 +1,5 @@
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 import { useIsSuperAdmin } from "@/lib/roles";
 import {
