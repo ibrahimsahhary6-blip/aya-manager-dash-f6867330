@@ -57,7 +57,7 @@ import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
 import { OfflineSyncButton } from "@/components/OfflineSyncButton";
-import { useIsAdmin, useCanManageStudents } from "@/lib/roles";
+import { useIsAdmin, useCanManageStudents, useCanManageStudentsResolver } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
 
