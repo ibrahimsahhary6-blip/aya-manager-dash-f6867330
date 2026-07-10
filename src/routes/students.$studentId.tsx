@@ -854,7 +854,7 @@ function StudentProfilePage() {
             loading={addMutation.isPending}
             onSubmit={(v) => addMutation.mutate(v)}
             onCancel={() => setAddOpen(false)}
-            extraJuz={((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? []}
+            extraJuz={extraJuzEnabledForDept ? ((student as Student & { extra_juz?: number[] | null }).extra_juz) ?? [] : []}
           />
         </DialogContent>
       </Dialog>
