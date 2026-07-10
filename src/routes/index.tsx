@@ -573,7 +573,7 @@ function DashboardPage() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          {canManage && (
+                          {canManageFor(battalionsAll.find((b) => b.id === s.battalion_id)?.department_id ?? null) && (
                             <Button
                               size="icon"
                               variant="ghost"
