@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCachedQuery } from "@/lib/local-cache";
+import { useDepartmentSettings } from "@/lib/department-settings";
+
 
 function readInitialUserId(): string | null {
   if (typeof window === "undefined") return null;
@@ -147,16 +149,46 @@ export function useUsersCanManageStudentsSetting() {
   return usePermissionFlag("users_can_manage_students");
 }
 
-export function useCanManageStudents() {
+/**
+ * Returns a resolver `(departmentId) => boolean` that respects per-department
+ * overrides (from `department_settings`) and falls back to the global
+ * `app_settings` flags when a department has no override.
+ */
+export function useCanManageStudentsResolver() {
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
-  const { data: adminFlag } = useAdminsCanManageStudentsSetting();
-  const { data: userFlag } = useUsersCanManageStudentsSetting();
-  if (isSuper) return true;
-  if (isAdmin && adminFlag) return true;
-  if (userFlag) return true;
-  return false;
+  const { data: adminGlobal } = useAdminsCanManageStudentsSetting();
+  const { data: userGlobal } = useUsersCanManageStudentsSetting();
+  const { data: settings = [] } = useDepartmentSettings();
+
+  return (departmentId: string | null | undefined) => {
+    if (isSuper) return true;
+    const s = departmentId ? settings.find((x) => x.department_id === departmentId) : null;
+    const admin = s?.admins_can_manage_students ?? adminGlobal ?? false;
+    const user = s?.users_can_manage_students ?? userGlobal ?? false;
+    return isAdmin ? !!admin : !!user;
+  };
 }
+
+export function useCanManageStudentsForDepartment(departmentId: string | null | undefined) {
+  const resolver = useCanManageStudentsResolver();
+  return resolver(departmentId);
+}
+
+/**
+ * True when the current user can manage students in at least one accessible
+ * department. Used to gate global UI like the "Add student" header button.
+ */
+export function useCanManageStudents(departmentId?: string | null) {
+  const resolver = useCanManageStudentsResolver();
+  const isSuper = useIsSuperAdmin();
+  const { allowedIds, all } = useUserDepartmentAccess();
+  if (departmentId !== undefined) return resolver(departmentId);
+  if (isSuper) return true;
+  if (all) return resolver(null);
+  return allowedIds.some((id) => resolver(id));
+}
+
 
 /**
  * Returns the list of department ids the current user can access.

@@ -57,7 +57,7 @@ import { DepartmentSwitcher, useDepartmentContext } from "@/lib/department";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { BrandLogo } from "@/components/BrandLogo";
 import { OfflineSyncButton } from "@/components/OfflineSyncButton";
-import { useIsAdmin, useCanManageStudents } from "@/lib/roles";
+import { useIsAdmin, useCanManageStudents, useCanManageStudentsResolver } from "@/lib/roles";
 
 import { normalizeArabic } from "@/lib/normalize";
 
@@ -72,6 +72,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const isAdmin = useIsAdmin();
   const canManage = useCanManageStudents();
+  const canManageFor = useCanManageStudentsResolver();
   // Persist filters so returning from a student profile preserves context
   const FILTERS_KEY = "dashboard-filters-v1";
   const initialFilters = (() => {
@@ -572,7 +573,7 @@ function DashboardPage() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          {canManage && (
+                          {canManageFor(battalionsAll.find((b) => b.id === s.battalion_id)?.department_id ?? null) && (
                             <Button
                               size="icon"
                               variant="ghost"

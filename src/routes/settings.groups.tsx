@@ -33,7 +33,7 @@ import {
   type Company,
   type Department,
 } from "@/lib/orgs";
-import { useCanManageStudents, useIsAdmin, useIsSuperAdmin, useUserDepartmentAccess } from "@/lib/roles";
+import { useCanManageStudentsResolver, useIsAdmin, useIsSuperAdmin, useUserDepartmentAccess } from "@/lib/roles";
 
 export const Route = createFileRoute("/settings/groups")({
   component: GroupsPage,
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/settings/groups")({
 
 function GroupsPage() {
   const qc = useQueryClient();
-  const canManage = useCanManageStudents();
+  const canManageFor = useCanManageStudentsResolver();
   const isAdmin = useIsAdmin();
   const isSuper = useIsSuperAdmin();
   const { allowedIds, all } = useUserDepartmentAccess();
@@ -605,7 +605,7 @@ function GroupsPage() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            {canManage && (
+                            {canManageFor(battalions.find((b) => b.id === c.battalion_id)?.department_id ?? null) && (
                               <Button size="icon" variant="ghost" onClick={() => setDeletingCo(c)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
