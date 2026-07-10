@@ -51,8 +51,8 @@ function GroupsPage() {
     isManager || allowedIds.length === 0
       ? allDepartments
       : allDepartments.filter((d) => allowedIds.includes(d.id));
-  const hideDeptPicker = !isManager && allowedIds.length === 1;
-  const autoDeptId = !isManager && allowedIds.length === 1 ? allowedIds[0] : "";
+
+
 
   const { data: allBattalions = [] } = useBattalions();
   const { data: allCompanies = [] } = useCompanies();
