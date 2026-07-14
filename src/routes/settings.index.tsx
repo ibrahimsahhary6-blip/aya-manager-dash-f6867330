@@ -23,6 +23,7 @@ type MenuItem = {
   to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr" | "/settings/surah-search" | "/settings/juz";
   title: string;
   description: string;
+  adminDescription?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
 };
