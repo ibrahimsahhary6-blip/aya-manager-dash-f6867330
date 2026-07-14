@@ -14,9 +14,48 @@ import { useEffect } from "react";
 import { registerPWA } from "@/lib/pwa-register";
 import { flushQueue } from "@/lib/offline-queue";
 import { syncAllOfflineData } from "@/lib/offline-sync";
+import { clearAllCache } from "@/lib/local-cache";
 
 import appCss from "../styles.css?url";
 
+const PWA_ERROR_RECOVERY_FLAG = "pwa-error-recovery-attempted-v1";
+
+async function recoverInstalledAppShell() {
+  await clearAllCache().catch(() => undefined);
+
+  if (typeof window === "undefined") return;
+
+  if ("caches" in window) {
+    const cacheNames = await window.caches.keys();
+    await Promise.allSettled(
+      cacheNames.map((name) => {
+        const shouldDelete =
+          name.includes("aya-manager") ||
+          name.includes("workbox") ||
+          name.includes("precache") ||
+          name.includes("runtime") ||
+          name.includes("html-pages") ||
+          name.includes("static-assets") ||
+          name.includes("google-fonts") ||
+          name.includes("images");
+        return shouldDelete ? window.caches.delete(name) : Promise.resolve(false);
+      }),
+    );
+  }
+
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.allSettled(registrations.map((registration) => registration.unregister()));
+  }
+}
+
+function isStandaloneInstalledApp() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
 
 function NotFoundComponent() {
   return (
@@ -42,6 +81,22 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error }: { error: Error }) {
   console.error(error);
+
+  useEffect(() => {
+    if (!isStandaloneInstalledApp()) return;
+    if (window.sessionStorage.getItem(PWA_ERROR_RECOVERY_FLAG)) return;
+    window.sessionStorage.setItem(PWA_ERROR_RECOVERY_FLAG, "1");
+    recoverInstalledAppShell()
+      .then(() => window.location.reload())
+      .catch(() => undefined);
+  }, []);
+
+  const handleRecovery = () => {
+    recoverInstalledAppShell()
+      .then(() => window.location.reload())
+      .catch(() => window.location.reload());
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -49,6 +104,13 @@ function ErrorComponent({ error }: { error: Error }) {
         <p className="mt-2 text-sm text-muted-foreground">
           نأسف لذلك. يرجى إعادة تحميل الصفحة أو المحاولة مجدداً.
         </p>
+        <button
+          type="button"
+          onClick={handleRecovery}
+          className="mt-5 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          إصلاح التطبيق وإعادة الفتح
+        </button>
       </div>
     </div>
   );
@@ -112,6 +174,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => {
+    try {
+      window.sessionStorage.removeItem(PWA_ERROR_RECOVERY_FLAG);
+    } catch {
+      // ignore storage failures
+    }
     registerPWA();
     // On mount, try flushing any queued offline writes (covers app re-open while online).
     if (typeof navigator !== "undefined" && navigator.onLine) {
