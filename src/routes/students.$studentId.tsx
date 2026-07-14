@@ -860,7 +860,7 @@ function StudentProfilePage() {
             loading={addMutation.isPending}
             onSubmit={(v) => addMutation.mutate(v)}
             onCancel={() => setAddOpen(false)}
-            extraJuz={extraJuzEnabledForDept ? [28, 29] : []}
+            extraJuz={effectiveExtraJuz}
           />
         </DialogContent>
       </Dialog>
@@ -888,7 +888,7 @@ function StudentProfilePage() {
                 updateMutation.mutate({ id: editing.id, values })
               }
               onCancel={() => setEditing(null)}
-              extraJuz={extraJuzEnabledForDept ? [28, 29] : []}
+              extraJuz={effectiveExtraJuz}
             />
           )}
         </DialogContent>
