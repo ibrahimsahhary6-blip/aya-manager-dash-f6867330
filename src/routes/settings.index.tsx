@@ -23,6 +23,7 @@ type MenuItem = {
   to: "/settings/groups" | "/settings/users" | "/settings/system" | "/settings/account" | "/settings/qr" | "/settings/surah-search" | "/settings/juz";
   title: string;
   description: string;
+  adminDescription?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
 };
@@ -60,12 +61,12 @@ const items: MenuItem[] = [
     icon: BookOpen,
   },
   {
-
     to: "/settings/system",
     title: "أدوات النظام",
-    description: "تصدير التقارير، سلة المحذوفات، النسخ الاحتياطي",
+    description: "تصدير التقارير",
+    adminDescription: "تصدير التقارير، سلة المحذوفات، النسخ الاحتياطي",
     icon: Wrench,
-  },
+  } as MenuItem & { adminDescription?: string },
   {
     to: "/settings/account",
     title: "الحساب الشخصي",
@@ -101,7 +102,7 @@ function SettingsMenuPage() {
           </div>
         ) : (
           <ul className="grid gap-3 sm:gap-4">
-            {visibleItems.map(({ to, title, description, icon: Icon }) => (
+            {visibleItems.map(({ to, title, description, adminDescription, icon: Icon }) => (
             <li key={to}>
               <Link
                 to={to}
@@ -113,7 +114,7 @@ function SettingsMenuPage() {
                 <div className="flex-1 min-w-0">
                   <h2 className="font-bold text-base sm:text-lg">{title}</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    {description}
+                    {isAdmin && adminDescription ? adminDescription : description}
                   </p>
                 </div>
                 <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
