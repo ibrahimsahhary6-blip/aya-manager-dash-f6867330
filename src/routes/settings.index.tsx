@@ -60,12 +60,12 @@ const items: MenuItem[] = [
     icon: BookOpen,
   },
   {
-
     to: "/settings/system",
     title: "أدوات النظام",
-    description: "تصدير التقارير، سلة المحذوفات، النسخ الاحتياطي",
+    description: "تصدير التقارير",
+    adminDescription: "تصدير التقارير، سلة المحذوفات، النسخ الاحتياطي",
     icon: Wrench,
-  },
+  } as MenuItem & { adminDescription?: string },
   {
     to: "/settings/account",
     title: "الحساب الشخصي",
