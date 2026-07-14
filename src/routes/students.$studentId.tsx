@@ -558,6 +558,8 @@ function StudentProfilePage() {
   const extraJuzEnabledForDept = useStudentDepartmentExtraJuzEnabled(
     (student as (Student & { battalion_id?: string | null }) | null | undefined)?.battalion_id ?? null,
   );
+  const studentExtraJuz = ((student as (Student & { extra_juz?: number[] | null }) | null | undefined)?.extra_juz) ?? [];
+  const effectiveExtraJuz = extraJuzEnabledForDept ? studentExtraJuz : [];
 
 
   if (isLoading || (!student && localStudentCheckKey !== studentId)) {
