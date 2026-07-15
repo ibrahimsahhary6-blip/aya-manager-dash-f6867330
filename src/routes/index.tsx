@@ -222,7 +222,7 @@ function DashboardPage() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: StudentFormValues }) => {
       const payload: Partial<StudentFormValues> = { ...values };
-      if (!isAdmin) delete payload.full_name;
+      if (!isAdmin && !isSuper) delete payload.full_name;
       patchStudentsCache((rows) =>
         rows.map((r) => (r.id === id ? ({ ...r, ...payload, updated_at: new Date().toISOString() } as Student) : r)),
       );
