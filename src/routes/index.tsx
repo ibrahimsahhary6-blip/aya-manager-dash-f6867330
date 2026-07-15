@@ -139,16 +139,25 @@ function DashboardPage() {
   const { data: students = [], isLoading } = useCachedQuery<Student[]>({
     queryKey: ["students"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("students")
-        .select("id, full_name, student_code, battalion_id, company_id, created_at, deleted_at, notes, updated_at, extra_juz")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Student[];
+      const PAGE = 1000;
+      const all: Student[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("students")
+          .select("id, full_name, student_code, battalion_id, company_id, created_at, deleted_at, notes, updated_at, extra_juz")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as Student[];
+        all.push(...rows);
+        if (rows.length < PAGE) break;
+      }
+      return all;
     },
     staleTime: 60_000,
   });
+
 
 
   const filtered = useMemo(() => {
