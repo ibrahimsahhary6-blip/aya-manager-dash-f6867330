@@ -685,7 +685,7 @@ function DashboardPage() {
               }}
               submitLabel="حفظ التغييرات"
               loading={updateMutation.isPending}
-              lockName={!isAdmin}
+              lockName={!isAdmin && !isSuper}
               onSubmit={(values) =>
                 updateMutation.mutate({ id: editing.id, values })
               }
