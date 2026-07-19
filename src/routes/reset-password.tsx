@@ -119,7 +119,7 @@ function ResetPasswordPage() {
                   id="confirm"
                   type="password"
                   required
-                  minLength={4}
+                  minLength={10}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   dir="ltr"
