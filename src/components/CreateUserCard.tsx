@@ -20,8 +20,8 @@ export function CreateUserCard() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (password.length < 3) {
-      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
+    if (password.length < 10) {
+      toast.error("كلمة المرور يجب أن تكون 10 أحرف على الأقل");
       return;
     }
     setBusy(true);
@@ -63,12 +63,12 @@ export function CreateUserCard() {
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="newPassword" className="text-xs">كلمة المرور (3 أحرف فأكثر)</Label>
+          <Label htmlFor="newPassword" className="text-xs">كلمة المرور (10 أحرف فأكثر)</Label>
           <Input
             id="newPassword"
             type="text"
             required
-            minLength={3}
+            minLength={10}
             maxLength={100}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
