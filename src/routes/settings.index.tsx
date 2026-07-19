@@ -80,23 +80,23 @@ const items: MenuItem[] = [
 ];
 
 function InstallAppCard() {
-  const { installState, promptInstall } = usePWAInstall();
+  const { status, manualMessage, showInstructions, setShowInstructions, promptInstall, canPromptDirectly } = usePWAInstall();
 
-  if (installState.type === "installed") {
+  if (status === "installed") {
     return (
       <Card className="mb-4 border-green-200 bg-green-50/60 dark:bg-green-950/20">
         <CardContent className="p-4 flex items-center gap-3">
           <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-          <p className="text-sm font-medium text-green-800 dark:text-green-200">{installState.message}</p>
+          <p className="text-sm font-medium text-green-800 dark:text-green-200">التطبيق مثبت بالفعل على جهازك.</p>
         </CardContent>
       </Card>
     );
   }
 
-  if (installState.type === "available") {
-    return (
-      <Card className="mb-4 border-primary/30 bg-primary/5">
-        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+  return (
+    <Card className="mb-4 border-primary/30 bg-primary/5">
+      <CardContent className="p-4 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Download className="h-5 w-5" />
@@ -107,28 +107,18 @@ function InstallAppCard() {
             </div>
           </div>
           <Button onClick={promptInstall} className="shrink-0 w-full sm:w-auto">
-            تثبيت الآن
+            {canPromptDirectly ? "تثبيت الآن" : "تثبيت التطبيق"}
           </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (installState.type === "unsupported") {
-    return (
-      <Card className="mb-4 border-amber-200 bg-amber-50/60 dark:bg-amber-950/20">
-        <CardContent className="p-4 flex items-start gap-3">
-          <MonitorSmartphone className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-bold text-sm sm:text-base">تثبيت التطبيق</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{installState.message}</p>
+        </div>
+        {showInstructions && !canPromptDirectly && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/70 dark:bg-amber-950/20 p-3">
+            <MonitorSmartphone className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100">{manualMessage}</p>
           </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return null;
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function SettingsMenuPage() {
