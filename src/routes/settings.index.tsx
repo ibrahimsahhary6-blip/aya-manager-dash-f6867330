@@ -79,6 +79,58 @@ const items: MenuItem[] = [
   },
 ];
 
+function InstallAppCard() {
+  const { installState, promptInstall } = usePWAInstall();
+
+  if (installState.type === "installed") {
+    return (
+      <Card className="mb-4 border-green-200 bg-green-50/60 dark:bg-green-950/20">
+        <CardContent className="p-4 flex items-center gap-3">
+          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+          <p className="text-sm font-medium text-green-800 dark:text-green-200">{installState.message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (installState.type === "available") {
+    return (
+      <Card className="mb-4 border-primary/30 bg-primary/5">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Download className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm sm:text-base">تثبيت التطبيق</h3>
+              <p className="text-xs text-muted-foreground">ثبّت المنصة على جهازك للوصول السريع بدون إنترنت.</p>
+            </div>
+          </div>
+          <Button onClick={promptInstall} className="shrink-0 w-full sm:w-auto">
+            تثبيت الآن
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (installState.type === "unsupported") {
+    return (
+      <Card className="mb-4 border-amber-200 bg-amber-50/60 dark:bg-amber-950/20">
+        <CardContent className="p-4 flex items-start gap-3">
+          <MonitorSmartphone className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-sm sm:text-base">تثبيت التطبيق</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{installState.message}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
+}
+
 function SettingsMenuPage() {
   const { allowed: isAdmin, isLoading } = useAdminAccess();
   const visibleItems = items.filter((i) => !i.adminOnly || isAdmin);
