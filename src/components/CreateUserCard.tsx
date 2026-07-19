@@ -63,12 +63,12 @@ export function CreateUserCard() {
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="newPassword" className="text-xs">كلمة المرور (3 أحرف فأكثر)</Label>
+          <Label htmlFor="newPassword" className="text-xs">كلمة المرور (10 أحرف فأكثر)</Label>
           <Input
             id="newPassword"
             type="text"
             required
-            minLength={3}
+            minLength={10}
             maxLength={100}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
