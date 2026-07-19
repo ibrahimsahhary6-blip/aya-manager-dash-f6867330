@@ -65,8 +65,8 @@ function ResetPasswordPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (password.length < 4) {
-      toast.error("كلمة المرور يجب أن تكون 4 أحرف على الأقل");
+    if (password.length < 10) {
+      toast.error("كلمة المرور يجب أن تكون 10 أحرف على الأقل");
       return;
     }
     if (password !== confirm) {
