@@ -161,25 +161,26 @@ function SettingsMenuPage() {
             <InstallAppCard />
             <ul className="grid gap-3 sm:gap-4">
               {visibleItems.map(({ to, title, description, adminDescription, icon: Icon }) => (
-            <li key={to}>
-              <Link
-                to={to}
-                className="group flex items-center gap-4 p-4 sm:p-5 bg-card border rounded-2xl shadow-soft hover:bg-accent/40 hover:border-primary/40 transition-colors"
-              >
-                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-bold text-base sm:text-lg">{title}</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    {isAdmin && adminDescription ? adminDescription : description}
-                  </p>
-                </div>
-                <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-              </Link>
-            </li>
-            ))}
-          </ul>
+                <li key={to}>
+                  <Link
+                    to={to}
+                    className="group flex items-center gap-4 p-4 sm:p-5 bg-card border rounded-2xl shadow-soft hover:bg-accent/40 hover:border-primary/40 transition-colors"
+                  >
+                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="font-bold text-base sm:text-lg">{title}</h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        {isAdmin && adminDescription ? adminDescription : description}
+                      </p>
+                    </div>
+                    <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </main>
     </div>
