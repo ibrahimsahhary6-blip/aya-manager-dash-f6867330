@@ -9,11 +9,15 @@ import {
   Search,
   BookOpen,
   ChevronLeft,
-
+  Download,
+  CheckCircle2,
+  MonitorSmartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAdminAccess } from "@/lib/roles";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export const Route = createFileRoute("/settings/")({
   component: SettingsMenuPage,
@@ -75,6 +79,58 @@ const items: MenuItem[] = [
   },
 ];
 
+function InstallAppCard() {
+  const { installState, promptInstall } = usePWAInstall();
+
+  if (installState.type === "installed") {
+    return (
+      <Card className="mb-4 border-green-200 bg-green-50/60 dark:bg-green-950/20">
+        <CardContent className="p-4 flex items-center gap-3">
+          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+          <p className="text-sm font-medium text-green-800 dark:text-green-200">{installState.message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (installState.type === "available") {
+    return (
+      <Card className="mb-4 border-primary/30 bg-primary/5">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Download className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm sm:text-base">تثبيت التطبيق</h3>
+              <p className="text-xs text-muted-foreground">ثبّت المنصة على جهازك للوصول السريع بدون إنترنت.</p>
+            </div>
+          </div>
+          <Button onClick={promptInstall} className="shrink-0 w-full sm:w-auto">
+            تثبيت الآن
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (installState.type === "unsupported") {
+    return (
+      <Card className="mb-4 border-amber-200 bg-amber-50/60 dark:bg-amber-950/20">
+        <CardContent className="p-4 flex items-start gap-3">
+          <MonitorSmartphone className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-sm sm:text-base">تثبيت التطبيق</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{installState.message}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
+}
+
 function SettingsMenuPage() {
   const { allowed: isAdmin, isLoading } = useAdminAccess();
   const visibleItems = items.filter((i) => !i.adminOnly || isAdmin);
@@ -101,27 +157,30 @@ function SettingsMenuPage() {
             <p className="text-sm text-muted-foreground">جاري التحميل...</p>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:gap-4">
-            {visibleItems.map(({ to, title, description, adminDescription, icon: Icon }) => (
-            <li key={to}>
-              <Link
-                to={to}
-                className="group flex items-center gap-4 p-4 sm:p-5 bg-card border rounded-2xl shadow-soft hover:bg-accent/40 hover:border-primary/40 transition-colors"
-              >
-                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-bold text-base sm:text-lg">{title}</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    {isAdmin && adminDescription ? adminDescription : description}
-                  </p>
-                </div>
-                <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-              </Link>
-            </li>
-            ))}
-          </ul>
+          <>
+            <InstallAppCard />
+            <ul className="grid gap-3 sm:gap-4">
+              {visibleItems.map(({ to, title, description, adminDescription, icon: Icon }) => (
+                <li key={to}>
+                  <Link
+                    to={to}
+                    className="group flex items-center gap-4 p-4 sm:p-5 bg-card border rounded-2xl shadow-soft hover:bg-accent/40 hover:border-primary/40 transition-colors"
+                  >
+                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="font-bold text-base sm:text-lg">{title}</h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        {isAdmin && adminDescription ? adminDescription : description}
+                      </p>
+                    </div>
+                    <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </main>
     </div>
