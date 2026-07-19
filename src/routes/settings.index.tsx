@@ -157,8 +157,10 @@ function SettingsMenuPage() {
             <p className="text-sm text-muted-foreground">جاري التحميل...</p>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:gap-4">
-            {visibleItems.map(({ to, title, description, adminDescription, icon: Icon }) => (
+          <>
+            <InstallAppCard />
+            <ul className="grid gap-3 sm:gap-4">
+              {visibleItems.map(({ to, title, description, adminDescription, icon: Icon }) => (
             <li key={to}>
               <Link
                 to={to}
