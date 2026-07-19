@@ -9,11 +9,15 @@ import {
   Search,
   BookOpen,
   ChevronLeft,
-
+  Download,
+  CheckCircle2,
+  MonitorSmartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAdminAccess } from "@/lib/roles";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export const Route = createFileRoute("/settings/")({
   component: SettingsMenuPage,
