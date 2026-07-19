@@ -20,8 +20,8 @@ export function CreateUserCard() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (password.length < 3) {
-      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
+    if (password.length < 10) {
+      toast.error("كلمة المرور يجب أن تكون 10 أحرف على الأقل");
       return;
     }
     setBusy(true);
