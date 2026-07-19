@@ -61,7 +61,7 @@ export function ChangePasswordCard() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              minLength={4}
+              minLength={10}
               required
             />
           </div>
