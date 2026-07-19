@@ -107,7 +107,7 @@ function ResetPasswordPage() {
                   id="new"
                   type="password"
                   required
-                  minLength={4}
+                  minLength={10}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   dir="ltr"
